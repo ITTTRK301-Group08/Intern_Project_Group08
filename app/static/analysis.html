@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phân tích AI - Xác nhận đồng ý</title>
+  <link rel="stylesheet" href="/static/profile.css" />
+  <style>
+    .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+    .modal{background:#fff;max-width:640px;width:100%;border-radius:12px;border:1px solid var(--border);padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+    .modal h2{margin-top:0}.modal ul{margin:8px 0 0 18px}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+    button.danger{background:#dc2626}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Bắt đầu phân tích kỹ năng (AI Consent)</h1>
+      <p class="muted">Task 4: Xác nhận quyền sử dụng dữ liệu cho AI. Không kết nối Gemini/AI thật trong Task 4.</p>
+    </header>
+
+    <section class="card">
+      <label for="token">JWT Access Token (Bearer)</label>
+      <div class="row">
+        <input id="token" type="password" placeholder="Dán access_token sau khi đăng nhập" autocomplete="off" />
+        <button id="saveToken" type="button" class="secondary">Lưu token</button>
+      </div>
+    </section>
+
+    <div id="status" class="status" aria-live="polite"></div>
+    <div id="loading" class="loading hidden">Đang xử lý...</div>
+
+    <form id="analysisForm" class="card">
+      <h2>Yêu cầu phân tích</h2>
+      <label>CV đã tải lên (cv_id, tùy chọn nếu luồng cho phép)
+        <input id="cv_id" name="cv_id" type="number" min="1" placeholder="Nhập ID CV (ví dụ: 1)" />
+      </label>
+      <label>Vị trí nghề nghiệp mục tiêu (career_role_id, nếu luồng yêu cầu)
+        <input id="career_role_id" name="career_role_id" type="number" min="1" placeholder="Nhập ID vị trí (M3 chưa triển khai)" />
+      </label>
+      <p class="muted small">Hệ thống chỉ kiểm tra xác nhận đồng ý và quyền sở hữu CV (nếu có). Pipeline phân tích AI (M4) chưa triển khai.</p>
+      <div class="actions"><button type="submit">Bắt đầu phân tích</button></div>
+    </form>
+
+    <section id="resultCard" class="card hidden">
+      <h2>Phản hồi hệ thống</h2>
+      <pre id="resultJson" style="white-space:pre-wrap;word-break:break-word;margin:0"></pre>
+    </section>
+  </main>
+
+  <div id="consentModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
+    <div class="modal">
+      <h2 id="consentTitle">Xác nhận sử dụng dữ liệu cho AI</h2>
+      <p>Trước khi bắt đầu phân tích, vui lòng xem xét thông tin sau:</p>
+      <ul>
+        <li><strong>Mục đích:</strong> Sử dụng nội dung CV và thông tin hồ sơ cần thiết để phân tích kỹ năng/định hướng nghề nghiệp khi tính năng AI được triển khai.</li>
+        <li><strong>Dữ liệu có thể được gửi đến dịch vụ AI:</strong> nội dung văn bản trích xuất từ CV bạn chọn (nếu có) và thông tin hồ sơ liên quan đến phân tích. <strong>Không</strong> gửi mật khẩu, mật khẩu băm, JWT/access token, refresh token hoặc thông tin xác thực.</li>
+        <li><strong>Quyền từ chối:</strong> Bạn có thể chọn "Từ chối". Nếu từ chối, hệ thống sẽ dừng quy trình và <strong>không gửi dữ liệu CV/hồ sơ đến AI</strong>.</li>
+        <li><strong>Lưu ý:</strong> Task 4 chưa kết nối nhà cung cấp AI thật. Consent được xác nhận theo từng yêu cầu; hệ thống chưa lưu lịch sử đồng ý lâu dài.</li>
+      </ul>
+      <div class="modal-actions">
+        <button id="consentReject" type="button" class="danger">Từ chối</button>
+        <button id="consentAccept" type="button">Đồng ý và tiếp tục</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/analysis.js"></script>
+</body>
+</html>
