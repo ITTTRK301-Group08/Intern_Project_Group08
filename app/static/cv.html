@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tải lên CV</title>
+  <link rel="stylesheet" href="/static/profile.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Tải lên CV (PDF)</h1>
+      <p class="muted">M2 - CV Upload &amp; Text Extraction (Task 3)</p>
+    </header>
+
+    <section class="card">
+      <label for="token">JWT Access Token (Bearer)</label>
+      <div class="row">
+        <input id="token" type="password" placeholder="Dán access_token sau khi đăng nhập" autocomplete="off" />
+        <button id="saveToken" type="button" class="secondary">Lưu token</button>
+      </div>
+    </section>
+
+    <div id="status" class="status" aria-live="polite"></div>
+    <div id="loading" class="loading hidden">Đang tải lên và trích xuất văn bản...</div>
+
+    <form id="cvForm" class="card">
+      <label>Chọn file PDF (tối đa 5MB)
+        <input id="cvFile" name="file" type="file" accept="application/pdf,.pdf" required />
+      </label>
+      <div id="fileInfo" class="muted small"></div>
+      <div class="actions"><button type="submit">Tải CV lên</button></div>
+    </form>
+
+    <section id="resultCard" class="card hidden">
+      <h2>Kết quả</h2>
+      <div><span class="label">Tên file</span><div id="resName" class="value"></div></div>
+      <div><span class="label">Dung lượng</span><div id="resSize" class="value"></div></div>
+      <div><span class="label">Trạng thái trích xuất</span><div id="resExtract" class="value"></div></div>
+      <label>Nội dung trích xuất (xem trước)
+        <textarea id="resText" rows="10" readonly></textarea>
+      </label>
+    </section>
+  </main>
+  <script src="/static/cv.js"></script>
+</body>
+</html>

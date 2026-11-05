@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hồ sơ cá nhân</title>
+  <link rel="stylesheet" href="/static/profile.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Hồ sơ cá nhân</h1>
+      <p class="muted">Quản lý thông tin sinh viên (M2 - Student Profile)</p>
+    </header>
+
+    <section class="card">
+      <label for="token">JWT Access Token (Bearer)</label>
+      <div class="row">
+        <input id="token" type="password" placeholder="Dán access_token sau khi đăng nhập" autocomplete="off" />
+        <button id="saveToken" type="button" class="secondary">Lưu token</button>
+        <button id="loadProfile" type="button">Tải hồ sơ</button>
+      </div>
+      <p class="muted small">Token chỉ lưu trong trình duyệt (localStorage) để gọi API; không hiển thị trong log.</p>
+    </section>
+
+    <div id="status" class="status" aria-live="polite"></div>
+    <div id="loading" class="loading hidden">Đang xử lý...</div>
+
+    <section class="card">
+      <h2>Thông tin tài khoản</h2>
+      <div class="grid">
+        <div><span class="label">Email</span><div id="viewEmail" class="value">-</div></div>
+      </div>
+    </section>
+
+    <form id="profileForm" class="card">
+      <h2>Chỉnh sửa hồ sơ</h2>
+      <div class="grid">
+        <label>Họ và tên *<input id="full_name" name="full_name" required maxlength="150" /></label>
+        <label>Ngành học<input id="major" name="major" maxlength="150" /></label>
+        <label>Trường đại học<input id="university" name="university" maxlength="200" /></label>
+        <label>Mục tiêu nghề nghiệp<input id="career_goal" name="career_goal" maxlength="255" /></label>
+      </div>
+      <label>Giới thiệu bản thân<textarea id="bio" name="bio" rows="4"></textarea></label>
+
+      <div class="subsection">
+        <div class="subhead"><h3>Điểm mạnh</h3><button type="button" id="addStrength" class="secondary small">+ Thêm</button></div>
+        <div id="strengthsList" class="list"></div>
+      </div>
+
+      <div class="subsection">
+        <div class="subhead"><h3>Kỹ năng tự đánh giá (0–5)</h3><button type="button" id="addSkill" class="secondary small">+ Thêm</button></div>
+        <div id="skillsList" class="list"></div>
+      </div>
+
+      <div class="actions">
+        <button type="submit">Lưu cập nhật</button>
+      </div>
+    </form>
+  </main>
+  <script src="/static/profile.js"></script>
+</body>
+</html>

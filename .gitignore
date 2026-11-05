@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+*.sqlite3
+*.db
+test.db
+uploads/*
+!uploads/.gitkeep
+!uploads/cvs/
+uploads/cvs/*
+!uploads/cvs/.gitkeep
+alembic/versions/*.pyc
+.idea/
+.vscode/
+
+# Project documentation (local only)
+SRS_AI_Career_Mentor_Skill_Gap_Analyzer_v1.1.docx
+Tai_lieu_thiet_ke_he_thong_AI_Career_Mentor_v1.1.docx
