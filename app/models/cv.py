@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base
 
 if TYPE_CHECKING:
+    from app.models.cv_details import CVEducation, CVExperience
     from app.models.user import User
 
 
@@ -30,3 +31,15 @@ class CV(Base):
     )
 
     user: Mapped["User"] = relationship("User", back_populates="cvs")
+    experiences: Mapped[list["CVExperience"]] = relationship(
+        "CVExperience", back_populates="cv", cascade="all, delete-orphan"
+    )
+    educations: Mapped[list["CVEducation"]] = relationship(
+        "CVEducation", back_populates="cv", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = {
+        "mysql_engine": "InnoDB",
+        "mysql_charset": "utf8mb4",
+        "mysql_collate": "utf8mb4_0900_ai_ci",
+    }

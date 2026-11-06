@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.models.career import Skill
+from app.models.profile_data import ProfileSkill, ProfileStrength
 from app.models.student_profile import StudentProfile
 from app.schemas.profile import ProfileResponse, ProfileUpdateRequest
 
@@ -46,8 +48,28 @@ def update_profile(
         provided = provided - {"full_name"}
 
     for field in provided:
-        if field == "self_assessed_skills" and values.get(field) is not None:
-            setattr(profile, field, [item.model_dump() for item in payload.self_assessed_skills or []])
+        if field == "strengths":
+            profile.strength_items = [
+                ProfileStrength(strength=strength)
+                for strength in values.get(field) or []
+            ]
+        elif field == "self_assessed_skills":
+            skills_by_name: dict[str, tuple[Skill, int]] = {}
+            for assessment in payload.self_assessed_skills or []:
+                skill_name = assessment.skill_name.strip()
+                normalized_name = skill_name.casefold()
+                skill = db.scalar(
+                    select(Skill).where(func.lower(Skill.name) == skill_name.lower())
+                )
+                if skill is None:
+                    skill = Skill(name=skill_name)
+                    db.add(skill)
+                    db.flush()
+                skills_by_name[normalized_name] = (skill, assessment.level)
+            profile.skill_assessments = [
+                ProfileSkill(skill=skill, level=level)
+                for skill, level in skills_by_name.values()
+            ]
         else:
             setattr(profile, field, values.get(field))
 

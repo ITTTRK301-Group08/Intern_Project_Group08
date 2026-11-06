@@ -11,6 +11,8 @@ def _create_engine():
     connect_args = {}
     if settings.database_url.startswith("sqlite"):
         connect_args["check_same_thread"] = False
+    elif settings.database_url.startswith("mysql"):
+        connect_args["charset"] = "utf8mb4"
     return create_engine(
         settings.database_url,
         pool_pre_ping=True,

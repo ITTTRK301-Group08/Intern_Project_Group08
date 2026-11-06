@@ -1,1 +1,14 @@
 Generic single-database configuration.
+
+The schema contains 13 tables: users, student_profiles, cvs, career_categories,
+career_roles, skills, profile_strengths, profile_skills, career_role_skills,
+cv_experiences, cv_educations, analyses, and analysis_skill_gaps.
+
+Set DATABASE_URL in .env to a MySQL 8 connection using the PyMySQL driver and
+utf8mb4, then run:
+
+    alembic upgrade head
+
+The latest migration normalizes existing profile strengths and self-assessed
+skills, preserving existing values. Existing target_role_id values without a
+matching role are retained as imported placeholder career roles.
