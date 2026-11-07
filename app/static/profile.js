@@ -88,7 +88,7 @@
       renderProfile(body.data || {});
       setStatus(body.message || 'Đã tải hồ sơ.', 'ok');
     } catch (e) {
-      if (String(e.message).toLower().includes('not found')) {
+      if (String(e.message).toLowerCase().includes('not found')) {
         setStatus('Chưa có hồ sơ. Vui lòng nhập họ tên và lưu để tạo hồ sơ.', '');
       } else {
         setStatus(e.message, 'error');
