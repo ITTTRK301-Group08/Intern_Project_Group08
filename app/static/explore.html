@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Khám phá nghề nghiệp, kỹ năng và tài nguyên học tập miễn phí." />
+  <title>Khám phá nghề nghiệp</title>
+  <link rel="stylesheet" href="/static/profile.css" />
+  <link rel="stylesheet" href="/static/explore.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <p class="eyebrow">AI CAREER MENTOR</p>
+      <h1>Khám phá nghề nghiệp</h1>
+      <p class="muted">Tìm hiểu các vị trí, kỹ năng cần thiết và tài nguyên học tập để bắt đầu.</p>
+      <nav class="site-nav" aria-label="Điều hướng">
+        <a href="/explore" aria-current="page">Khám phá</a>
+        <a href="/profile">Hồ sơ</a>
+        <a href="/cv">CV</a>
+        <a href="/docs">API</a>
+      </nav>
+    </header>
+
+    <div id="status" class="status" role="status" aria-live="polite">Đang tải dữ liệu nghề nghiệp...</div>
+    <section class="filter-bar" aria-label="Lọc dữ liệu">
+      <label>Nhóm nghề nghiệp
+        <select id="categoryFilter"><option value="">Tất cả nhóm nghề</option></select>
+      </label>
+      <label>Kỹ năng
+        <select id="skillFilter"><option value="">Tất cả kỹ năng</option></select>
+      </label>
+      <label class="search-label">Tìm tài nguyên
+        <input id="resourceSearch" type="search" maxlength="100" placeholder="Tên khóa học, kỹ năng..." />
+      </label>
+    </section>
+
+    <section aria-labelledby="rolesHeading">
+      <div class="section-heading">
+        <h2 id="rolesHeading">Vị trí nghề nghiệp</h2>
+        <span id="roleCount" class="muted"></span>
+      </div>
+      <div id="roles" class="explore-grid"></div>
+    </section>
+
+    <section aria-labelledby="skillsHeading">
+      <div class="section-heading">
+        <h2 id="skillsHeading">Thư viện kỹ năng</h2>
+        <span id="skillCount" class="muted"></span>
+      </div>
+      <div id="skills" class="explore-grid"></div>
+    </section>
+
+    <section aria-labelledby="resourcesHeading">
+      <div class="section-heading">
+        <h2 id="resourcesHeading">Tài nguyên học tập</h2>
+        <span id="resourceCount" class="muted"></span>
+      </div>
+      <div id="resources" class="explore-grid"></div>
+    </section>
+  </main>
+  <script src="/static/explore.js"></script>
+</body>
+</html>

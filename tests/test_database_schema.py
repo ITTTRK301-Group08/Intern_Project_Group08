@@ -16,10 +16,11 @@ EXPECTED_TABLES = {
     "cv_educations",
     "analyses",
     "analysis_skill_gaps",
+    "learning_resources",
 }
 
 
-def test_schema_has_thirteen_normalized_mysql_tables():
+def test_schema_has_normalized_mysql_tables():
     assert set(Base.metadata.tables) == EXPECTED_TABLES
 
     for table in Base.metadata.tables.values():
@@ -40,3 +41,9 @@ def test_schema_has_thirteen_normalized_mysql_tables():
         "student_profiles.id",
         "skills.id",
     }
+
+    resource_forekeys = {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["learning_resources"].foreign_keys
+    }
+    assert resource_forekeys == {"skills.id"}

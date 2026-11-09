@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "AI Career Mentor & Skill Gap Analyzer"
     environment: str = "development"
-    database_url: str = "sqlite:///./app.db"
+    database_url: str = "mysql+pymysql://root:123456789@localhost:3306/ai_career_mentor"
     secret_key: str = "CHANGE_ME_SET_SECRET_KEY_IN_ENV"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
