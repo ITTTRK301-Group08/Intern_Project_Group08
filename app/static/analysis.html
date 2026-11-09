@@ -6,18 +6,33 @@
   <title>Phân tích AI - Xác nhận đồng ý</title>
   <link rel="stylesheet" href="/static/profile.css" />
   <style>
+    .site-nav{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+    .site-nav a{color:var(--primary);padding:7px 10px;border-radius:7px;text-decoration:none}
+    .site-nav a[aria-current="page"],.site-nav a:hover{background:#eaf0ff}
     .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
     .modal{background:#fff;max-width:640px;width:100%;border-radius:12px;border:1px solid var(--border);padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
     .modal h2{margin-top:0}.modal ul{margin:8px 0 0 18px}
     .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
     button.danger{background:#dc2626}
+    .warning-box{background:#fffbeb;border:1px solid #f59e0b;border-radius:10px;padding:14px;margin:12px 0;color:#78350f}
+    .warning-box h3{margin:0 0 6px;color:#92400e}
+    .warning-box p{margin:6px 0;line-height:1.5}
+    .warning-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .btn-link{display:inline-block;background:#eef2ff;color:#3730a3;text-decoration:none;padding:8px 13px;border-radius:8px;font-weight:600;font-size:.9rem}
   </style>
 </head>
 <body>
   <main class="container">
     <header class="header">
       <h1>Bắt đầu phân tích kỹ năng (AI Consent)</h1>
-      <p class="muted">Task 4: Xác nhận quyền sử dụng dữ liệu cho AI. Không kết nối Gemini/AI thật trong Task 4.</p>
+      <p class="muted">Chọn CV hoặc dữ liệu hồ sơ khai báo và vị trí nghề nghiệp mục tiêu, sau đó xác nhận đồng ý gửi dữ liệu cho AI.</p>
+      <nav class="site-nav" aria-label="Điều hướng">
+        <a href="/explore">Khám phá</a>
+        <a href="/profile">Hồ sơ</a>
+        <a href="/cv">CV</a>
+        <a href="/analysis" aria-current="page">Phân tích</a>
+        <a href="/docs">API</a>
+      </nav>
     </header>
 
     <section class="card">
@@ -33,12 +48,35 @@
 
     <form id="analysisForm" class="card">
       <h2>Yêu cầu phân tích</h2>
-      <label>CV đã tải lên (cv_id, tùy chọn nếu luồng cho phép)
-        <input id="cv_id" name="cv_id" type="number" min="1" placeholder="Nhập ID CV (ví dụ: 1)" />
-      </label>
-      <label>Vị trí nghề nghiệp mục tiêu (career_role_id, nếu luồng yêu cầu)
-        <input id="career_role_id" name="career_role_id" type="number" min="1" placeholder="Nhập ID vị trí (M3 chưa triển khai)" />
-      </label>
+      <div class="grid">
+        <label>Chọn nhanh CV đã tải lên
+          <select id="cvSelect">
+            <option value="">-- Không chọn CV (Phân tích từ dữ liệu hồ sơ khai báo) --</option>
+          </select>
+        </label>
+        <label>CV đã tải lên (cv_id, để trống nếu phân tích từ hồ sơ)
+          <input id="cv_id" name="cv_id" type="number" min="1" placeholder="Nhập ID CV hoặc chọn ở danh sách" />
+        </label>
+        <label>Chọn nhanh vị trí nghề nghiệp mục tiêu
+          <select id="roleSelect">
+            <option value="">-- Chọn vị trí nghề nghiệp --</option>
+          </select>
+        </label>
+        <label>Vị trí nghề nghiệp mục tiêu (career_role_id)
+          <input id="career_role_id" name="career_role_id" type="number" min="1" placeholder="Nhập ID vị trí hoặc chọn ở danh sách" />
+        </label>
+      </div>
+
+      <div id="scannedCvWarning" class="warning-box hidden" role="alert">
+        <h3>⚠️ Cảnh báo: CV PDF đã chọn không có lớp văn bản</h3>
+        <p><strong>Nguyên nhân:</strong> CV này có thể là PDF ảnh quét nên không có nội dung chữ trích xuất được để AI đối chiếu kỹ năng.</p>
+        <p><strong>Hướng dẫn:</strong> Bạn hãy chuyển sang phân tích trực tiếp từ dữ liệu <strong>Hồ sơ cá nhân khai báo</strong> (điểm mạnh, kỹ năng tự đánh giá, giới thiệu bản thân) hoặc tải lên file CV PDF có văn bản.</p>
+        <div class="warning-actions">
+          <button id="switchToProfileBtn" type="button">Chuyển sang phân tích từ dữ liệu hồ sơ</button>
+          <a class="btn-link" href="/profile">Kiểm tra / Cập nhật Hồ sơ cá nhân</a>
+        </div>
+      </div>
+
       <p class="muted small">Hệ thống chỉ kiểm tra xác nhận đồng ý và quyền sở hữu CV (nếu có). Pipeline phân tích AI (M4) chưa triển khai.</p>
       <div class="actions"><button type="submit">Bắt đầu phân tích</button></div>
     </form>

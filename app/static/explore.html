@@ -13,11 +13,12 @@
     <header class="header">
       <p class="eyebrow">AI CAREER MENTOR</p>
       <h1>Khám phá nghề nghiệp</h1>
-      <p class="muted">Tìm hiểu các vị trí, kỹ năng cần thiết và tài nguyên học tập để bắt đầu.</p>
+      <p class="muted">Tìm hiểu các vị trí theo cấp độ (Intern, Fresher, Junior), bộ kỹ năng yêu cầu, mức điểm chuẩn và trọng số đánh giá.</p>
       <nav class="site-nav" aria-label="Điều hướng">
         <a href="/explore" aria-current="page">Khám phá</a>
         <a href="/profile">Hồ sơ</a>
         <a href="/cv">CV</a>
+        <a href="/analysis">Phân tích</a>
         <a href="/docs">API</a>
       </nav>
     </header>
@@ -26,6 +27,14 @@
     <section class="filter-bar" aria-label="Lọc dữ liệu">
       <label>Nhóm nghề nghiệp
         <select id="categoryFilter"><option value="">Tất cả nhóm nghề</option></select>
+      </label>
+      <label>Cấp độ
+        <select id="levelFilter">
+          <option value="">Tất cả cấp độ</option>
+          <option value="Intern">Intern</option>
+          <option value="Fresher">Fresher</option>
+          <option value="Junior">Junior</option>
+        </select>
       </label>
       <label>Kỹ năng
         <select id="skillFilter"><option value="">Tất cả kỹ năng</option></select>
@@ -41,6 +50,38 @@
         <span id="roleCount" class="muted"></span>
       </div>
       <div id="roles" class="explore-grid"></div>
+    </section>
+
+    <section id="roleDetailSection" class="card role-detail-panel hidden" aria-labelledby="roleDetailTitle">
+      <div class="role-detail-header">
+        <div>
+          <div class="role-detail-badges">
+            <span id="roleDetailLevel" class="level-badge"></span>
+            <span id="roleDetailCategory" class="resource-meta"></span>
+          </div>
+          <h2 id="roleDetailTitle">Chi tiết vị trí nghề nghiệp</h2>
+          <p id="roleDetailDesc" class="muted"></p>
+        </div>
+        <button id="closeRoleDetail" type="button" class="secondary small">Đóng</button>
+      </div>
+      <div id="roleDetailStatus" class="muted small"></div>
+      <div class="table-wrap">
+        <table class="skills-detail-table">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Kỹ năng yêu cầu</th>
+              <th>Phân loại</th>
+              <th>Mức điểm chuẩn (0–5)</th>
+              <th>Trọng số</th>
+            </tr>
+          </thead>
+          <tbody id="roleDetailSkillsBody"></tbody>
+        </table>
+      </div>
+      <div class="role-actions">
+        <a id="roleAnalyzeLink" class="btn-link" href="/analysis">Phân tích kỹ năng theo vị trí này →</a>
+      </div>
     </section>
 
     <section aria-labelledby="skillsHeading">

@@ -5,6 +5,7 @@
   const statusEl = $('status');
   const loadingEl = $('loading');
   const modal = $('consentModal');
+  let cvMap = {};
 
   function setStatus(message, type) {
     statusEl.textContent = message || '';
@@ -14,12 +15,123 @@
   function getToken() { return localStorage.getItem(TOKEN_KEY) || $('token').value.trim(); }
   function showModal(show) { modal.classList.toggle('hidden', !show); }
 
+  function updateScannedWarning() {
+    const warnBox = $('scannedCvWarning');
+    if (!warnBox) return;
+    const rawId = $('cv_id').value.trim();
+    const cv = rawId ? cvMap[String(rawId)] : null;
+    if (cv && !cv.has_text) {
+      warnBox.classList.remove('hidden');
+    } else {
+      warnBox.classList.add('hidden');
+    }
+  }
+
+  async function loadCareerRoles() {
+    const roleSelect = $('roleSelect');
+    if (!roleSelect) return;
+    try {
+      const res = await fetch('/api/v1/careers');
+      if (!res.ok) return;
+      const body = await res.json();
+      const roles = body.data || [];
+      roleSelect.replaceChildren();
+      const def = document.createElement('option');
+      def.value = '';
+      def.textContent = '-- Chọn vị trí nghề nghiệp --';
+      roleSelect.appendChild(def);
+      roles.forEach((role) => {
+        const opt = document.createElement('option');
+        opt.value = String(role.id);
+        opt.textContent = role.name + ' (' + (role.level || 'Junior') + ')';
+        roleSelect.appendChild(opt);
+      });
+      if ($('career_role_id').value.trim()) {
+        roleSelect.value = $('career_role_id').value.trim();
+      }
+    } catch (_err) {
+      // keep manual input usable even if catalog fails to preload
+    }
+  }
+
+  async function loadUserCvs() {
+    const cvSelect = $('cvSelect');
+    const token = getToken();
+    if (!cvSelect || !token) return;
+    try {
+      const res = await fetch('/api/v1/cvs', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) return;
+      const body = await res.json();
+      const cvs = (body.data && body.data.cvs) || [];
+      cvMap = {};
+      cvSelect.replaceChildren();
+      const def = document.createElement('option');
+      def.value = '';
+      def.textContent = '-- Không chọn CV (Phân tích từ dữ liệu hồ sơ khai báo) --';
+      cvSelect.appendChild(def);
+      cvs.forEach((cv) => {
+        cvMap[String(cv.id)] = cv;
+        const opt = document.createElement('option');
+        opt.value = String(cv.id);
+        opt.textContent = '#' + cv.id + ' - ' + cv.file_name + (cv.has_text ? '' : ' (⚠️ Không trích xuất được văn bản)');
+        cvSelect.appendChild(opt);
+      });
+      if ($('cv_id').value.trim()) {
+        cvSelect.value = $('cv_id').value.trim();
+      }
+      updateScannedWarning();
+    } catch (_err) {
+      // ignore preload errors
+    }
+  }
+
   const saved = localStorage.getItem(TOKEN_KEY);
   if (saved) $('token').value = saved;
   $('saveToken').onclick = () => {
     localStorage.setItem(TOKEN_KEY, $('token').value.trim());
     setStatus('Đã lưu token trong trình duyệt.', 'ok');
+    loadUserCvs();
   };
+
+  if ($('cvSelect')) {
+    $('cvSelect').addEventListener('change', (e) => {
+      $('cv_id').value = e.target.value;
+      updateScannedWarning();
+    });
+  }
+  $('cv_id').addEventListener('input', () => {
+    if ($('cvSelect')) $('cvSelect').value = $('cv_id').value.trim();
+    updateScannedWarning();
+  });
+
+  if ($('roleSelect')) {
+    $('roleSelect').addEventListener('change', (e) => {
+      $('career_role_id').value = e.target.value;
+    });
+  }
+  $('career_role_id').addEventListener('input', () => {
+    if ($('roleSelect')) $('roleSelect').value = $('career_role_id').value.trim();
+  });
+
+  if ($('switchToProfileBtn')) {
+    $('switchToProfileBtn').addEventListener('click', () => {
+      $('cv_id').value = '';
+      if ($('cvSelect')) $('cvSelect').value = '';
+      updateScannedWarning();
+      setStatus('Đã chuyển sang chế độ phân tích từ dữ liệu hồ sơ khai báo (không dùng CV ảnh quét).', 'ok');
+    });
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('career_role_id')) {
+    $('career_role_id').value = params.get('career_role_id');
+  }
+  if (params.get('source') === 'profile') {
+    $('cv_id').value = '';
+    setStatus('Chế độ phân tích từ dữ liệu hồ sơ khai báo đã được chọn (bỏ trống CV).', 'ok');
+  }
 
   let pendingPayload = null;
 
@@ -78,4 +190,7 @@
 
   // Close modal only via explicit actions (no implicit accept).
   modal.addEventListener('click', (e) => { if (e.target === modal) { /* keep open */ } });
+
+  loadCareerRoles();
+  if (saved) loadUserCvs();
 })();
