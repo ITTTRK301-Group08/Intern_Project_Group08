@@ -123,10 +123,62 @@ def test_admin_can_manage_catalog_and_users_can_explore_it(client, db_session):
     assert hidden.status_code == 201
     visible_resources = client.get("/api/v1/catalog/resources").json()["data"]
     assert all(item["slug"] != "hidden-resource" for item in visible_resources)
-    admin_resources = client.get(
+    admin_catalog = client.get(
         "/api/v1/admin/catalog", headers=headers
-    ).json()["resources"]
+    ).json()
+    assert admin_catalog["success"] is True
+    admin_resources = admin_catalog["data"]["resources"]
     assert any(item["slug"] == "hidden-resource" for item in admin_resources)
+
+
+def test_bootstrapped_admin_can_login_and_manage_catalog(client, db_session):
+    admin, created = bootstrap_admin(
+        db_session, email="verified-admin@example.com", password="StrongPass123"
+    )
+    assert created is True
+    assert admin.password_hash.startswith("$2")
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "verified-admin@example.com", "password": "StrongPass123"},
+    )
+    assert login.status_code == 200
+    token = login.json()["data"]["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    catalog = client.get("/api/v1/admin/catalog", headers=headers)
+    assert catalog.status_code == 200
+    assert catalog.json()["success"] is True
+    assert isinstance(catalog.json()["data"]["categories"], list)
+
+    created_skill = client.post(
+        "/api/v1/admin/skills",
+        headers=headers,
+        json={"name": "Admin test skill", "description": "Temporary integration test"},
+    )
+    assert created_skill.status_code == 201
+    skill_id = created_skill.json()["data"]["id"]
+    deleted = client.delete(f"/api/v1/admin/skills/{skill_id}", headers=headers)
+    assert deleted.status_code == 200
+    assert deleted.json()["success"] is True
+    assert deleted.json()["data"] == {"deleted": True}
+
+
+def test_student_and_invalid_token_cannot_manage_catalog(client):
+    token = register_and_get_token(client, email="rbac-student@example.com")
+    student_response = client.get(
+        "/api/v1/admin/catalog",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert student_response.status_code == 403
+    assert student_response.json()["success"] is False
+    assert student_response.json()["detail"] == "Administrator access required"
+
+    missing_response = client.get(
+        "/api/v1/admin/catalog",
+        headers={"Authorization": "Bearer invalid-token"},
+    )
+    assert missing_response.status_code == 401
 
 
 def test_learning_resource_rejects_non_http_urls(client, db_session):

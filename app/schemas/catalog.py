@@ -114,3 +114,10 @@ class LearningResourceRead(LearningResourceWrite):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdminCatalogData(BaseModel):
+    categories: list[CategoryRead]
+    roles: list[CareerRoleRead]
+    skills: list[SkillRead]
+    resources: list[LearningResourceRead]

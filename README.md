@@ -14,7 +14,17 @@ Copy-Item .env.example .env
 ```
 
 Set `DATABASE_URL` in `.env` to your MySQL database, including
-`?charset=utf8mb4`. Set a private random `SECRET_KEY`. Never commit `.env`.
+`?charset=utf8mb4`. Generate a private random `SECRET_KEY` with
+`python -c "import secrets; print(secrets.token_urlsafe(32))"` and set it in
+`.env`. Set `CORS_ALLOWED_ORIGINS` to a JSON list of exact frontend origins
+(for example `["https://your-frontend.example"]`) when the frontend is hosted on
+a different origin; wildcard origins are not accepted. Never commit `.env`.
+
+The API uses bcrypt-hashed passwords and short-lived HS256 Bearer tokens.
+Public registration always creates a student; Admin rights are checked against
+the current database role on every request. API successes and errors use a
+consistent JSON envelope, retaining `detail` on errors for existing clients.
+In production, `SECRET_KEY` must be explicitly configured.
 
 Run the database migration; it creates the learning-resource table and seeds
 career categories, roles, role-skill requirements, skills, and curated learning
