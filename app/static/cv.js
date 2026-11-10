@@ -11,7 +11,12 @@
     statusEl.className = 'status' + (type ? ' ' + type : '');
   }
   function setLoading(on) { loadingEl.classList.toggle('hidden', !on); }
-  function getToken() { return localStorage.getItem(TOKEN_KEY) || $('token').value.trim(); }
+  function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+  function requireToken() {
+    const token = getToken();
+    if (!token) { window.location.replace('/login'); return null; }
+    return token;
+  }
 
   function formatBytes(bytes) {
     const size = Number(bytes || 0);
@@ -66,21 +71,10 @@
   }
 
   async function loadCvList() {
-    const token = getToken();
+    const token = requireToken();
     const tbody = $('cvListBody');
     const countEl = $('cvListCount');
-    if (!token) {
-      countEl.textContent = '';
-      tbody.replaceChildren();
-      const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 7;
-      td.className = 'muted';
-      td.textContent = 'Nhập JWT token để tải danh sách CV.';
-      tr.appendChild(td);
-      tbody.appendChild(tr);
-      return;
-    }
+    if (!token) return;
 
     const includeInactive = Boolean($('showInactiveCvs') && $('showInactiveCvs').checked);
     setLoading(true);
@@ -180,8 +174,8 @@
   }
 
   async function viewCvDetail(cvId) {
-    const token = getToken();
-    if (!token) { setStatus('Vui lòng nhập JWT access token.', 'error'); return; }
+    const token = requireToken();
+    if (!token) return;
     const includeInactive = Boolean($('showInactiveCvs') && $('showInactiveCvs').checked);
     setLoading(true);
     try {
@@ -211,8 +205,8 @@
   }
 
   async function deleteCv(cv) {
-    const token = getToken();
-    if (!token) { setStatus('Vui lòng nhập JWT access token.', 'error'); return; }
+    const token = requireToken();
+    if (!token) return;
     const confirmMsg = cv.has_analysis
       ? 'CV "' + cv.file_name + '" đã gắn với báo cáo phân tích lịch sử. Hệ thống sẽ thực hiện XÓA MỀM (ẩn trạng thái hoạt động) để bảo toàn lịch sử. Bạn có chắc muốn tiếp tục?'
       : 'Bạn có chắc muốn xóa vĩnh viễn CV "' + cv.file_name + '"?';
@@ -248,14 +242,6 @@
     }
   }
 
-  const saved = localStorage.getItem(TOKEN_KEY);
-  if (saved) $('token').value = saved;
-  $('saveToken').onclick = () => {
-    localStorage.setItem(TOKEN_KEY, $('token').value.trim());
-    setStatus('Đã lưu token trong trình duyệt.', 'ok');
-    loadCvList();
-  };
-
   if ($('refreshCvs')) $('refreshCvs').onclick = loadCvList;
   if ($('showInactiveCvs')) $('showInactiveCvs').onchange = loadCvList;
 
@@ -271,7 +257,7 @@
     if (!file) { setStatus('Vui lòng chọn file PDF.', 'error'); return; }
     if (file.size > MAX_SIZE) { setStatus('File vượt quá 5MB. Vui lòng chọn file nhỏ hơn.', 'error'); return; }
     const token = getToken();
-    if (!token) { setStatus('Vui lòng nhập JWT access token.', 'error'); return; }
+    if (!token) { window.location.replace('/login'); return; }
 
     const form = new FormData();
     form.append('file', file); // browser sets multipart boundary automatically
@@ -297,5 +283,5 @@
     } finally { setLoading(false); }
   };
 
-  if (saved) loadCvList();
+  loadCvList();
 })();

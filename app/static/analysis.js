@@ -12,7 +12,7 @@
     statusEl.className = 'status' + (type ? ' ' + type : '');
   }
   function setLoading(on) { loadingEl.classList.toggle('hidden', !on); }
-  function getToken() { return localStorage.getItem(TOKEN_KEY) || $('token').value.trim(); }
+  function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
   function showModal(show) { modal.classList.toggle('hidden', !show); }
 
   function updateScannedWarning() {
@@ -87,14 +87,6 @@
     }
   }
 
-  const saved = localStorage.getItem(TOKEN_KEY);
-  if (saved) $('token').value = saved;
-  $('saveToken').onclick = () => {
-    localStorage.setItem(TOKEN_KEY, $('token').value.trim());
-    setStatus('Đã lưu token trong trình duyệt.', 'ok');
-    loadUserCvs();
-  };
-
   if ($('cvSelect')) {
     $('cvSelect').addEventListener('change', (e) => {
       $('cv_id').value = e.target.value;
@@ -140,7 +132,7 @@
     setStatus('', '');
     $('resultCard').classList.add('hidden');
     const token = getToken();
-    if (!token) { setStatus('Vui lòng nhập JWT access token.', 'error'); return; }
+    if (!token) { window.location.replace('/login'); return; }
     const cvRaw = $('cv_id').value.trim();
     const careerRaw = $('career_role_id').value.trim();
     pendingPayload = {
@@ -192,5 +184,5 @@
   modal.addEventListener('click', (e) => { if (e.target === modal) { /* keep open */ } });
 
   loadCareerRoles();
-  if (saved) loadUserCvs();
+  loadUserCvs();
 })();

@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" data-require-auth="true">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>La Bàn — Hồ sơ cá nhân</title>
   <link rel="stylesheet" href="/static/profile.css" />
+  <script src="/static/session.js"></script>
 </head>
 <body>
   <main class="container">
@@ -25,16 +26,6 @@
         <a href="/docs">API</a>
       </nav>
     </header>
-
-    <section class="card">
-      <label for="token">JWT Access Token (Bearer)</label>
-      <div class="row">
-        <input id="token" type="password" placeholder="Dán access_token sau khi đăng nhập" autocomplete="off" />
-        <button id="saveToken" type="button" class="secondary">Lưu token</button>
-        <button id="loadProfile" type="button">Tải hồ sơ</button>
-      </div>
-      <p class="muted small">Token chỉ lưu trong trình duyệt (localStorage) để gọi API; không hiển thị trong log.</p>
-    </section>
 
     <div id="status" class="status" aria-live="polite"></div>
     <div id="loading" class="loading hidden">Đang xử lý...</div>
@@ -68,6 +59,7 @@
 
       <div class="actions">
         <button type="submit">Lưu cập nhật</button>
+        <button type="button" id="loadProfile" class="secondary">Tải lại hồ sơ</button>
       </div>
     </form>
   </main>

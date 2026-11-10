@@ -84,6 +84,7 @@ select:focus-visible {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+  align-items: center;
   margin: 18px 0 24px;
   padding: 5px;
   border: 1px solid var(--border);
@@ -102,6 +103,20 @@ select:focus-visible {
 
 .site-nav a[aria-current="page"],
 .site-nav a:hover {
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+}
+
+.site-nav .nav-action {
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: .94rem;
+  font-weight: 650;
+}
+
+.site-nav .nav-action:hover {
   background: var(--primary-soft);
   color: var(--primary-deep);
 }
@@ -198,6 +213,9 @@ button.small {
 }
 
 .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 12px;
 }
 

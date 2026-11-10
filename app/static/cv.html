@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" data-require-auth="true">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>La Bàn — Quản lý CV</title>
   <link rel="stylesheet" href="/static/profile.css" />
+  <script src="/static/session.js"></script>
   <style>
     .status.warning{background:#fffbeb;color:#92400e;border:1px solid #fcd34d}
     .warning-box{background:#fffbeb;border:1px solid #f59e0b;border-radius:10px;padding:14px;margin:12px 0;color:#78350f}
@@ -53,14 +54,6 @@
         <a href="/docs">API</a>
       </nav>
     </header>
-
-    <section class="card">
-      <label for="token">JWT Access Token (Bearer)</label>
-      <div class="row">
-        <input id="token" type="password" placeholder="Dán access_token sau khi đăng nhập" autocomplete="off" />
-        <button id="saveToken" type="button" class="secondary">Lưu token</button>
-      </div>
-    </section>
 
     <div id="status" class="status" aria-live="polite"></div>
     <div id="loading" class="loading hidden">Đang xử lý...</div>
@@ -127,7 +120,7 @@
             </tr>
           </thead>
           <tbody id="cvListBody">
-            <tr><td colspan="7" class="muted">Nhập JWT token và bấm "Tải danh sách" để xem các phiên bản CV.</td></tr>
+            <tr><td colspan="7" class="muted">Đang tải danh sách CV...</td></tr>
           </tbody>
         </table>
       </div>

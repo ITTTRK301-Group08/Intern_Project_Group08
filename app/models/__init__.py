@@ -2,6 +2,7 @@ from app.models.analysis import Analysis, AnalysisSkillGap
 from app.models.career import CareerCategory, CareerRole, Skill
 from app.models.cv import CV
 from app.models.cv_details import CVEducation, CVExperience
+from app.models.interview import InterviewQuestion, InterviewSession
 from app.models.learning_resource import LearningResource
 from app.models.profile_data import CareerRoleSkill, ProfileSkill, ProfileStrength
 from app.models.student_profile import StudentProfile
@@ -16,6 +17,8 @@ __all__ = [
     "CVEducation",
     "CVExperience",
     "CV",
+    "InterviewQuestion",
+    "InterviewSession",
     "LearningResource",
     "ProfileSkill",
     "ProfileStrength",
