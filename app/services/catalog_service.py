@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import TypeVar
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
@@ -21,7 +21,11 @@ def list_categories(db: Session) -> Sequence[CareerCategory]:
 
 
 def list_roles(
-    db: Session, *, category_id: int | None = None, include_inactive: bool = False
+    db: Session,
+    *,
+    category_id: int | None = None,
+    level: str | None = None,
+    include_inactive: bool = False,
 ) -> Sequence[CareerRole]:
     query = select(CareerRole).options(
         joinedload(CareerRole.category),
@@ -29,9 +33,43 @@ def list_roles(
     )
     if category_id is not None:
         query = query.where(CareerRole.category_id == category_id)
+    if level is not None and level.strip():
+        query = query.where(func.lower(CareerRole.level) == level.strip().lower())
     if not include_inactive:
         query = query.where(CareerRole.is_active.is_(True))
-    return db.scalars(query.order_by(CareerRole.name)).unique().all()
+    return db.scalars(query.order_by(CareerRole.name, CareerRole.level)).unique().all()
+
+
+def get_role_by_id(
+    db: Session, role_id: int, *, include_inactive: bool = False
+) -> CareerRole:
+    query = (
+        select(CareerRole)
+        .options(
+            joinedload(CareerRole.category),
+            joinedload(CareerRole.required_skills).joinedload(CareerRoleSkill.skill),
+        )
+        .where(CareerRole.id == role_id)
+    )
+    if not include_inactive:
+        query = query.where(CareerRole.is_active.is_(True))
+    role = db.scalars(query).unique().one_or_none()
+    if role is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Career role not found",
+        )
+    return role
+
+
+def get_role_skills(
+    db: Session, role_id: int, *, include_inactive: bool = False
+) -> list[CareerRoleSkill]:
+    role = get_role_by_id(db, role_id, include_inactive=include_inactive)
+    return sorted(
+        role.required_skills,
+        key=lambda item: (-float(item.weight), -item.required_level, item.skill_id),
+    )
 
 
 def list_skills(
@@ -121,7 +159,7 @@ def save_career_role(
     if role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Career role not found")
 
-    for field in ("category_id", "name", "slug", "description", "is_active"):
+    for field in ("category_id", "name", "slug", "level", "description", "is_active"):
         setattr(role, field, getattr(values, field))
 
     skill_ids = [item.skill_id for item in values.required_skills]
@@ -140,6 +178,8 @@ def save_career_role(
         CareerRoleSkill(
             skill=skills_by_id[item.skill_id],
             required_level=item.required_level,
+            is_required=item.is_required,
+            weight=item.weight,
         )
         for item in values.required_skills
     ]

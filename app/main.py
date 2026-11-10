@@ -14,6 +14,7 @@ from app.core.config import Settings, get_settings
 from app.routers.analyses import router as analyses_router
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
+from app.routers.careers import router as careers_router
 from app.routers.catalog import router as catalog_router
 from app.routers.cvs import router as cvs_router
 from app.routers.profile import router as profile_router
@@ -104,6 +105,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(cvs_router)
     application.include_router(analyses_router)
     application.include_router(catalog_router)
+    application.include_router(careers_router)
     application.include_router(admin_router)
 
     if STATIC_DIR.exists():
