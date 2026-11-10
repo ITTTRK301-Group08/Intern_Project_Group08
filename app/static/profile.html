@@ -3,14 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hồ sơ cá nhân</title>
+  <title>La Bàn — Hồ sơ cá nhân</title>
   <link rel="stylesheet" href="/static/profile.css" />
 </head>
 <body>
   <main class="container">
     <header class="header">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" /></svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
       <h1>Hồ sơ cá nhân</h1>
       <p class="muted">Quản lý thông tin sinh viên (M2 - Student Profile)</p>
+      <nav class="site-nav" aria-label="Điều hướng">
+        <a href="/explore">Khám phá</a>
+        <a href="/profile" aria-current="page">Hồ sơ</a>
+        <a href="/cv">CV</a>
+        <a href="/analysis">Phân tích</a>
+        <a href="/docs">API</a>
+      </nav>
     </header>
 
     <section class="card">

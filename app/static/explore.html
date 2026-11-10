@@ -4,16 +4,23 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Khám phá nghề nghiệp, kỹ năng và tài nguyên học tập miễn phí." />
-  <title>Khám phá nghề nghiệp</title>
+  <meta name="theme-color" content="#f2f7f5" />
+  <title>La Bàn Nghề Nghiệp — Khám phá</title>
   <link rel="stylesheet" href="/static/profile.css" />
   <link rel="stylesheet" href="/static/explore.css" />
 </head>
 <body>
   <main class="container">
     <header class="header">
-      <p class="eyebrow">AI CAREER MENTOR</p>
-      <h1>Khám phá nghề nghiệp</h1>
-      <p class="muted">Tìm hiểu các vị trí theo cấp độ (Intern, Fresher, Junior), bộ kỹ năng yêu cầu, mức điểm chuẩn và trọng số đánh giá.</p>
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
       <nav class="site-nav" aria-label="Điều hướng">
         <a href="/explore" aria-current="page">Khám phá</a>
         <a href="/profile">Hồ sơ</a>
@@ -22,6 +29,33 @@
         <a href="/docs">API</a>
       </nav>
     </header>
+
+    <section class="explore-hero" aria-labelledby="pageTitle">
+      <div class="hero-copy">
+        <p class="eyebrow">Bắt đầu từ điều bạn tò mò</p>
+        <h1 id="pageTitle">Con đường nghề nghiệp của bạn bắt đầu từ đây.</h1>
+        <p class="hero-intro">Khám phá nghề, nhìn rõ kỹ năng cần có, rồi chọn bước tiếp theo phù hợp với mình.</p>
+        <a class="hero-action" href="#rolesHeading">Tìm hiểu các vị trí</a>
+        <p class="hero-note">Không cần biết sẵn đích đến. Cứ bắt đầu bằng một câu hỏi.</p>
+      </div>
+      <figure class="route-map" aria-label="Minh họa hành trình từ kỹ năng đến nghề nghiệp">
+        <svg class="route-drawing" viewBox="0 0 520 340" fill="none" aria-hidden="true">
+          <path class="map-contour" d="M-10 89c62-72 129-40 178-12s105 20 154-22S430 9 530 46M-12 126c73-66 125-24 177 2s107 19 157-18 105-48 205-17M-8 269c75 22 128-10 180-47s109-53 164-23 111 42 184-8" />
+          <path class="route-line" d="M36 252c50 0 55-86 117-86 56 0 58 67 114 67 54 0 58-112 118-112 34 0 43 33 91 33" />
+          <circle class="route-halo" cx="153" cy="166" r="13" />
+          <circle class="route-point" cx="153" cy="166" r="6" />
+          <circle class="route-halo" cx="267" cy="233" r="13" />
+          <circle class="route-point" cx="267" cy="233" r="6" />
+          <circle class="route-halo route-destination" cx="385" cy="121" r="17" />
+          <circle class="route-point route-point-destination" cx="385" cy="121" r="7" />
+          <path class="north-star" d="m456 64 6 14 14 6-14 6-6 14-6-14-14-6 14-6 6-14Z" />
+        </svg>
+        <span class="map-label map-label-start">Điều bạn biết</span>
+        <span class="map-label map-label-middle">Kỹ năng mới</span>
+        <span class="map-label map-label-end">Nghề phù hợp</span>
+        <figcaption>Mỗi lựa chọn mở ra một hướng đi.</figcaption>
+      </figure>
+    </section>
 
     <div id="status" class="status" role="status" aria-live="polite">Đang tải dữ liệu nghề nghiệp...</div>
     <section class="filter-bar" aria-label="Lọc dữ liệu">

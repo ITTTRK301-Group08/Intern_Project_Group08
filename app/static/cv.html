@@ -3,12 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quản lý &amp; Tải lên CV</title>
+  <title>La Bàn — Quản lý CV</title>
   <link rel="stylesheet" href="/static/profile.css" />
   <style>
-    .site-nav{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
-    .site-nav a{color:var(--primary);padding:7px 10px;border-radius:7px;text-decoration:none}
-    .site-nav a[aria-current="page"],.site-nav a:hover{background:#eaf0ff}
     .status.warning{background:#fffbeb;color:#92400e;border:1px solid #fcd34d}
     .warning-box{background:#fffbeb;border:1px solid #f59e0b;border-radius:10px;padding:14px;margin:12px 0;color:#78350f}
     .warning-box h3{margin:0 0 8px;color:#92400e}
@@ -17,7 +14,7 @@
     .warning-box li{margin-bottom:4px}
     .warning-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
     .btn-link{display:inline-block;background:var(--primary);color:#fff;text-decoration:none;padding:8px 13px;border-radius:8px;font-weight:600;font-size:.9rem}
-    .btn-link.secondary-link{background:#eef2ff;color:#3730a3}
+    .btn-link.secondary-link{background:var(--primary-soft);color:var(--primary-deep)}
     .section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
     .section-head h2{margin:0}
     .toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
@@ -40,6 +37,12 @@
 <body>
   <main class="container">
     <header class="header">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" /></svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
       <h1>Quản lý &amp; Tải lên CV (PDF)</h1>
       <p class="muted">Tải lên CV PDF, kiểm tra trích xuất văn bản, xem chi tiết và quản lý các phiên bản CV.</p>
       <nav class="site-nav" aria-label="Điều hướng">

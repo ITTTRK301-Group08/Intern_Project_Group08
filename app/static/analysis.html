@@ -3,12 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Phân tích AI - Xác nhận đồng ý</title>
+  <title>La Bàn — Phân tích kỹ năng</title>
   <link rel="stylesheet" href="/static/profile.css" />
   <style>
-    .site-nav{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
-    .site-nav a{color:var(--primary);padding:7px 10px;border-radius:7px;text-decoration:none}
-    .site-nav a[aria-current="page"],.site-nav a:hover{background:#eaf0ff}
     .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
     .modal{background:#fff;max-width:640px;width:100%;border-radius:12px;border:1px solid var(--border);padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
     .modal h2{margin-top:0}.modal ul{margin:8px 0 0 18px}
@@ -18,12 +15,18 @@
     .warning-box h3{margin:0 0 6px;color:#92400e}
     .warning-box p{margin:6px 0;line-height:1.5}
     .warning-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    .btn-link{display:inline-block;background:#eef2ff;color:#3730a3;text-decoration:none;padding:8px 13px;border-radius:8px;font-weight:600;font-size:.9rem}
+    .btn-link{display:inline-block;background:var(--primary-soft);color:var(--primary-deep);text-decoration:none;padding:8px 13px;border-radius:8px;font-weight:600;font-size:.9rem}
   </style>
 </head>
 <body>
   <main class="container">
     <header class="header">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" /></svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
       <h1>Bắt đầu phân tích kỹ năng (AI Consent)</h1>
       <p class="muted">Chọn CV hoặc dữ liệu hồ sơ khai báo và vị trí nghề nghiệp mục tiêu, sau đó xác nhận đồng ý gửi dữ liệu cho AI.</p>
       <nav class="site-nav" aria-label="Điều hướng">
