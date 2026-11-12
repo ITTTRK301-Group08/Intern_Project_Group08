@@ -1,4 +1,4 @@
-"""Schema request tạo phiên phỏng vấn thử."""
+"""Schema request cho nghiệp vụ phỏng vấn thử (M6)."""
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,5 +14,14 @@ class InterviewCreateRequest(BaseModel):
 
     career_role_id: int = Field(gt=0)
     ai_consent: AIConsent
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class InterviewAnswerCreateRequest(BaseModel):
+    """Yêu cầu gửi câu trả lời cho một câu hỏi trong phiên."""
+
+    question_id: int = Field(gt=0)
+    answer_text: str = Field(min_length=1, max_length=10000)
 
     model_config = ConfigDict(extra="forbid")

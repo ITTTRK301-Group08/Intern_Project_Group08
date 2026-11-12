@@ -1,4 +1,7 @@
+"""Model phiên phỏng vấn thử, câu hỏi và câu trả lời (M6)."""
+
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -8,6 +11,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -36,7 +40,11 @@ class InterviewSession(Base):
         ForeignKey("career_roles.id", ondelete="SET NULL"), nullable=True
     )
     status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="ready", server_default="ready"
+        String(20), nullable=False, default="in_progress", server_default="in_progress"
+    )
+    # Điểm tổng hợp = round(trung bình cộng điểm các câu, 2).
+    total_score: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 2), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
@@ -47,6 +55,7 @@ class InterviewSession(Base):
         server_default=func.current_timestamp(),
         onupdate=func.current_timestamp(),
     )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     user: Mapped["User"] = relationship("User")
     career_role: Mapped["CareerRole | None"] = relationship("CareerRole")
@@ -59,8 +68,12 @@ class InterviewSession(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('ready', 'in_progress', 'completed', 'failed')",
+            "status IN ('in_progress', 'completed', 'abandoned')",
             name="ck_interview_sessions_status",
+        ),
+        CheckConstraint(
+            "total_score IS NULL OR (total_score >= 0 AND total_score <= 100)",
+            name="ck_interview_sessions_total_score",
         ),
         Index("ix_interview_sessions_user_created", "user_id", "created_at"),
         Index("ix_interview_sessions_career_role_id", "career_role_id"),
@@ -92,6 +105,12 @@ class InterviewQuestion(Base):
     session: Mapped["InterviewSession"] = relationship(
         "InterviewSession", back_populates="questions"
     )
+    answer: Mapped["InterviewAnswer | None"] = relationship(
+        "InterviewAnswer",
+        back_populates="question",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
 
     __table_args__ = (
         UniqueConstraint(
@@ -101,6 +120,43 @@ class InterviewQuestion(Base):
             "question_order >= 1 AND question_order <= 3",
             name="ck_interview_questions_order",
         ),
+        {
+            "mysql_engine": "InnoDB",
+            "mysql_charset": "utf8mb4",
+            "mysql_collate": "utf8mb4_0900_ai_ci",
+        },
+    )
+
+
+class InterviewAnswer(Base):
+    """Câu trả lời của sinh viên và kết quả chấm điểm do AI trả về."""
+
+    __tablename__ = "interview_answers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # UNIQUE bảo đảm mỗi câu hỏi chỉ có đúng một câu trả lời (FR-INT-05).
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("interview_questions.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    answer_text: Mapped[str] = mapped_column(Text, nullable=False)
+    score: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    feedback: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.current_timestamp()
+    )
+
+    question: Mapped["InterviewQuestion"] = relationship(
+        "InterviewQuestion", back_populates="answer"
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "score >= 0 AND score <= 100",
+            name="ck_interview_answers_score",
+        ),
+        Index("ix_interview_answers_question_id", "question_id"),
         {
             "mysql_engine": "InnoDB",
             "mysql_charset": "utf8mb4",

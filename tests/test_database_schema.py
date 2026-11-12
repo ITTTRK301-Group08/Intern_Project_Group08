@@ -19,7 +19,11 @@ EXPECTED_TABLES = {
     "learning_resources",
     "interview_sessions",
     "interview_questions",
+<<<<<<< HEAD
     "refresh_tokens",
+=======
+    "interview_answers",
+>>>>>>> 9461ae8730e80cb3e3b53d66094fa669388a2cb1
 }
 
 

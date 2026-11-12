@@ -33,6 +33,117 @@ _TIMEOUT_STATUS_CODES = frozenset({408, 504})
 # Các mã HTTP thể hiện lỗi xác thực hoặc phân quyền.
 _AUTHENTICATION_STATUS_CODES = frozenset({401, 403})
 
+# Các khóa chứa schema con trực tiếp trong JSON Schema.
+_SCHEMA_CHILD_KEYS = frozenset(
+    {
+        "items",
+        "prefixItems",
+        "contains",
+        "not",
+        "if",
+        "then",
+        "else",
+        "anyOf",
+        "oneOf",
+        "allOf",
+        "propertyNames",
+    }
+)
+# Các khóa chứa map tên trường -> schema con, không phải schema của chính nó.
+_SCHEMA_MAP_KEYS = frozenset(
+    {
+        "properties",
+        "$defs",
+        "definitions",
+        "patternProperties",
+        "dependentSchemas",
+    }
+)
+
+# Các khóa mà Schema của SDK Gemini chấp nhận sau bước chuẩn hóa tên.
+#
+# Lưu ý: Gemini Developer API của model đang dùng từ chối toàn bộ nhóm ràng buộc
+# số lượng/độ dài (``minimum``/``maximum``/``minItems``/``maxItems``/
+# ``minLength``/``maxLength``/``minProperties``/``maxProperties``) bằng
+# ``400 INVALID_ARGUMENT``. Nhóm khóa này được loại bỏ khỏi payload gửi đi;
+# Pydantic vẫn xác thực đầy đủ các ràng buộc đó ở tầng ``AIService``.
+_GEMINI_SCHEMA_KEYS = frozenset(
+    {
+        "anyOf",
+        "default",
+        "description",
+        "enum",
+        "example",
+        "format",
+        "items",
+        "nullable",
+        "pattern",
+        "properties",
+        "propertyOrdering",
+        "required",
+        "title",
+        "type",
+    }
+)
+# Các khóa JSON Schema được SDK xử lý nội bộ trước khi validate.
+_GEMINI_HANDLED_KEYS = frozenset(
+    {
+        "$defs",
+        "$ref",
+        "const",
+        "any_of",
+        "property_ordering",
+    }
+)
+# Tập khóa được phép gửi Gemini; mọi khóa khác bị loại bỏ.
+_ALLOWED_SCHEMA_KEYS = _GEMINI_SCHEMA_KEYS | _GEMINI_HANDLED_KEYS
+
+
+def _to_gemini_compatible_schema(response_schema: type[BaseModel]) -> dict[str, Any]:
+    """Chuyển JSON Schema của Pydantic sang dạng Gemini Developer API hỗ trợ.
+
+    Gemini API v1 không nhận ``additionalProperties``/``additional_properties``
+    trong ``responseSchema``. Ngoài ra ``Schema`` của SDK còn từ chối các khóa
+    như ``exclusiveMinimum``/``exclusiveMaximum`` do Pydantic sinh ra từ
+    ``Field(gt=...)``/``Field(lt=...)``, và model Gemini hiện dùng trả
+    ``400 INVALID_ARGUMENT`` khi payload có bất kỳ ràng buộc số lượng/độ dài
+    nào. Hàm này chỉ giữ lại các khóa mà SDK và API thực sự chấp nhận ở mọi
+    cấp schema (ví dụ ``type``, ``properties``, ``required``, ``items``,
+    ``anyOf``, ``enum``, ``description``).
+
+    JSON Schema mới được tạo lại từ Pydantic nên cấu hình gốc của model không
+    bị thay đổi; Pydantic vẫn tiếp tục xác thực đầy đủ mọi ràng buộc (kể cả
+    ràng buộc đã bị lược khỏi payload) ở tầng ``AIService``.
+    """
+    schema = response_schema.model_json_schema()
+
+    def strip_unsupported_keys(node: Any) -> None:
+        """Loại bỏ khóa không hỗ trợ và duyệt tiếp các schema con."""
+        if isinstance(node, list):
+            for item in node:
+                strip_unsupported_keys(item)
+            return
+        if not isinstance(node, dict):
+            return
+
+        # Chỉ xóa trên schema object, không xóa trên map tên trường.
+        node.pop("additionalProperties", None)
+        node.pop("additional_properties", None)
+        for key in list(node):
+            if key not in _ALLOWED_SCHEMA_KEYS:
+                node.pop(key, None)
+
+        for key, value in node.items():
+            if key in _SCHEMA_MAP_KEYS:
+                if isinstance(value, dict):
+                    for child_schema in value.values():
+                        strip_unsupported_keys(child_schema)
+            elif key in _SCHEMA_CHILD_KEYS:
+                strip_unsupported_keys(value)
+
+    strip_unsupported_keys(schema)
+    return schema
+
 
 class GeminiProvider(BaseAIProvider):
     """Quản lý việc gửi yêu cầu và nhận phản hồi từ Gemini."""
@@ -99,7 +210,7 @@ class GeminiProvider(BaseAIProvider):
         config = types.GenerateContentConfig()
         if response_schema is not None:
             config.response_mime_type = "application/json"
-            config.response_schema = response_schema
+            config.response_schema = _to_gemini_compatible_schema(response_schema)
         if system_instruction:
             config.system_instruction = system_instruction
 
