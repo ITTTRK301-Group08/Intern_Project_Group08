@@ -1,10 +1,19 @@
+"""Test cổng consent và quyền sở hữu của nghiệp vụ phân tích (M4).
+
+Các test ở đây chỉ kiểm tra những trường hợp bị từ chối trước khi tác vụ AI
+được đăng ký. Luồng xử lý nền thành công được kiểm tra riêng trong
+``test_analysis_pipeline.py``.
+"""
+
 import fitz
 
 from app.models.cv import CV
-from app.services import ai_service, analysis_service
+from app.services import analysis_service
 
 
-def register_and_login(client, email: str = "consent@example.com", password: str = "StrongPass123"):
+def register_and_login(
+    client, email: str = "consent@example.com", password: str = "StrongPass123"
+):
     reg = client.post("/api/v1/auth/register", json={"email": email, "password": password})
     assert reg.status_code == 201
     login = client.post("/api/v1/auth/login", json={"email": email, "password": password})
@@ -41,19 +50,20 @@ def valid_payload(cv_id=None, career_role_id=None, accepted=True, purpose_versio
 
 
 def _install_ai_spy(monkeypatch):
+    """Ghi nhận và báo lỗi nếu lớp AI bị gọi khi yêu cầu đã bị từ chối."""
     calls = []
 
     def spy(*args, **kwargs):
         calls.append({"args": args, "kwargs": kwargs})
-        raise AssertionError("AI provider must not be called in Task 4")
+        raise AssertionError("AI provider must not be called when a gate rejects")
 
-    monkeypatch.setattr(ai_service, "request_skill_gap_analysis", spy)
+    monkeypatch.setattr(analysis_service, "get_ai_service", spy)
     return calls
 
 
 def test_requires_jwt(client, monkeypatch):
     calls = _install_ai_spy(monkeypatch)
-    res = client.post("/api/v1/analyses", json=valid_payload())
+    res = client.post("/api/v1/analyses", json=valid_payload(career_role_id=1))
     assert res.status_code == 401
     assert calls == []
 
@@ -63,7 +73,7 @@ def test_invalid_token_rejected(client, monkeypatch):
     res = client.post(
         "/api/v1/analyses",
         headers={"Authorization": "Bearer invalid"},
-        json=valid_payload(),
+        json=valid_payload(career_role_id=1),
     )
     assert res.status_code == 401
     assert calls == []
@@ -72,7 +82,23 @@ def test_invalid_token_rejected(client, monkeypatch):
 def test_missing_consent_rejected(client, monkeypatch):
     headers = register_and_login(client)
     calls = _install_ai_spy(monkeypatch)
-    res = client.post("/api/v1/analyses", headers=headers, json={"cv_id": 1})
+    res = client.post(
+        "/api/v1/analyses",
+        headers=headers,
+        json={"cv_id": 1, "career_role_id": 1},
+    )
+    assert res.status_code == 422
+    assert calls == []
+
+
+def test_missing_career_role_rejected(client, monkeypatch):
+    headers = register_and_login(client)
+    calls = _install_ai_spy(monkeypatch)
+    res = client.post(
+        "/api/v1/analyses",
+        headers=headers,
+        json={"ai_consent": {"accepted": True, "purpose_version": "v1"}},
+    )
     assert res.status_code == 422
     assert calls == []
 
@@ -80,7 +106,11 @@ def test_missing_consent_rejected(client, monkeypatch):
 def test_consent_not_accepted_rejected(client, monkeypatch):
     headers = register_and_login(client)
     calls = _install_ai_spy(monkeypatch)
-    res = client.post("/api/v1/analyses", headers=headers, json=valid_payload(accepted=False))
+    res = client.post(
+        "/api/v1/analyses",
+        headers=headers,
+        json=valid_payload(career_role_id=1, accepted=False),
+    )
     assert res.status_code == 403
     body = res.json()
     assert body["detail"]["data"]["code"] == "AI_CONSENT_REQUIRED"
@@ -93,7 +123,7 @@ def test_consent_version_mismatch_rejected(client, monkeypatch):
     res = client.post(
         "/api/v1/analyses",
         headers=headers,
-        json=valid_payload(purpose_version="v999"),
+        json=valid_payload(career_role_id=1, purpose_version="v999"),
     )
     assert res.status_code == 422
     body = res.json()
@@ -106,7 +136,11 @@ def test_cannot_access_other_users_cv(client, monkeypatch):
     headers_b = register_and_login(client, "b_consent@example.com")
     cv_id_a = create_cv(client, headers_a, "a.pdf")
     calls = _install_ai_spy(monkeypatch)
-    res = client.post("/api/v1/analyses", headers=headers_b, json=valid_payload(cv_id=cv_id_a))
+    res = client.post(
+        "/api/v1/analyses",
+        headers=headers_b,
+        json=valid_payload(cv_id=cv_id_a, career_role_id=1),
+    )
     assert res.status_code == 403
     assert res.json()["detail"]["data"]["code"] == "CV_FORBIDDEN"
     assert calls == []
@@ -115,7 +149,11 @@ def test_cannot_access_other_users_cv(client, monkeypatch):
 def test_cv_not_found_rejected(client, monkeypatch):
     headers = register_and_login(client)
     calls = _install_ai_spy(monkeypatch)
-    res = client.post("/api/v1/analyses", headers=headers, json=valid_payload(cv_id=999999))
+    res = client.post(
+        "/api/v1/analyses",
+        headers=headers,
+        json=valid_payload(cv_id=999999, career_role_id=1),
+    )
     assert res.status_code == 404
     assert res.json()["detail"]["data"]["code"] == "CV_NOT_FOUND"
     assert calls == []
@@ -128,37 +166,13 @@ def test_inactive_cv_rejected(client, db_session, monkeypatch):
     cv.is_active = False
     db_session.commit()
     calls = _install_ai_spy(monkeypatch)
-    res = client.post("/api/v1/analyses", headers=headers, json=valid_payload(cv_id=cv_id))
-    assert res.status_code == 404
-    assert res.json()["detail"]["data"]["code"] == "CV_NOT_FOUND"
-    assert calls == []
-
-
-def test_valid_consent_and_ownership_returns_501(client, monkeypatch):
-    headers = register_and_login(client)
-    cv_id = create_cv(client, headers)
-    calls = _install_ai_spy(monkeypatch)
     res = client.post(
         "/api/v1/analyses",
         headers=headers,
-        json=valid_payload(cv_id=cv_id, career_role_id=2),
+        json=valid_payload(cv_id=cv_id, career_role_id=1),
     )
-    assert res.status_code == 501
-    body = res.json()
-    detail = body["detail"]
-    assert detail["success"] is False
-    assert detail["data"]["code"] == "ANALYSIS_PIPELINE_NOT_IMPLEMENTED"
-    assert "consent" in detail["message"].lower()
-    assert "analysis_id" not in str(body)
-    assert calls == []
-
-
-def test_valid_consent_without_cv_returns_501(client, monkeypatch):
-    headers = register_and_login(client)
-    calls = _install_ai_spy(monkeypatch)
-    res = client.post("/api/v1/analyses", headers=headers, json=valid_payload())
-    assert res.status_code == 501
-    assert res.json()["detail"]["data"]["code"] == "ANALYSIS_PIPELINE_NOT_IMPLEMENTED"
+    assert res.status_code == 404
+    assert res.json()["detail"]["data"]["code"] == "CV_NOT_FOUND"
     assert calls == []
 
 
@@ -180,7 +194,7 @@ def test_consent_check_runs_before_ownership(client, monkeypatch):
     res = client.post(
         "/api/v1/analyses",
         headers=headers_b,
-        json=valid_payload(cv_id=cv_id_a, accepted=False),
+        json=valid_payload(cv_id=cv_id_a, career_role_id=1, accepted=False),
     )
     assert res.status_code == 403
     assert res.json()["detail"]["data"]["code"] == "AI_CONSENT_REQUIRED"
@@ -191,7 +205,7 @@ def test_consent_check_runs_before_ownership(client, monkeypatch):
 def test_extra_consent_fields_rejected(client, monkeypatch):
     headers = register_and_login(client)
     calls = _install_ai_spy(monkeypatch)
-    payload = valid_payload()
+    payload = valid_payload(career_role_id=1)
     payload["ai_consent"]["unexpected"] = "x"
     res = client.post("/api/v1/analyses", headers=headers, json=payload)
     assert res.status_code == 422

@@ -66,24 +66,62 @@ Hai trang giao diện tương ứng UI-01 trong SRS:
   vào `localStorage` (khóa `acm_access_token`) rồi chuyển tới `next` hoặc
   `/explore`.
 - Nav của các trang hiển thị `Đăng nhập` khi chưa có phiên và `Đăng xuất` khi
-  đã đăng nhập. `/profile`, `/cv`, `/analysis` chuyển về `/login` nếu chưa có
-  token hoặc token đã hết hạn (401).
+  đã đăng nhập. `/profile`, `/cv`, `/analysis`, `/interview` chuyển về `/login`
+  nếu chưa có token hoặc token đã hết hạn (401).
 
 Access token dùng chung với các trang hiện có nên không cần dán token thủ công.
 FR-AUTH-06 (refresh token, thu hồi token phía máy chủ) vẫn ở mức Could và chưa
 triển khai; đăng xuất hiện chỉ xóa token trong trình duyệt.
 
+## Phân tích khoảng cách kỹ năng (M4)
+
+Trang `/analysis` hiện thực UI-05: chọn CV/hồ sơ và vị trí nghề nghiệp, đồng ý
+gửi dữ liệu cho AI, theo dõi trạng thái và xem báo cáo. API tương ứng:
+
+- `POST /api/v1/analyses` trả `202 Accepted` kèm `id` và trạng thái
+  `processing`; quá trình phân tích chạy nền bằng `BackgroundTasks`.
+- `GET /api/v1/analyses`: lịch sử báo cáo của chính người dùng.
+- `GET /api/v1/analyses/{id}`: chi tiết báo cáo kèm danh sách kỹ năng.
+- `GET /api/v1/analyses/{id}/status`: trạng thái `processing`, `completed`
+  hoặc `failed` (kèm `failure_reason` khi lỗi).
+- `GET /api/v1/analyses/{id}/skills`: điểm kỹ năng và khuyến nghị.
+
+Backend tự tính `gap_score = max(0, required_level - current_level)` và
+`readiness_score` theo SRS 6.3; AI chỉ trả mức hiện tại và bằng chứng. Kỹ năng
+không có bằng chứng được ghi nhận `current_level = 0`, `has_evidence = false`
+nhưng vẫn giữ trọng số. Mọi endpoint đều yêu cầu Bearer token và chỉ trả dữ
+liệu thuộc sở hữu của người dùng hiện tại.
+
+## Phỏng vấn thử (M6)
+
+Trang `/interview` hiện thực UI-07 theo luồng tuần tự từng câu hỏi. API:
+
+- `POST /api/v1/interviews` sinh đúng 3 câu hỏi; chỉ lưu phiên khi AI trả đủ
+  dữ liệu hợp lệ, ngược lại rollback toàn bộ.
+- `GET /api/v1/interviews/{id}/questions`: danh sách câu hỏi.
+- `POST /api/v1/interviews/{id}/answers`: lưu câu trả lời, chấm điểm 0–100 và
+  phản hồi; gửi trùng một câu trả về `409`.
+- `POST /api/v1/interviews/{id}/complete`: chỉ hoàn thành khi đủ 3 câu; tổng
+  điểm là trung bình cộng điểm các câu.
+- `GET /api/v1/interviews` và `GET /api/v1/interviews/{id}`: lịch sử và chi
+  tiết phiên.
+
+Phiên `in_progress` quá 24 giờ (hoặc khi người dùng tạo phiên mới cùng vị trí)
+được đánh dấu `abandoned` theo FR-INT-08/BR-07 khi đọc hoặc tạo phiên; hệ thống
+không chạy scheduler riêng.
+
 ## Cấu hình dịch vụ AI (Gemini)
 
-Task 1 – Sprint 2 xây dựng lớp hạ tầng AI dùng chung, chưa triển khai nghiệp
-vụ Skill Gap Analysis, Learning Roadmap hay Mock Interview.
+Lớp hạ tầng AI dùng chung cấp `AIService`/`GeminiProvider` cho các nghiệp vụ
+Skill Gap Analysis (M4) và Mock Interview (M6). Hai nghiệp vụ này không gọi
+trực tiếp SDK Gemini.
 
 Thêm các biến sau vào `.env` (không commit `.env`):
 
 ```dotenv
 AI_PROVIDER=gemini
 GEMINI_API_KEY=<API Key lấy tại https://aistudio.google.com/apikey>
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.5-flash
 AI_TIMEOUT=30
 AI_MAX_RETRIES=2
 ```
@@ -111,6 +149,13 @@ result = await ai_service.generate_structured(
 ```
 
 Không gọi trực tiếp `google.genai` trong router hoặc business service.
+
+`GeminiProvider` tự chuyển JSON Schema của Pydantic sang dạng Gemini chấp nhận:
+loại bỏ `additionalProperties`/`additional_properties`, `exclusiveMinimum`/
+`exclusiveMaximum` và toàn bộ ràng buộc số lượng/độ dài (`minItems`,
+`maxItems`, `minLength`, `maxLength`, `minimum`, `maximum`, ...) vì model trả
+`400 INVALID_ARGUMENT` khi gặp chúng. Schema gốc của Pydantic không bị sửa và
+`AIService` vẫn xác thực đầy đủ mọi ràng buộc sau khi nhận phản hồi.
 
 ### Chạy unit test AI
 

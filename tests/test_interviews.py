@@ -4,12 +4,13 @@ Toàn bộ test dùng SQLite in-memory và provider AI giả; không gọi Gemin
 """
 
 import json
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.career import CareerRole, Skill
-from app.models.interview import InterviewQuestion, InterviewSession
+from app.models.interview import InterviewAnswer, InterviewQuestion, InterviewSession
 from app.models.profile_data import CareerRoleSkill
 from app.schemas.interview.ai_response import InterviewGenerationAIResponse
 from app.services import interview_service
@@ -357,7 +358,7 @@ def test_create_interview_success(client, db_session, monkeypatch):
 
     data = body["data"]
     assert data["id"] > 0
-    assert data["status"] == "ready"
+    assert data["status"] == "in_progress"
     assert data["career_role"] == {
         "id": role_id,
         "name": "Backend Developer",
@@ -379,7 +380,7 @@ def test_create_interview_success(client, db_session, monkeypatch):
     assert session.id == data["id"]
     assert session.user_id == user_id
     assert session.career_role_id == role_id
-    assert session.status == "ready"
+    assert session.status == "in_progress"
 
     questions = (
         db_session.query(InterviewQuestion)
@@ -699,3 +700,379 @@ def test_database_flush_failure_rolls_back(client, db_session, monkeypatch):
 
     db_session.rollback()
     assert_no_interview_saved(db_session)
+
+
+# ---------------------------------------------------------------------------
+# Trả lời, chấm điểm và hoàn thành phiên (M6)
+# ---------------------------------------------------------------------------
+
+
+def grading_json(score: float = 80.0, feedback: str = "Phản hồi cải thiện") -> str:
+    """Tạo JSON chấm điểm hợp lệ cho AI Service."""
+    return json.dumps({"score": score, "feedback": feedback}, ensure_ascii=False)
+
+
+def create_session(client, headers, role_id: int) -> dict:
+    """Tạo phiên phỏng vấn thành công và trả về dữ liệu response."""
+    response = client.post(
+        "/api/v1/interviews",
+        headers=headers,
+        json=interview_payload(role_id),
+    )
+    assert response.status_code == 201
+    return response.json()["data"]
+
+
+def test_submit_answer_grades_and_persists(client, db_session, monkeypatch):
+    headers, _ = register_and_login(client, "answer@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(monkeypatch, questions_json(), grading_json(82.5, "Cần nêu ví dụ."))
+
+    session_data = create_session(client, headers, role_id)
+    question_id = session_data["questions"][0]["id"]
+
+    response = client.post(
+        f"/api/v1/interviews/{session_data['id']}/answers",
+        headers=headers,
+        json={"question_id": question_id, "answer_text": "Câu trả lời của tôi."},
+    )
+
+    assert response.status_code == 201
+    answer = response.json()["data"]
+    assert answer["question_id"] == question_id
+    assert answer["answer_text"] == "Câu trả lời của tôi."
+    assert answer["score"] == pytest.approx(82.5)
+    assert answer["feedback"] == "Cần nêu ví dụ."
+
+    stored = db_session.query(InterviewAnswer).filter_by(question_id=question_id).one()
+    assert float(stored.score) == pytest.approx(82.5)
+    assert stored.answer_text == "Câu trả lời của tôi."
+
+
+def test_submit_duplicate_answer_rejected(client, db_session, monkeypatch):
+    headers, _ = register_and_login(client, "duplicate@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(monkeypatch, questions_json(), grading_json())
+
+    session_data = create_session(client, headers, role_id)
+    question_id = session_data["questions"][0]["id"]
+    payload = {"question_id": question_id, "answer_text": "Câu trả lời."}
+
+    first = client.post(
+        f"/api/v1/interviews/{session_data['id']}/answers",
+        headers=headers,
+        json=payload,
+    )
+    assert first.status_code == 201
+
+    second = client.post(
+        f"/api/v1/interviews/{session_data['id']}/answers",
+        headers=headers,
+        json=payload,
+    )
+    assert second.status_code == 409
+    assert second.json()["detail"]["data"]["code"] == "INTERVIEW_ANSWER_ALREADY_EXISTS"
+    assert db_session.query(InterviewAnswer).count() == 1
+
+
+def test_submit_answer_for_unknown_question_rejected(
+    client, db_session, monkeypatch
+):
+    headers, _ = register_and_login(client, "unknownq@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(monkeypatch, questions_json())
+
+    session_data = create_session(client, headers, role_id)
+    response = client.post(
+        f"/api/v1/interviews/{session_data['id']}/answers",
+        headers=headers,
+        json={"question_id": 999999, "answer_text": "Trả lời."},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["data"]["code"] == "INTERVIEW_QUESTION_NOT_FOUND"
+
+
+def test_submit_answer_requires_ownership(client, db_session, monkeypatch):
+    owner_headers, _ = register_and_login(client, "owner_answer@example.com")
+    other_headers, _ = register_and_login(client, "other_answer@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(monkeypatch, questions_json())
+
+    session_data = create_session(client, owner_headers, role_id)
+    question_id = session_data["questions"][0]["id"]
+
+    response = client.post(
+        f"/api/v1/interviews/{session_data['id']}/answers",
+        headers=other_headers,
+        json={"question_id": question_id, "answer_text": "Trả lời."},
+    )
+
+    assert response.status_code == 404
+    assert db_session.query(InterviewAnswer).count() == 0
+
+
+def test_complete_requires_all_answers(client, db_session, monkeypatch):
+    headers, _ = register_and_login(client, "incomplete@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(monkeypatch, questions_json())
+
+    session_data = create_session(client, headers, role_id)
+    response = client.post(
+        f"/api/v1/interviews/{session_data['id']}/complete",
+        headers=headers,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["data"]["code"] == "INTERVIEW_INCOMPLETE"
+
+
+def test_complete_computes_average_and_persists(client, db_session, monkeypatch):
+    headers, _ = register_and_login(client, "complete@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(
+        monkeypatch,
+        questions_json(),
+        grading_json(60.0, "Phản hồi 1"),
+        grading_json(70.0, "Phản hồi 2"),
+        grading_json(80.0, "Phản hồi 3"),
+    )
+
+    session_data = create_session(client, headers, role_id)
+    for question in session_data["questions"]:
+        answered = client.post(
+            f"/api/v1/interviews/{session_data['id']}/answers",
+            headers=headers,
+            json={
+                "question_id": question["id"],
+                "answer_text": f"Trả lời cho câu {question['question_order']}.",
+            },
+        )
+        assert answered.status_code == 201
+
+    response = client.post(
+        f"/api/v1/interviews/{session_data['id']}/complete",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["status"] == "completed"
+    assert data["total_score"] == pytest.approx(70.0)
+    assert data["completed_at"] is not None
+    assert len(data["questions"]) == 3
+    assert all(question["answer"] is not None for question in data["questions"])
+
+    db_session.expire_all()
+    stored = db_session.get(InterviewSession, session_data["id"])
+    assert stored.status == "completed"
+    assert float(stored.total_score) == pytest.approx(70.0)
+    assert stored.completed_at is not None
+
+
+def test_complete_is_idempotent(client, db_session, monkeypatch):
+    headers, _ = register_and_login(client, "idempotent@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(
+        monkeypatch,
+        questions_json(),
+        grading_json(90.0, "Tốt"),
+        grading_json(90.0, "Tốt"),
+        grading_json(90.0, "Tốt"),
+    )
+
+    session_data = create_session(client, headers, role_id)
+    for question in session_data["questions"]:
+        client.post(
+            f"/api/v1/interviews/{session_data['id']}/answers",
+            headers=headers,
+            json={"question_id": question["id"], "answer_text": "Trả lời."},
+        )
+
+    first = client.post(
+        f"/api/v1/interviews/{session_data['id']}/complete", headers=headers
+    )
+    second = client.post(
+        f"/api/v1/interviews/{session_data['id']}/complete", headers=headers
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["data"]["status"] == "completed"
+    assert second.json()["data"]["total_score"] == pytest.approx(
+        first.json()["data"]["total_score"]
+    )
+
+
+def test_answer_after_completion_rejected(client, db_session, monkeypatch):
+    headers, _ = register_and_login(client, "aftercomplete@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(
+        monkeypatch,
+        questions_json(),
+        grading_json(70.0, "A"),
+        grading_json(70.0, "B"),
+        grading_json(70.0, "C"),
+    )
+
+    session_data = create_session(client, headers, role_id)
+    for question in session_data["questions"]:
+        client.post(
+            f"/api/v1/interviews/{session_data['id']}/answers",
+            headers=headers,
+            json={"question_id": question["id"], "answer_text": "Trả lời."},
+        )
+    client.post(f"/api/v1/interviews/{session_data['id']}/complete", headers=headers)
+
+    # Câu đã có trả lời trong phiên completed phải bị chặn.
+    response = client.post(
+        f"/api/v1/interviews/{session_data['id']}/answers",
+        headers=headers,
+        json={
+            "question_id": session_data["questions"][0]["id"],
+            "answer_text": "Trả lời lại.",
+        },
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["data"]["code"] == "INTERVIEW_NOT_IN_PROGRESS"
+
+
+def test_history_detail_and_questions_endpoints(client, db_session, monkeypatch):
+    headers, _ = register_and_login(client, "history@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(monkeypatch, questions_json())
+
+    session_data = create_session(client, headers, role_id)
+
+    history = client.get("/api/v1/interviews", headers=headers)
+    assert history.status_code == 200
+    history_data = history.json()["data"]
+    assert history_data["total"] == 1
+    assert history_data["interviews"][0]["id"] == session_data["id"]
+
+    detail = client.get(f"/api/v1/interviews/{session_data['id']}", headers=headers)
+    assert detail.status_code == 200
+    assert len(detail.json()["data"]["questions"]) == 3
+
+    questions = client.get(
+        f"/api/v1/interviews/{session_data['id']}/questions", headers=headers
+    )
+    assert questions.status_code == 200
+    questions_data = questions.json()["data"]
+    assert questions_data["session_id"] == session_data["id"]
+    assert [item["question_order"] for item in questions_data["questions"]] == [1, 2, 3]
+
+
+def test_history_hides_other_users_sessions(client, db_session, monkeypatch):
+    owner_headers, _ = register_and_login(client, "owner_hist@example.com")
+    other_headers, _ = register_and_login(client, "other_hist@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(monkeypatch, questions_json())
+
+    session_data = create_session(client, owner_headers, role_id)
+
+    assert (
+        client.get(
+            f"/api/v1/interviews/{session_data['id']}", headers=other_headers
+        ).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            f"/api/v1/interviews/{session_data['id']}/questions",
+            headers=other_headers,
+        ).status_code
+        == 404
+    )
+    other_history = client.get("/api/v1/interviews", headers=other_headers)
+    assert other_history.json()["data"]["total"] == 0
+
+
+def test_new_session_same_role_abandons_previous(client, db_session, monkeypatch):
+    headers, _ = register_and_login(client, "abandon@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(monkeypatch, questions_json(), questions_json())
+
+    first = create_session(client, headers, role_id)
+    second = create_session(client, headers, role_id)
+    assert first["id"] != second["id"]
+
+    db_session.expire_all()
+    first_session = db_session.get(InterviewSession, first["id"])
+    second_session = db_session.get(InterviewSession, second["id"])
+    assert first_session.status == "abandoned"
+    assert second_session.status == "in_progress"
+
+    response = client.post(
+        f"/api/v1/interviews/{first['id']}/answers",
+        headers=headers,
+        json={
+            "question_id": first["questions"][0]["id"],
+            "answer_text": "Trả lời muộn.",
+        },
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["data"]["code"] == "INTERVIEW_ABANDONED"
+
+
+def test_stale_session_abandoned_after_24_hours(client, db_session, monkeypatch):
+    headers, _ = register_and_login(client, "stale@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(monkeypatch, questions_json())
+
+    session_data = create_session(client, headers, role_id)
+
+    db_session.expire_all()
+    stored = db_session.get(InterviewSession, session_data["id"])
+    stored.updated_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        hours=25
+    )
+    db_session.commit()
+
+    history = client.get("/api/v1/interviews", headers=headers)
+    assert history.status_code == 200
+
+    db_session.expire_all()
+    stored = db_session.get(InterviewSession, session_data["id"])
+    assert stored.status == "abandoned"
+
+
+def test_complete_rolls_back_on_database_error(client, db_session, monkeypatch):
+    headers, _ = register_and_login(client, "completerollback@example.com")
+    role_id = seed_career_role(db_session)
+    install_fake_ai(
+        monkeypatch,
+        questions_json(),
+        grading_json(70.0, "A"),
+        grading_json(70.0, "B"),
+        grading_json(70.0, "C"),
+    )
+
+    session_data = create_session(client, headers, role_id)
+    for question in session_data["questions"]:
+        client.post(
+            f"/api/v1/interviews/{session_data['id']}/answers",
+            headers=headers,
+            json={"question_id": question["id"], "answer_text": "Trả lời."},
+        )
+
+    original_commit = db_session.commit
+
+    def raise_commit_error():
+        raise SQLAlchemyError("commit thất bại")
+
+    monkeypatch.setattr(db_session, "commit", raise_commit_error)
+    response = client.post(
+        f"/api/v1/interviews/{session_data['id']}/complete",
+        headers=headers,
+    )
+    monkeypatch.setattr(db_session, "commit", original_commit)
+
+    assert response.status_code == 500
+    assert response.json()["detail"]["data"]["code"] == "INTERVIEW_DATABASE_ERROR"
+
+    db_session.rollback()
+    db_session.expire_all()
+    stored = db_session.get(InterviewSession, session_data["id"])
+    assert stored.status == "in_progress"
+    assert stored.total_score is None

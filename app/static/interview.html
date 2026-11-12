@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="vi" data-require-auth="true">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La Bàn — AI Mock Interview</title>
+  <link rel="stylesheet" href="/static/profile.css" />
+  <script src="/static/session.js"></script>
+  <style>
+    /* Modal chỉ phủ màn hình khi không có class .hidden (tránh ghi đè .hidden của profile.css). */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+    .modal-backdrop:not(.hidden){display:flex}
+    .modal{background:#fff;max-width:640px;width:100%;border-radius:12px;border:1px solid var(--border);padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+    .modal h2{margin-top:0}
+    .modal ul{margin:8px 0 0 18px}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+    button.danger{background:#dc2626}
+    .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .panel-head h2{margin:0}
+    .badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#eef3f1;color:var(--muted);font-size:.82rem;font-weight:700;white-space:nowrap}
+    .badge.in_progress,.badge.processing,.badge.pending{background:#fff5db;color:#8a5a00}
+    .badge.completed{background:#e6f6ed;color:var(--ok)}
+    .badge.abandoned{background:#f1f1f4;color:#5b5b66}
+    .badge.failed{background:#fdecef;color:var(--danger)}
+    .session-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0 6px}
+    .progress-wrap{margin:8px 0 16px}
+    .progress{height:10px;border-radius:999px;background:#edf2f0;overflow:hidden}
+    .progress > span{display:block;height:100%;width:0;border-radius:999px;background:var(--primary);transition:width .25s ease}
+    .question-card{border:1px solid var(--border);border-radius:12px;padding:16px;background:#fff}
+    .question-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+    .question-index{display:inline-grid;place-items:center;min-width:30px;height:30px;padding:0 8px;border-radius:999px;background:var(--primary-soft);color:var(--primary-deep);font-weight:700}
+    .question-competency{font-weight:700;color:var(--primary-deep)}
+    .question-text{margin:8px 0 12px;font-size:1.06rem;line-height:1.55}
+    .criteria-block{margin-bottom:12px}
+    .criteria{margin:4px 0 0 18px;padding:0}
+    .criteria li{margin-bottom:4px}
+    .answer-label{margin-top:8px}
+    .answer-feedback{margin-top:14px;padding:14px;border:1px solid #bce2cc;border-radius:12px;background:#edf8f1}
+    .feedback-head{font-weight:700;color:var(--ok)}
+    .answer-feedback p{margin:8px 0 0;line-height:1.5}
+    .state-box{display:flex;gap:12px;align-items:flex-start;padding:16px;border:1px dashed var(--border);border-radius:12px;background:#fbfdfc;margin-top:14px}
+    .state-box.failed{background:#fff7f8;border-color:#efc8cc;color:var(--danger)}
+    .state-box h3{margin:0 0 4px}
+    .result-score-card{border:1px solid var(--border);border-radius:12px;padding:16px;background:linear-gradient(180deg,#f7fbf9,#fff)}
+    .result-score{display:flex;align-items:baseline;gap:4px;color:var(--primary-deep);font-weight:800;font-size:2.4rem;line-height:1.1}
+    .result-score small{font-size:1rem;font-weight:700;color:var(--muted)}
+    .result-list{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+    .result-item{border:1px solid var(--border);border-radius:12px;padding:14px;background:#fff}
+    .result-item-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+    .result-item-head .badge{margin-left:auto}
+    .result-question{margin:6px 0 10px;font-weight:650}
+    .result-answer,.result-feedback{margin:4px 0 10px;line-height:1.5}
+    .result-feedback{color:var(--muted)}
+    .history-list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+    .history-item{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff}
+    .history-title{font-weight:700}
+    .history-meta{color:var(--muted);font-size:.88rem;margin-top:2px}
+    .history-side{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .history-score{font-weight:800;color:var(--primary-deep)}
+    .empty-state{padding:16px;border:1px dashed var(--border);border-radius:12px;color:var(--muted);background:#fbfdfc;margin-top:8px}
+    @media (max-width: 600px){
+      .session-meta{grid-template-columns:1fr}
+      .modal-actions{justify-content:stretch}
+      .modal-actions button{flex:1}
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" /></svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
+      <h1>AI Mock Interview</h1>
+      <p class="muted">AI sinh đúng 3 câu hỏi theo bộ kỹ năng của vị trí mục tiêu. Bạn trả lời từng câu, nhận điểm và nhận xét cải thiện, sau đó xem điểm tổng kết.</p>
+      <nav class="site-nav" aria-label="Điều hướng">
+        <a href="/explore">Khám phá</a>
+        <a href="/profile">Hồ sơ</a>
+        <a href="/cv">CV</a>
+        <a href="/analysis">Phân tích</a>
+        <a href="/interview" aria-current="page">Phỏng vấn</a>
+      </nav>
+    </header>
+
+    <div id="status" class="status" aria-live="polite"></div>
+    <div id="loading" class="loading hidden">Đang xử lý...</div>
+
+    <form id="interviewForm" class="card">
+      <h2>Bắt đầu phiên phỏng vấn</h2>
+      <p class="muted small">Hệ thống chỉ hiển thị các vị trí đang hoạt động và đã cấu hình kỹ năng yêu cầu. Trước khi gửi yêu cầu, bạn sẽ được yêu cầu xác nhận đồng ý sử dụng dữ liệu cho AI.</p>
+      <label>Vị trí nghề nghiệp
+        <select id="careerRole" name="career_role_id" required>
+          <option value="">-- Chọn vị trí nghề nghiệp --</option>
+        </select>
+      </label>
+      <p id="roleHint" class="muted small"></p>
+      <div class="actions">
+        <button id="startBtn" type="submit" disabled>Bắt đầu phỏng vấn</button>
+      </div>
+    </form>
+
+    <section id="sessionPanel" class="card hidden" aria-labelledby="sessionTitle">
+      <div class="panel-head">
+        <div>
+          <h2 id="sessionTitle">Phiên phỏng vấn</h2>
+          <p id="sessionSubtitle" class="muted small"></p>
+        </div>
+        <span id="sessionStatus" class="badge">-</span>
+      </div>
+
+      <div class="session-meta">
+        <div><span class="label">Vị trí nghề nghiệp</span><div id="sessionRole" class="value">-</div></div>
+        <div><span class="label">Mã phiên</span><div id="sessionId" class="value">-</div></div>
+        <div><span class="label">Số câu đã trả lời</span><div id="sessionAnswered" class="value">-</div></div>
+        <div><span class="label">Điểm tổng</span><div id="sessionTotal" class="value">-</div></div>
+        <div><span class="label">Thời gian tạo</span><div id="sessionCreatedAt" class="value">-</div></div>
+        <div><span class="label">Hoàn thành lúc</span><div id="sessionCompletedAt" class="value">-</div></div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress" role="progressbar" aria-label="Tiến độ trả lời" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressTrack">
+          <span id="progressBar"></span>
+        </div>
+        <p id="progressText" class="muted small"></p>
+      </div>
+
+      <div id="questionBox" class="question-card hidden">
+        <div class="question-head">
+          <span id="questionStep" class="question-index">1</span>
+          <span id="questionCompetency" class="question-competency"></span>
+        </div>
+        <p id="questionText" class="question-text"></p>
+        <div class="criteria-block">
+          <div class="label">Tiêu chí đánh giá</div>
+          <ul id="questionCriteria" class="criteria"></ul>
+        </div>
+        <label class="answer-label">Câu trả lời của bạn
+          <textarea id="answerText" rows="6" maxlength="5000" placeholder="Nhập câu trả lời của bạn tại đây..."></textarea>
+        </label>
+        <div class="actions"><button id="submitAnswerBtn" type="button">Gửi câu trả lời</button></div>
+        <div id="answerFeedback" class="answer-feedback hidden" role="status">
+          <div class="feedback-head">Điểm câu này: <strong id="answerScore">--</strong><span>/100</span></div>
+          <p id="answerFeedbackText"></p>
+        </div>
+        <div class="actions"><button id="nextQuestionBtn" type="button" class="secondary hidden">Câu tiếp theo</button></div>
+      </div>
+
+      <div id="stateNotice" class="state-box failed hidden" role="alert"></div>
+
+      <div id="resultArea" class="hidden">
+        <div class="result-score-card">
+          <span class="label">Điểm tổng kết</span>
+          <div class="result-score"><span id="resultScore">--</span><small>/100</small></div>
+          <p id="resultSummary" class="muted small"></p>
+        </div>
+        <div class="subsection">
+          <h3>Chi tiết các câu trả lời</h3>
+          <div id="resultList" class="result-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="historyTitle">
+      <h2 id="historyTitle">Lịch sử phỏng vấn</h2>
+      <div id="historyLoading" class="loading hidden">Đang tải lịch sử...</div>
+      <div id="historyEmpty" class="empty-state hidden">Bạn chưa có phiên phỏng vấn nào. Hãy bắt đầu phiên đầu tiên ở phía trên.</div>
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <div id="consentModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
+    <div class="modal">
+      <h2 id="consentTitle">Xác nhận sử dụng dữ liệu cho AI</h2>
+      <p>Để tạo câu hỏi phỏng vấn, hệ thống sẽ gửi các thông tin sau đến dịch vụ AI:</p>
+      <ul>
+        <li><strong>Tên, cấp độ và mô tả</strong> của vị trí nghề nghiệp bạn chọn.</li>
+        <li><strong>Danh sách kỹ năng yêu cầu</strong> của vị trí, gồm mức điểm chuẩn và trọng số.</li>
+      </ul>
+      <p>Khi bạn gửi câu trả lời, nội dung câu trả lời cùng câu hỏi và tiêu chí đánh giá cũng được gửi đến dịch vụ AI để chấm điểm và nhận xét.</p>
+      <p><strong>Không gửi:</strong> nội dung CV, họ tên, email, mật khẩu, JWT/access token hoặc thông tin xác thực.</p>
+      <p>Bạn có thể chọn "Từ chối". Khi từ chối, hệ thống không gửi dữ liệu và không tạo phiên phỏng vấn.</p>
+      <div class="modal-actions">
+        <button id="consentReject" type="button" class="danger">Từ chối</button>
+        <button id="consentAccept" type="button">Đồng ý và tạo phiên</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/interview.js"></script>
+</body>
+</html>

@@ -16,6 +16,14 @@ MOCK_INTERVIEW_SYSTEM_INSTRUCTION = (
     "Chỉ trả về JSON hợp lệ theo đúng cấu trúc được yêu cầu, không kèm giải thích."
 )
 
+INTERVIEW_GRADING_SYSTEM_INSTRUCTION = (
+    "Bạn là chuyên gia phỏng vấn kỹ thuật công bằng và khách quan. "
+    "Nhiệm vụ của bạn là chấm điểm câu trả lời theo đúng tiêu chí được cung cấp, "
+    "đưa phản hồi cải thiện cụ thể và mang tính xây dựng. "
+    "Không bịa thông tin, không đánh giá ngoài phạm vi câu hỏi. "
+    "Chỉ trả về JSON hợp lệ theo đúng cấu trúc được yêu cầu."
+)
+
 
 @dataclass(frozen=True)
 class InterviewSkillContext:
@@ -74,5 +82,50 @@ Yêu cầu bắt buộc:
       "evaluation_criteria": ["Tiêu chí 1", "Tiêu chí 2"]
     }}
   ]
+}}
+"""
+
+
+def build_interview_grading_prompt(
+    *,
+    question_text: str,
+    competency: str,
+    evaluation_criteria: list[str],
+    answer_text: str,
+) -> str:
+    """Dựng prompt chấm điểm một câu trả lời phỏng vấn.
+
+    Chỉ nội dung câu hỏi, tiêu chí và câu trả lời được gửi đi; không có
+    thông tin định danh người dùng hay token.
+    """
+    criteria_lines = "\n".join(
+        f"- {criterion.strip()}" for criterion in evaluation_criteria if criterion.strip()
+    )
+    return f"""Hãy chấm điểm câu trả lời phỏng vấn dưới đây.
+
+Câu hỏi:
+{question_text.strip()}
+
+Năng lực cần đánh giá:
+{competency.strip()}
+
+Tiêu chí chấm điểm:
+{criteria_lines}
+
+Câu trả lời của sinh viên:
+\"\"\"
+{answer_text.strip()}
+\"\"\"
+
+Yêu cầu bắt buộc:
+1. Chấm điểm theo thang 0 đến 100, là số thực có tối đa 2 chữ số thập phân.
+2. Điểm phải phản ánh mức đáp ứng các tiêu chí ở trên, không dựa vào độ dài câu trả lời.
+3. Phản hồi phải nêu điểm mạnh, điểm còn thiếu và gợi ý cải thiện cụ thể.
+4. Không bịa thông tin không có trong câu trả lời.
+5. Viết phản hồi bằng tiếng Việt; giữ nguyên thuật ngữ kỹ thuật tiếng Anh khi cần.
+6. Chỉ trả về JSON đúng cấu trúc sau, không thêm trường khác:
+{{
+  "score": 75.5,
+  "feedback": "Nhận xét và gợi ý cải thiện"
 }}
 """

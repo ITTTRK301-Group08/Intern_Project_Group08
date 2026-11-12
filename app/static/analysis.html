@@ -7,7 +7,9 @@
   <link rel="stylesheet" href="/static/profile.css" />
   <script src="/static/session.js"></script>
   <style>
-    .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+    /* Modal chỉ phủ màn hình khi không có class .hidden (tránh ghi đè .hidden của profile.css). */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+    .modal-backdrop:not(.hidden){display:flex}
     .modal{background:#fff;max-width:640px;width:100%;border-radius:12px;border:1px solid var(--border);padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
     .modal h2{margin-top:0}.modal ul{margin:8px 0 0 18px}
     .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
@@ -17,6 +19,55 @@
     .warning-box p{margin:6px 0;line-height:1.5}
     .warning-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
     .btn-link{display:inline-block;background:var(--primary-soft);color:var(--primary-deep);text-decoration:none;padding:8px 13px;border-radius:8px;font-weight:600;font-size:.9rem}
+    .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .panel-head h2{margin:0}
+    .badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#eef3f1;color:var(--muted);font-size:.82rem;font-weight:700;white-space:nowrap}
+    .badge.processing,.badge.pending{background:#fff5db;color:#8a5a00}
+    .badge.completed{background:#e6f6ed;color:var(--ok)}
+    .badge.failed{background:#fdecef;color:var(--danger)}
+    .badge.abandoned{background:#f1f1f4;color:#5b5b66}
+    .state-box{display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px dashed var(--border);border-radius:12px;background:#fbfdfc;margin-top:14px}
+    .state-box.failed{background:#fff7f8;border-color:#efc8cc}
+    .state-box h3{margin:0 0 4px}
+    .spinner{flex:0 0 auto;width:28px;height:28px;border-radius:50%;border:3px solid var(--primary-soft);border-top-color:var(--primary);animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .summary-grid{display:grid;grid-template-columns:minmax(160px,220px) 1fr;gap:18px;align-items:center;margin-top:16px}
+    .readiness-card{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
+    .readiness-ring{display:flex;align-items:baseline;justify-content:center;gap:2px;width:150px;height:150px;border-radius:50%;background:conic-gradient(var(--primary) 0%, #e6efe9 0);position:relative;color:var(--primary-deep);font-weight:800;font-size:2.1rem}
+    .readiness-ring::before{content:"";position:absolute;inset:13px;border-radius:50%;background:#fff}
+    .readiness-ring span,.readiness-ring small{position:relative;z-index:1}
+    .readiness-ring small{font-size:1rem;font-weight:700}
+    .radar-wrap{margin-top:8px;width:100%;max-width:520px}
+    .radar-wrap svg{display:block;width:100%;height:auto}
+    .radar-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px;color:var(--muted);font-size:.9rem}
+    .radar-legend span{display:inline-flex;align-items:center;gap:6px}
+    .swatch{display:inline-block;width:14px;height:14px;border-radius:3px}
+    .swatch.required{background:#d7ed85;border:1px solid #9cbb3c}
+    .swatch.current{background:#8fd3c8;border:1px solid var(--primary)}
+    .skill-list{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+    .skill-card{border:1px solid var(--border);border-radius:12px;padding:14px;background:#fff}
+    .skill-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .skill-card-head strong{font-size:1.02rem}
+    .level-row{display:grid;grid-template-columns:110px 1fr 110px;gap:10px;align-items:center;margin-top:10px;font-size:.9rem;color:var(--muted)}
+    .bar{height:9px;border-radius:999px;background:#edf2f0;overflow:hidden}
+    .bar > span{display:block;height:100%;border-radius:999px}
+    .bar.current > span{background:#8fd3c8}
+    .bar.required > span{background:#c3da6a}
+    .evidence,.recommendation{margin:10px 0 0;font-size:.94rem;line-height:1.5}
+    .evidence.missing{color:#8a5a00}
+    .history-list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+    .history-item{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff}
+    .history-title{font-weight:700}
+    .history-meta{color:var(--muted);font-size:.88rem;margin-top:2px}
+    .history-side{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .history-score{font-weight:800;color:var(--primary-deep)}
+    .empty-state{padding:16px;border:1px dashed var(--border);border-radius:12px;color:var(--muted);background:#fbfdfc;margin-top:8px}
+    @media (max-width: 700px){
+      .summary-grid{grid-template-columns:1fr}
+      .level-row{grid-template-columns:1fr;gap:4px}
+      .modal-actions{justify-content:stretch}
+      .modal-actions button{flex:1}
+    }
   </style>
 </head>
 <body>
@@ -28,14 +79,14 @@
         </span>
         <span class="brand-name">la bàn<span>.</span></span>
       </a>
-      <h1>Bắt đầu phân tích kỹ năng (AI Consent)</h1>
-      <p class="muted">Chọn CV hoặc dữ liệu hồ sơ khai báo và vị trí nghề nghiệp mục tiêu, sau đó xác nhận đồng ý gửi dữ liệu cho AI.</p>
+      <h1>Phân tích khoảng cách kỹ năng</h1>
+      <p class="muted">AI đối chiếu CV hoặc dữ liệu hồ sơ khai báo với bộ kỹ năng của vị trí mục tiêu, sau đó backend tự tính điểm sẵn sàng và khoảng cách từng kỹ năng.</p>
       <nav class="site-nav" aria-label="Điều hướng">
         <a href="/explore">Khám phá</a>
         <a href="/profile">Hồ sơ</a>
         <a href="/cv">CV</a>
         <a href="/analysis" aria-current="page">Phân tích</a>
-        <a href="/docs">API</a>
+        <a href="/interview">Phỏng vấn</a>
       </nav>
     </header>
 
@@ -45,23 +96,18 @@
     <form id="analysisForm" class="card">
       <h2>Yêu cầu phân tích</h2>
       <div class="grid">
-        <label>Chọn nhanh CV đã tải lên
+        <label>CV đã tải lên (không bắt buộc)
           <select id="cvSelect">
-            <option value="">-- Không chọn CV (Phân tích từ dữ liệu hồ sơ khai báo) --</option>
+            <option value="">-- Phân tích từ dữ liệu hồ sơ khai báo --</option>
           </select>
         </label>
-        <label>CV đã tải lên (cv_id, để trống nếu phân tích từ hồ sơ)
-          <input id="cv_id" name="cv_id" type="number" min="1" placeholder="Nhập ID CV hoặc chọn ở danh sách" />
-        </label>
-        <label>Chọn nhanh vị trí nghề nghiệp mục tiêu
-          <select id="roleSelect">
+        <label>Vị trí nghề nghiệp mục tiêu
+          <select id="roleSelect" required>
             <option value="">-- Chọn vị trí nghề nghiệp --</option>
           </select>
         </label>
-        <label>Vị trí nghề nghiệp mục tiêu (career_role_id)
-          <input id="career_role_id" name="career_role_id" type="number" min="1" placeholder="Nhập ID vị trí hoặc chọn ở danh sách" />
-        </label>
       </div>
+      <p class="muted small">Để trống CV nếu muốn phân tích từ điểm mạnh và kỹ năng tự đánh giá trong hồ sơ cá nhân. Bạn có thể chọn CV đã tải lên để AI đối chiếu nội dung thực tế.</p>
 
       <div id="scannedCvWarning" class="warning-box hidden" role="alert">
         <h3>⚠️ Cảnh báo: CV PDF đã chọn không có lớp văn bản</h3>
@@ -73,13 +119,76 @@
         </div>
       </div>
 
-      <p class="muted small">Hệ thống chỉ kiểm tra xác nhận đồng ý và quyền sở hữu CV (nếu có). Pipeline phân tích AI (M4) chưa triển khai.</p>
-      <div class="actions"><button type="submit">Bắt đầu phân tích</button></div>
+      <div class="actions"><button id="startAnalysisBtn" type="submit">Bắt đầu phân tích</button></div>
     </form>
 
-    <section id="resultCard" class="card hidden">
-      <h2>Phản hồi hệ thống</h2>
-      <pre id="resultJson" style="white-space:pre-wrap;word-break:break-word;margin:0"></pre>
+    <section id="analysisPanel" class="card hidden" aria-labelledby="panelTitle">
+      <div class="panel-head">
+        <div>
+          <h2 id="panelTitle">Báo cáo phân tích</h2>
+          <p id="panelSubtitle" class="muted small"></p>
+        </div>
+        <span id="panelStatus" class="badge">-</span>
+      </div>
+
+      <div id="processingBox" class="state-box hidden" role="status">
+        <div class="spinner" aria-hidden="true"></div>
+        <div>
+          <strong>AI đang phân tích hồ sơ của bạn</strong>
+          <p id="processingText" class="muted small">Quá trình này có thể mất vài chục giây. Trang sẽ tự cập nhật khi có kết quả.</p>
+        </div>
+      </div>
+
+      <div id="failedBox" class="state-box failed hidden" role="alert">
+        <div>
+          <h3>Không thể hoàn tất phân tích</h3>
+          <p id="failedText"></p>
+          <p class="muted small">Kết quả không hoàn chỉnh không được lưu. Bạn có thể tạo lại yêu cầu phân tích ở phía trên.</p>
+        </div>
+      </div>
+
+      <div id="completedBox" class="hidden">
+        <div class="summary-grid">
+          <div class="readiness-card">
+            <span class="label">Điểm sẵn sàng</span>
+            <div id="readinessRing" class="readiness-ring"><span id="readinessValue">--</span><small>%</small></div>
+          </div>
+          <div>
+            <span class="label">Vị trí mục tiêu</span>
+            <div id="analysisRole" class="value">-</div>
+            <span class="label">Nguồn benchmark</span>
+            <div id="analysisSource" class="value">-</div>
+            <span class="label">Ngày benchmark</span>
+            <div id="analysisBenchmark" class="value">-</div>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>Tóm tắt từ AI</h3>
+          <p id="analysisSummary" class="muted"></p>
+        </div>
+
+        <div class="subsection">
+          <h3>Biểu đồ radar kỹ năng</h3>
+          <div id="radarContainer" class="radar-wrap"></div>
+          <div class="radar-legend">
+            <span><i class="swatch required"></i>Mức yêu cầu</span>
+            <span><i class="swatch current"></i>Mức hiện tại</span>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>Chi tiết kỹ năng</h3>
+          <div id="skillList" class="skill-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="historyTitle">
+      <h2 id="historyTitle">Lịch sử phân tích</h2>
+      <div id="historyLoading" class="loading hidden">Đang tải lịch sử...</div>
+      <div id="historyEmpty" class="empty-state hidden">Bạn chưa có báo cáo phân tích nào. Hãy tạo báo cáo đầu tiên ở phía trên.</div>
+      <div id="historyList" class="history-list"></div>
     </section>
   </main>
 
@@ -88,10 +197,10 @@
       <h2 id="consentTitle">Xác nhận sử dụng dữ liệu cho AI</h2>
       <p>Trước khi bắt đầu phân tích, vui lòng xem xét thông tin sau:</p>
       <ul>
-        <li><strong>Mục đích:</strong> Sử dụng nội dung CV và thông tin hồ sơ cần thiết để phân tích kỹ năng/định hướng nghề nghiệp khi tính năng AI được triển khai.</li>
-        <li><strong>Dữ liệu có thể được gửi đến dịch vụ AI:</strong> nội dung văn bản trích xuất từ CV bạn chọn (nếu có) và thông tin hồ sơ liên quan đến phân tích. <strong>Không</strong> gửi mật khẩu, mật khẩu băm, JWT/access token, refresh token hoặc thông tin xác thực.</li>
+        <li><strong>Mục đích:</strong> Sử dụng nội dung CV và thông tin hồ sơ cần thiết để phân tích khoảng cách kỹ năng và tính điểm sẵn sàng cho vị trí mục tiêu.</li>
+        <li><strong>Dữ liệu có thể được gửi đến dịch vụ AI:</strong> nội dung văn bản trích xuất từ CV bạn chọn (nếu có) và thông tin hồ sơ liên quan đến phân tích như chuyên ngành, mục tiêu nghề nghiệp, điểm mạnh, kỹ năng tự đánh giá và giới thiệu bản thân. <strong>Không</strong> gửi mật khẩu, mật khẩu băm, JWT/access token, refresh token hoặc thông tin xác thực.</li>
         <li><strong>Quyền từ chối:</strong> Bạn có thể chọn "Từ chối". Nếu từ chối, hệ thống sẽ dừng quy trình và <strong>không gửi dữ liệu CV/hồ sơ đến AI</strong>.</li>
-        <li><strong>Lưu ý:</strong> Task 4 chưa kết nối nhà cung cấp AI thật. Consent được xác nhận theo từng yêu cầu; hệ thống chưa lưu lịch sử đồng ý lâu dài.</li>
+        <li><strong>Lưu ý:</strong> Consent được xác nhận cho từng yêu cầu phân tích. Hệ thống chỉ lưu báo cáo sau khi bạn đồng ý.</li>
       </ul>
       <div class="modal-actions">
         <button id="consentReject" type="button" class="danger">Từ chối</button>
