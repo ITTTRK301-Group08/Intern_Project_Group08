@@ -17,6 +17,15 @@
     .warning-box p{margin:6px 0;line-height:1.5}
     .warning-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
     .btn-link{display:inline-block;background:var(--primary-soft);color:var(--primary-deep);text-decoration:none;padding:8px 13px;border-radius:8px;font-weight:600;font-size:.9rem}
+    .readiness-panel{display:grid;grid-template-columns:auto minmax(120px,1fr);align-items:center;gap:12px;margin:14px 0}
+    .readiness-value{font-size:1.55rem;font-weight:750;color:var(--primary-deep)}
+    .readiness-panel meter{width:100%;height:14px}
+    .analysis-table{width:100%;border-collapse:collapse;font-size:.92rem}
+    .table-wrap{overflow-x:auto}
+    .analysis-table{min-width:560px}
+    .analysis-table th,.analysis-table td{padding:10px 8px;border-bottom:1px solid var(--border);text-align:left}
+    .analysis-table th{background:var(--primary-soft)}
+    @media(max-width:600px){.readiness-panel{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -28,8 +37,8 @@
         </span>
         <span class="brand-name">la bàn<span>.</span></span>
       </a>
-      <h1>Bắt đầu phân tích kỹ năng (AI Consent)</h1>
-      <p class="muted">Chọn CV hoặc dữ liệu hồ sơ khai báo và vị trí nghề nghiệp mục tiêu, sau đó xác nhận đồng ý gửi dữ liệu cho AI.</p>
+      <h1>Đối chiếu kỹ năng với nghề nghiệp</h1>
+      <p class="muted">Chọn CV hoặc hồ sơ và vị trí mục tiêu. Hệ thống sẽ xử lý yêu cầu nền, tính khoảng cách kỹ năng và điểm sẵn sàng.</p>
       <nav class="site-nav" aria-label="Điều hướng">
         <a href="/explore">Khám phá</a>
         <a href="/profile">Hồ sơ</a>
@@ -59,7 +68,7 @@
           </select>
         </label>
         <label>Vị trí nghề nghiệp mục tiêu (career_role_id)
-          <input id="career_role_id" name="career_role_id" type="number" min="1" placeholder="Nhập ID vị trí hoặc chọn ở danh sách" />
+          <input id="career_role_id" name="career_role_id" type="number" min="1" required placeholder="Nhập ID vị trí hoặc chọn ở danh sách" />
         </label>
       </div>
 
@@ -73,25 +82,44 @@
         </div>
       </div>
 
-      <p class="muted small">Hệ thống chỉ kiểm tra xác nhận đồng ý và quyền sở hữu CV (nếu có). Pipeline phân tích AI (M4) chưa triển khai.</p>
+      <p class="muted small">CV chỉ được đối chiếu theo kỹ năng được nhắc đến trong văn bản; mức thành thạo cần được khai báo trong hồ sơ. Hệ thống không gửi dữ liệu đến dịch vụ AI bên ngoài.</p>
       <div class="actions"><button type="submit">Bắt đầu phân tích</button></div>
     </form>
 
-    <section id="resultCard" class="card hidden">
-      <h2>Phản hồi hệ thống</h2>
-      <pre id="resultJson" style="white-space:pre-wrap;word-break:break-word;margin:0"></pre>
+    <section id="resultCard" class="card hidden" aria-live="polite">
+      <h2>Kết quả đối chiếu</h2>
+      <p id="resultSummary" class="muted">Đang chờ xử lý...</p>
+      <div id="readinessPanel" class="readiness-panel hidden">
+        <strong id="readinessValue" class="readiness-value"></strong>
+        <meter id="readinessMeter" min="0" max="100" value="0" aria-label="Điểm sẵn sàng"></meter>
+      </div>
+      <div class="table-wrap">
+        <table class="analysis-table">
+          <thead>
+            <tr>
+              <th>Kỹ năng</th>
+              <th>Hiện tại</th>
+              <th>Mục tiêu</th>
+              <th>Còn thiếu</th>
+              <th>Trọng số</th>
+              <th>Phân loại</th>
+            </tr>
+          </thead>
+          <tbody id="skillGapRows"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
   <div id="consentModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
     <div class="modal">
-      <h2 id="consentTitle">Xác nhận sử dụng dữ liệu cho AI</h2>
+      <h2 id="consentTitle">Xác nhận xử lý dữ liệu phân tích</h2>
       <p>Trước khi bắt đầu phân tích, vui lòng xem xét thông tin sau:</p>
       <ul>
-        <li><strong>Mục đích:</strong> Sử dụng nội dung CV và thông tin hồ sơ cần thiết để phân tích kỹ năng/định hướng nghề nghiệp khi tính năng AI được triển khai.</li>
-        <li><strong>Dữ liệu có thể được gửi đến dịch vụ AI:</strong> nội dung văn bản trích xuất từ CV bạn chọn (nếu có) và thông tin hồ sơ liên quan đến phân tích. <strong>Không</strong> gửi mật khẩu, mật khẩu băm, JWT/access token, refresh token hoặc thông tin xác thực.</li>
-        <li><strong>Quyền từ chối:</strong> Bạn có thể chọn "Từ chối". Nếu từ chối, hệ thống sẽ dừng quy trình và <strong>không gửi dữ liệu CV/hồ sơ đến AI</strong>.</li>
-        <li><strong>Lưu ý:</strong> Task 4 chưa kết nối nhà cung cấp AI thật. Consent được xác nhận theo từng yêu cầu; hệ thống chưa lưu lịch sử đồng ý lâu dài.</li>
+        <li><strong>Mục đích:</strong> So sánh kỹ năng trong CV hoặc hồ sơ của bạn với yêu cầu của vị trí nghề nghiệp đã chọn.</li>
+        <li><strong>Cách xử lý:</strong> Văn bản CV được dò tìm tên kỹ năng; kỹ năng tự đánh giá trong hồ sơ cung cấp mức hiện tại. CV chỉ thể hiện kỹ năng được nhắc đến, không chứng minh mức thành thạo.</li>
+        <li><strong>Quyền riêng tư:</strong> Dữ liệu được xử lý trong ứng dụng và không gửi đến dịch vụ AI bên ngoài. Không sử dụng mật khẩu hoặc token trong phân tích.</li>
+        <li><strong>Quyền từ chối:</strong> Nếu chọn "Từ chối", hệ thống sẽ dừng và không xử lý yêu cầu.</li>
       </ul>
       <div class="modal-actions">
         <button id="consentReject" type="button" class="danger">Từ chối</button>

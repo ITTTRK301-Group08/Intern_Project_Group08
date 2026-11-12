@@ -14,6 +14,83 @@
   function setLoading(on) { loadingEl.classList.toggle('hidden', !on); }
   function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
   function showModal(show) { modal.classList.toggle('hidden', !show); }
+  function wait(milliseconds) {
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  }
+
+  function renderAnalysisResult(result) {
+    $('resultSummary').textContent = result.summary || (
+      result.status === 'failed'
+        ? 'Phân tích không hoàn tất. Hãy thử lại sau.'
+        : 'Đang chờ hệ thống xử lý yêu cầu.'
+    );
+    const hasScore = Number.isInteger(result.readiness_score);
+    $('readinessPanel').classList.toggle('hidden', !hasScore);
+    if (hasScore) {
+      $('readinessValue').textContent = result.readiness_score + '/100';
+      $('readinessMeter').value = result.readiness_score;
+    }
+
+    const rows = $('skillGapRows');
+    rows.replaceChildren();
+    (result.skill_gaps || []).forEach((gap) => {
+      const row = document.createElement('tr');
+      const values = [
+        gap.skill_name,
+        gap.current_level + '/5',
+        gap.target_level + '/5',
+        gap.gap === 0 ? 'Đạt' : gap.gap + ' mức',
+        String(gap.weight),
+        gap.is_required ? 'Bắt buộc' : 'Khuyến khích'
+      ];
+      values.forEach((value) => {
+        const cell = document.createElement('td');
+        cell.textContent = value;
+        row.appendChild(cell);
+      });
+      rows.appendChild(row);
+    });
+  }
+
+  async function pollAnalysis(analysisId, token) {
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const response = await fetch('/api/v1/analyses/' + encodeURIComponent(analysisId), {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const detail = body.detail;
+        throw new Error(
+          (detail && (detail.message || detail)) ||
+          body.message ||
+          'Không thể kiểm tra trạng thái phân tích.'
+        );
+      }
+
+      const result = body.data;
+      renderAnalysisResult(result);
+      if (result.status === 'completed') {
+        setStatus(result.summary || 'Phân tích đã hoàn tất.', 'ok');
+        return;
+      }
+      if (result.status === 'failed') {
+        setStatus(result.summary || 'Phân tích không hoàn tất. Hãy thử lại sau.', 'error');
+        return;
+      }
+
+      setStatus(
+        result.status === 'running'
+          ? 'Đang đối chiếu dữ liệu và tính mức sẵn sàng...'
+          : 'Yêu cầu đã được tiếp nhận, đang chờ xử lý...'
+      );
+      await wait(1000);
+    }
+
+    setStatus(
+      'Yêu cầu vẫn đang xử lý. Tải lại trang kết quả sau ít phút để kiểm tra.',
+      'error'
+    );
+  }
 
   function updateScannedWarning() {
     const warnBox = $('scannedCvWarning');
@@ -117,6 +194,7 @@
   }
 
   const params = new URLSearchParams(window.location.search);
+  const existingAnalysisId = params.get('analysis_id');
   if (params.get('career_role_id')) {
     $('career_role_id').value = params.get('career_role_id');
   }
@@ -146,7 +224,7 @@
   $('consentReject').onclick = () => {
     pendingPayload = null;
     showModal(false);
-    setStatus('Bạn đã từ chối. Quy trình dừng lại và không gửi dữ liệu CV/hồ sơ đến AI.', '');
+    setStatus('Bạn đã từ chối. Hệ thống không xử lý dữ liệu CV hoặc hồ sơ.', '');
   };
 
   $('consentAccept').onclick = async () => {
@@ -166,12 +244,15 @@
       });
       const data = await res.json().catch(() => ({}));
       $('resultCard').classList.remove('hidden');
-      $('resultJson').textContent = JSON.stringify(data, null, 2);
-      if (res.status === 501 && data.data && data.data.code === 'ANALYSIS_PIPELINE_NOT_IMPLEMENTED') {
-        setStatus(data.message || 'Consent hợp lệ; pipeline AI chưa triển khai (Task 4).', 'ok');
-      } else if (!res.ok) {
+      if (!res.ok) {
         const msg = (data.detail && (data.detail.message || data.detail)) || data.message || 'Yêu cầu thất bại.';
         setStatus(typeof msg === 'string' ? msg : JSON.stringify(msg), 'error');
+      } else if (res.status === 202 && data.data && data.data.id) {
+        const resultUrl = new URL(window.location.href);
+        resultUrl.searchParams.set('analysis_id', data.data.id);
+        window.history.replaceState({}, '', resultUrl);
+        setStatus(data.message || 'Đã tiếp nhận yêu cầu phân tích.', 'ok');
+        await pollAnalysis(data.data.id, token);
       } else {
         setStatus(data.message || 'Yêu cầu đã được xử lý.', 'ok');
       }
@@ -185,4 +266,10 @@
 
   loadCareerRoles();
   loadUserCvs();
+  if (/^[1-9]\d*$/.test(existingAnalysisId || '') && getToken()) {
+    $('resultCard').classList.remove('hidden');
+    pollAnalysis(existingAnalysisId, getToken()).catch((err) => {
+      setStatus(err.message || 'Không thể kiểm tra kết quả phân tích.', 'error');
+    });
+  }
 })();

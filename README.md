@@ -21,6 +21,13 @@ Set `DATABASE_URL` in `.env` to your MySQL database, including
 a different origin; wildcard origins are not accepted. Never commit `.env`.
 
 The API uses bcrypt-hashed passwords and short-lived HS256 Bearer tokens.
+Login returns a short-lived access token and a 14-day refresh token. The refresh
+token is opaque, stored only as a SHA-256 hash in MySQL, and rotated every time
+`POST /api/v1/auth/refresh` is used. Reusing an old token revokes its session
+family. `POST /api/v1/auth/logout` revokes the submitted refresh token; the
+already-issued access token remains usable until its short expiry. The browser
+automatically refreshes protected API requests after an access-token `401`.
+
 Public registration always creates a student; Admin rights are checked against
 the current database role on every request. API successes and errors use a
 consistent JSON envelope, retaining `detail` on errors for existing clients.
@@ -55,6 +62,29 @@ to promote an existing student account.
 Registering through the public auth API always creates a student account.
 Admin access is granted only through the bootstrap command or an existing
 administrator process.
+
+## Skill-gap analysis
+
+`POST /api/v1/analyses` accepts a CV (optional when a student profile exists),
+a target `career_role_id`, and the existing explicit consent object. It returns
+`202 Accepted` with an analysis ID and status URL. Poll
+`GET /api/v1/analyses/{id}` with the same Bearer token until the status is
+`completed` or `failed`.
+
+The worker compares profile skill levels with each role requirement. A skill
+mentioned in extracted CV, profile bio, or strengths counts as evidence at
+level 1 only; proficiency must come from the user's self-assessment. If both
+sources are selected, the higher explicit profile level is used. Readiness is
+the rounded, weight-adjusted percentage of target levels achieved. The result,
+score, and per-skill snapshots are committed together. Processing is in-process
+with FastAPI background tasks, so a durable external queue is needed before
+multi-worker production deployment.
+
+Apply pending schema changes before using the endpoint:
+
+```powershell
+python -m alembic upgrade head
+```
 
 ## Giao diện đăng nhập / đăng ký
 
@@ -121,9 +151,19 @@ Unit test dùng mock hoàn toàn, không gọi Gemini thật và không cần
 python -m pytest tests/test_ai_config.py tests/test_ai_provider.py tests/test_ai_service.py -q
 ```
 
+Kiểm tra phản hồi Gemini thật là opt-in; cấu hình `GEMINI_API_KEY` và
+`GEMINI_MODEL` trong `.env`, sau đó chạy lệnh sau trong PowerShell. Lệnh này
+gửi request bên ngoài và có thể tiêu thụ quota API:
+
+```powershell
+$env:RUN_GEMINI_LIVE_TESTS = "1"
+python -m pytest tests/integration/test_gemini_live.py -q
+```
+
+Nếu không bật `RUN_GEMINI_LIVE_TESTS=1`, test live sẽ được bỏ qua.
+
 Chạy toàn bộ test suite:
 
 ```powershell
 python -m pytest -q
 ```
-

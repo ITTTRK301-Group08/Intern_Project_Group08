@@ -5,6 +5,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -40,9 +41,13 @@ class Analysis(Base):
         Boolean, nullable=False, default=True, server_default="1"
     )
     consent_purpose_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    source_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="profile", server_default="profile"
+    )
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="pending", server_default="pending"
     )
+    readiness_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
@@ -59,8 +64,17 @@ class Analysis(Base):
     __table_args__ = (
         CheckConstraint("consent_accepted = 1", name="ck_analysis_consent_accepted"),
         CheckConstraint(
+            "source_type IN ('profile', 'cv', 'cv_and_profile')",
+            name="ck_analysis_source_type",
+        ),
+        CheckConstraint(
             "status IN ('pending', 'running', 'completed', 'failed')",
             name="ck_analysis_status",
+        ),
+        CheckConstraint(
+            "readiness_score IS NULL OR "
+            "(readiness_score >= 0 AND readiness_score <= 100)",
+            name="ck_analysis_readiness_score",
         ),
         Index("ix_analyses_user_created", "user_id", "created_at"),
         {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_0900_ai_ci"},
@@ -79,6 +93,13 @@ class AnalysisSkillGap(Base):
     )
     current_level: Mapped[int] = mapped_column(Integer, nullable=False)
     target_level: Mapped[int] = mapped_column(Integer, nullable=False)
+    gap: Mapped[int] = mapped_column(Integer, nullable=False)
+    is_required: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="1"
+    )
+    weight: Mapped[float] = mapped_column(
+        Float, nullable=False, default=1.0, server_default="1"
+    )
     recommendation: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     analysis: Mapped["Analysis"] = relationship(
@@ -90,10 +111,15 @@ class AnalysisSkillGap(Base):
         UniqueConstraint("analysis_id", "skill_id", name="uq_analysis_skill_gap"),
         CheckConstraint(
             "current_level >= 0 AND current_level <= 5 "
-            "AND target_level >= 0 AND target_level <= 5 "
-            "AND target_level >= current_level",
+            "AND target_level >= 0 AND target_level <= 5",
             name="ck_analysis_skill_gap_levels",
         ),
+        CheckConstraint(
+            "(target_level >= current_level AND gap = target_level - current_level) "
+            "OR (target_level < current_level AND gap = 0)",
+            name="ck_analysis_skill_gap_value",
+        ),
+        CheckConstraint("weight > 0", name="ck_analysis_skill_gap_weight"),
         Index("ix_analysis_skill_gaps_skill_id", "skill_id"),
         {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_0900_ai_ci"},
     )

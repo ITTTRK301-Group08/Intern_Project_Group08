@@ -5,8 +5,8 @@ utf8mb4, then run:
 
     python -m alembic upgrade head
 
-The migration chain creates the 13 normalized application tables, then adds a
-learning_resources table (14 total) and seeds starter career categories, roles,
-required skills, skill definitions, and free learning links. The migration
-preserves existing user/profile/CV data and does not create an Admin account.
-See the repository README for the secure Admin bootstrap command.
+The migration chain creates the normalized application schema, adds and seeds
+learning resources and starter career data, then adds a student-profile index,
+analysis-result fields, and hashed refresh-token sessions. The migrations
+preserve existing user/profile/CV data and do not create an Admin account. See
+the repository README for the secure Admin bootstrap command.

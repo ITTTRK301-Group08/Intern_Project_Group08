@@ -34,6 +34,16 @@ def test_auth_script_targets_public_auth_endpoints(client):
     assert "/api/v1/auth/register" in script
     assert "/api/v1/auth/login" in script
     assert "acm_access_token" in script
+    assert "acm_refresh_token" in script
+    assert "/api/v1/auth/refresh" in client.get("/static/session.js").text
+    assert "/api/v1/auth/logout" in client.get("/static/session.js").text
+
+
+def test_auth_pages_load_session_refresh_support(client):
+    for path in ("/login", "/register"):
+        page = client.get(path).text
+        assert "/static/session.js" in page
+        assert "/static/auth.js" in page
 
 
 def test_internal_pages_require_session_and_load_guard(client):

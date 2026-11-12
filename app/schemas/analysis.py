@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -16,26 +17,44 @@ class AIConsent(BaseModel):
 
 class AnalysisRequest(BaseModel):
     cv_id: int | None = Field(default=None, ge=1)
-    career_role_id: int | None = Field(default=None, ge=1)
+    career_role_id: int = Field(ge=1)
     ai_consent: AIConsent
 
     model_config = ConfigDict(extra="forbid")
 
 
-class AnalysisGateData(BaseModel):
-    consent_valid: bool = True
-    pipeline_implemented: bool = False
-    cv_id: int | None = None
-    career_role_id: int | None = None
+SourceType = Literal["profile", "cv", "cv_and_profile"]
+AnalysisStatus = Literal["pending", "running", "completed", "failed"]
 
 
-class AnalysisGateErrorData(BaseModel):
-    code: str
+class AnalysisAcceptedData(BaseModel):
+    id: int
+    status: Literal["pending"] = "pending"
+    status_url: str
 
 
-class AnalysisGateError(BaseModel):
-    success: bool = False
-    data: AnalysisGateErrorData
-    message: str
+class AnalysisSkillGapRead(BaseModel):
+    skill_id: int
+    skill_name: str
+    current_level: int
+    target_level: int
+    gap: int
+    is_required: bool
+    weight: float
+    recommendation: str | None
 
-AnalysisGateResponse = ApiResponse[AnalysisGateData]
+
+class AnalysisResultData(BaseModel):
+    id: int
+    status: AnalysisStatus
+    source_type: SourceType
+    career_role_id: int | None
+    readiness_score: int | None
+    summary: str | None
+    skill_gaps: list[AnalysisSkillGapRead]
+    created_at: datetime
+    completed_at: datetime | None
+
+
+AnalysisAcceptedResponse = ApiResponse[AnalysisAcceptedData]
+AnalysisResultResponse = ApiResponse[AnalysisResultData]

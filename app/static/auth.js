@@ -7,6 +7,7 @@
   'use strict';
 
   var TOKEN_KEY = 'acm_access_token';
+  var REFRESH_TOKEN_KEY = 'acm_refresh_token';
   var $ = function (id) { return document.getElementById(id); };
 
   // Thông điệp tiếng Việt cho các lỗi nghiệp vụ backend trả về.
@@ -77,8 +78,25 @@
     try { return localStorage.getItem(TOKEN_KEY); } catch (_) { return null; }
   }
 
-  function saveToken(token) {
-    try { localStorage.setItem(TOKEN_KEY, token); } catch (_) { /* trình duyệt chặn lưu trữ */ }
+  function saveTokens(data) {
+    try {
+      localStorage.setItem(TOKEN_KEY, data.access_token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
+      return true;
+    } catch (_) {
+      try {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+      } catch (_) { /* trình duyệt chặn lưu trữ */ }
+      return false;
+    }
+  }
+
+  function clearTokens() {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+    } catch (_) { /* trình duyệt chặn lưu trữ */ }
   }
 
   function setBusy(button, busy, busyLabel, idleLabel) {
@@ -110,7 +128,7 @@
           return;
         }
         if (res.status === 401) {
-          try { localStorage.removeItem(TOKEN_KEY); } catch (_) { /* bỏ qua */ }
+          clearTokens();
         }
       })
       .catch(function () { /* Mất mạng: giữ người dùng ở lại biểu mẫu. */ });
@@ -148,12 +166,15 @@
             setStatus(statusEl, describeError(result.res, result.body), 'error');
             return;
           }
-          var token = result.body && result.body.data && result.body.data.access_token;
-          if (!token) {
-            setStatus(statusEl, 'Máy chủ không trả về access token. Vui lòng thử lại.', 'error');
+          var tokens = result.body && result.body.data;
+          if (!tokens || !tokens.access_token || !tokens.refresh_token) {
+            setStatus(statusEl, 'Máy chủ không trả về đủ thông tin phiên. Vui lòng thử lại.', 'error');
             return;
           }
-          saveToken(token);
+          if (!saveTokens(tokens)) {
+            setStatus(statusEl, 'Trình duyệt không cho phép lưu phiên đăng nhập. Vui lòng bật bộ nhớ trình duyệt rồi thử lại.', 'error');
+            return;
+          }
           setStatus(statusEl, 'Đăng nhập thành công. Đang chuyển trang...', 'ok');
           window.location.assign(nextTarget('/explore'));
         })
@@ -219,12 +240,15 @@
             setStatus(statusEl, describeError(login.res, login.body) + ' Bạn có thể đăng nhập lại bằng biểu mẫu đăng nhập.', 'error');
             return;
           }
-          var token = login.body && login.body.data && login.body.data.access_token;
-          if (!token) {
-            setStatus(statusEl, 'Máy chủ không trả về access token. Vui lòng đăng nhập lại.', 'error');
+          var tokens = login.body && login.body.data;
+          if (!tokens || !tokens.access_token || !tokens.refresh_token) {
+            setStatus(statusEl, 'Máy chủ không trả về đủ thông tin phiên. Vui lòng đăng nhập lại.', 'error');
             return;
           }
-          saveToken(token);
+          if (!saveTokens(tokens)) {
+            setStatus(statusEl, 'Trình duyệt không cho phép lưu phiên đăng nhập. Vui lòng bật bộ nhớ trình duyệt rồi thử lại.', 'error');
+            return;
+          }
           window.location.assign(nextTarget('/profile'));
         })
         .catch(function () {
