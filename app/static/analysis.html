@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Phân tích AI - Xác nhận đồng ý</title>
+  <title>Báo cáo phân tích kỹ năng</title>
   <link rel="stylesheet" href="/static/profile.css" />
   <style>
     .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
@@ -11,13 +11,23 @@
     .modal h2{margin-top:0}.modal ul{margin:8px 0 0 18px}
     .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
     button.danger{background:#dc2626}
+    .history-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px}
+    .history-item button{white-space:nowrap}.history-list{display:grid;gap:8px}
+    .pagination{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+    .report-score{font-size:2rem;font-weight:700;color:var(--primary)}
+    .table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{text-align:left;padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+    .bar{height:8px;background:#dbeafe;border-radius:8px;overflow:hidden;min-width:80px;margin-top:5px}
+    .bar span{display:block;height:100%;background:var(--primary)}
+    .badge{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:.85rem}
+    @media(max-width:600px){.history-item{align-items:flex-start;flex-direction:column}}
   </style>
 </head>
 <body>
   <main class="container">
     <header class="header">
-      <h1>Bắt đầu phân tích kỹ năng (AI Consent)</h1>
-      <p class="muted">Task 4: Xác nhận quyền sử dụng dữ liệu cho AI. Không kết nối Gemini/AI thật trong Task 4.</p>
+      <h1>Báo cáo phân tích kỹ năng</h1>
+      <p class="muted">Xem kết quả phân tích và lịch sử các lần phân tích của bạn.</p>
     </header>
 
     <section class="card">
@@ -31,15 +41,54 @@
     <div id="status" class="status" aria-live="polite"></div>
     <div id="loading" class="loading hidden">Đang xử lý...</div>
 
+    <section class="card" aria-labelledby="historyTitle">
+      <h2 id="historyTitle">Lịch sử phân tích</h2>
+      <div id="historyList" class="history-list" aria-live="polite"></div>
+      <div id="historyEmpty" class="muted">Đang tải lịch sử...</div>
+      <div class="pagination">
+        <button id="previousPage" type="button" class="secondary" disabled>Trước</button>
+        <span id="pageInfo" class="muted"></span>
+        <button id="nextPage" type="button" class="secondary" disabled>Sau</button>
+      </div>
+    </section>
+
+    <section id="reportCard" class="card hidden" aria-labelledby="reportTitle">
+      <h2 id="reportTitle">Báo cáo chi tiết</h2>
+      <p id="reportRole" class="muted"></p>
+      <div id="reportProgress" class="status" aria-live="polite"></div>
+      <div id="reportContent" class="hidden">
+        <div class="grid">
+          <div>
+            <span class="label">Điểm sẵn sàng nghề nghiệp</span>
+            <div id="readinessScore" class="report-score"></div>
+          </div>
+          <div>
+            <span class="label">Nhận xét tổng quan</span>
+            <p id="reportSummary"></p>
+          </div>
+        </div>
+        <h3>Đối chiếu kỹ năng</h3>
+        <div id="skillsEmpty" class="muted hidden">Chưa có dữ liệu kỹ năng.</div>
+        <div class="table-wrap">
+          <table id="skillsTable" class="hidden">
+            <thead>
+              <tr><th>Kỹ năng</th><th>Hiện tại</th><th>Yêu cầu</th><th>Khoảng cách</th><th>Bằng chứng</th><th>Đề xuất</th></tr>
+            </thead>
+            <tbody id="skillsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <form id="analysisForm" class="card">
-      <h2>Yêu cầu phân tích</h2>
+      <h2>Yêu cầu phân tích mới</h2>
       <label>CV đã tải lên (cv_id, tùy chọn nếu luồng cho phép)
         <input id="cv_id" name="cv_id" type="number" min="1" placeholder="Nhập ID CV (ví dụ: 1)" />
       </label>
       <label>Vị trí nghề nghiệp mục tiêu (career_role_id, nếu luồng yêu cầu)
         <input id="career_role_id" name="career_role_id" type="number" min="1" placeholder="Nhập ID vị trí (M3 chưa triển khai)" />
       </label>
-      <p class="muted small">Hệ thống chỉ kiểm tra xác nhận đồng ý và quyền sở hữu CV (nếu có). Pipeline phân tích AI (M4) chưa triển khai.</p>
+      <p class="muted small">Yêu cầu hiện chỉ xác thực consent và quyền sở hữu CV. Pipeline AI tạo báo cáo chưa được triển khai.</p>
       <div class="actions"><button type="submit">Bắt đầu phân tích</button></div>
     </form>
 
