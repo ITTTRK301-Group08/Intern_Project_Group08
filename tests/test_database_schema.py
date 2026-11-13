@@ -33,6 +33,17 @@ def test_schema_has_normalized_mysql_tables():
     assert "self_assessed_skills" not in profile_columns
     assert "target_role_id" in profile_columns
 
+    analysis_columns = Base.metadata.tables["analyses"].columns
+    assert {"readiness_score", "status", "created_at"} <= set(analysis_columns.keys())
+    analysis_indexes = {
+        tuple(column.name for column in index.columns)
+        for index in Base.metadata.tables["analyses"].indexes
+    }
+    assert ("user_id", "created_at") in analysis_indexes
+
+    skill_gap_columns = Base.metadata.tables["analysis_skill_gaps"].columns
+    assert {"evidence", "has_evidence"} <= set(skill_gap_columns.keys())
+
     profile_skill_forekeys = {
         foreign_key.target_fullname
         for foreign_key in Base.metadata.tables["profile_skills"].foreign_keys
