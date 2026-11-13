@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lộ trình học tập cá nhân</title>
+  <link rel="stylesheet" href="/static/profile.css" />
+  <style>
+    .plan-header,.week-header,.plan-actions,.item{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .plan-actions{justify-content:flex-start;flex-wrap:wrap;margin:12px 0}
+    .week{border-top:1px solid var(--border);padding-top:8px;margin-top:12px}
+    .item{justify-content:flex-start;padding:8px 0}
+    .item label{display:flex;flex-direction:row;align-items:flex-start;font-weight:400}
+    .item input{margin-top:5px}
+    .error{color:var(--danger)}
+    .badge{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:.85rem}
+    .empty{padding:16px;border:1px dashed var(--border);border-radius:8px}
+    @media(max-width:600px){.plan-header{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Lộ trình học tập cá nhân</h1>
+      <p class="muted">Theo dõi tiến độ nhiệm vụ theo tuần và cập nhật trạng thái lộ trình.</p>
+    </header>
+    <section class="card">
+      <label for="token">JWT Access Token (Bearer)</label>
+      <div class="row">
+        <input id="token" type="password" placeholder="Dán access_token sau khi đăng nhập" autocomplete="off" />
+        <button id="loadPlans" type="button">Tải lộ trình</button>
+      </div>
+    </section>
+    <div id="message" class="status" role="status" aria-live="polite"></div>
+    <div id="plans"></div>
+  </main>
+  <script src="/static/learning-plan.js"></script>
+</body>
+</html>

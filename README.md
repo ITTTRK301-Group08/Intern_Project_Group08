@@ -78,3 +78,22 @@ another account returns 404. Run `python -m alembic upgrade head` to apply the
 report fields migration. The analysis creation endpoint remains gated because
 the AI analysis pipeline has not yet been implemented; this page does not
 fabricate reports.
+
+## Personalized learning plans
+
+Run `python -m alembic upgrade head` to create the learning-plan tables, then
+open `/learning-plan` with a student access token. The page lists plans already
+created for the student's analyses and supports:
+
+- `GET /api/v1/learning-plans` and `GET /api/v1/learning-plans/{plan_id}` for
+  owned plans and their weekly tasks.
+- `PATCH /api/v1/learning-plans/{plan_id}/items/{item_id}` with
+  `{"is_completed": true}` or `false`. Completion records a UTC timestamp;
+  unchecking the task clears it.
+- `PATCH /api/v1/learning-plans/{plan_id}/status` with `active`, `completed`,
+  or `archived`. At most one plan per analysis may be active; archive or
+  complete the existing plan before activating another.
+
+All endpoints require JWT authentication and return 404 for plans or tasks
+outside the authenticated student's ownership. Generating new learning plans
+is not part of this progress-tracking feature.

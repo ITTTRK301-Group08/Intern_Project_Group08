@@ -17,6 +17,8 @@ EXPECTED_TABLES = {
     "analyses",
     "analysis_skill_gaps",
     "learning_resources",
+    "learning_plans",
+    "learning_plan_items",
 }
 
 
@@ -64,3 +66,19 @@ def test_schema_has_normalized_mysql_tables():
         for foreign_key in Base.metadata.tables["learning_resources"].foreign_keys
     }
     assert resource_forekeys == {"skills.id"}
+
+    plan_forekeys = {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["learning_plans"].foreign_keys
+    }
+    assert plan_forekeys == {"analyses.id", "users.id"}
+
+    plan_item_forekeys = {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["learning_plan_items"].foreign_keys
+    }
+    assert plan_item_forekeys == {
+        "learning_plans.id",
+        "skills.id",
+        "learning_resources.id",
+    }

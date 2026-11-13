@@ -16,6 +16,7 @@ from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.catalog import router as catalog_router
 from app.routers.cvs import router as cvs_router
+from app.routers.learning_plans import router as learning_plans_router
 from app.routers.profile import router as profile_router
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -104,6 +105,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(cvs_router)
     application.include_router(analyses_router)
     application.include_router(catalog_router)
+    application.include_router(learning_plans_router)
     application.include_router(admin_router)
 
     if STATIC_DIR.exists():
@@ -128,6 +130,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @application.get("/analysis", tags=["frontend"])
     def analysis_page() -> FileResponse:
         return FileResponse(STATIC_DIR / "analysis.html")
+
+    @application.get("/learning-plan", tags=["frontend"])
+    def learning_plan_page() -> FileResponse:
+        return FileResponse(STATIC_DIR / "learning-plan.html")
 
     @application.get("/health", tags=["health"])
     def health() -> dict[str, bool]:
