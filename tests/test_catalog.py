@@ -31,9 +31,20 @@ def test_explore_page_and_assets_are_served(client):
     for path in ("/", "/explore"):
         response = client.get(path)
         assert response.status_code == 200
-        assert "Khám phá nghề nghiệp" in response.text
+        assert "Con đường nghề nghiệp của bạn bắt đầu từ đây." in response.text
+        assert "la bàn" in response.text
 
-    for path in ("/static/explore.css", "/static/explore.js"):
+    for path in ("/profile", "/cv", "/analysis"):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert "la bàn" in response.text
+        assert 'aria-label="Điều hướng"' in response.text
+
+    for path in (
+        "/static/profile.css",
+        "/static/explore.css",
+        "/static/explore.js",
+    ):
         assert client.get(path).status_code == 200
 
 

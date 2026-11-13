@@ -1,9 +1,18 @@
+from datetime import datetime
+
 import jwt
 import pytest
 from pydantic import ValidationError
 
 from app.core.config import get_settings
-from app.core.security import create_access_token, decode_access_token, hash_password, verify_password
+from app.core.security import (
+    create_access_token,
+    decode_access_token,
+    hash_password,
+    hash_refresh_token,
+    verify_password,
+)
+from app.models.refresh_token import RefreshToken
 from app.models.user import User
 
 
@@ -74,7 +83,7 @@ def test_password_is_stored_as_bcrypt_hash(db_session):
     assert user.password_hash.startswith("$2")
 
 
-def test_login_success(client):
+def test_login_success(client, db_session):
     client.post("/api/v1/auth/register", json=_register_payload())
     response = client.post("/api/v1/auth/login", json=_register_payload())
     assert response.status_code == 200
@@ -82,6 +91,67 @@ def test_login_success(client):
     assert body["success"] is True
     assert body["data"]["token_type"] == "bearer"
     assert isinstance(body["data"]["access_token"], str) and body["data"]["access_token"]
+    assert len(body["data"]["refresh_token"]) >= 40
+    session = db_session.query(RefreshToken).one()
+    assert session.token_hash == hash_refresh_token(body["data"]["refresh_token"])
+    assert session.token_hash != body["data"]["refresh_token"]
+
+
+def test_refresh_rotates_token_and_rejects_reuse(client):
+    client.post("/api/v1/auth/register", json=_register_payload())
+    login = client.post("/api/v1/auth/login", json=_register_payload()).json()["data"]
+
+    refreshed = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": login["refresh_token"]},
+    )
+    assert refreshed.status_code == 200
+    new_tokens = refreshed.json()["data"]
+    assert new_tokens["access_token"] != login["access_token"]
+    assert new_tokens["refresh_token"] != login["refresh_token"]
+    assert client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {new_tokens['access_token']}"},
+    ).status_code == 200
+
+    reused = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": login["refresh_token"]},
+    )
+    assert reused.status_code == 401
+    assert client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": new_tokens["refresh_token"]},
+    ).status_code == 401
+
+
+def test_logout_revokes_refresh_token_idempotently(client, db_session):
+    client.post("/api/v1/auth/register", json=_register_payload())
+    login = client.post("/api/v1/auth/login", json=_register_payload()).json()["data"]
+    logout_payload = {"refresh_token": login["refresh_token"]}
+
+    assert client.post("/api/v1/auth/logout", json=logout_payload).status_code == 200
+    assert client.post("/api/v1/auth/logout", json=logout_payload).status_code == 200
+    session = db_session.query(RefreshToken).one()
+    assert session.revoked_at is not None
+    assert client.post("/api/v1/auth/refresh", json=logout_payload).status_code == 401
+
+
+def test_refresh_rejects_unknown_and_expired_tokens(client, db_session):
+    assert client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": "x" * 43},
+    ).status_code == 401
+
+    client.post("/api/v1/auth/register", json=_register_payload())
+    login = client.post("/api/v1/auth/login", json=_register_payload()).json()["data"]
+    session = db_session.query(RefreshToken).one()
+    session.expires_at = datetime(2000, 1, 1)
+    db_session.commit()
+    assert client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": login["refresh_token"]},
+    ).status_code == 401
 
 
 def test_login_wrong_password(client):
@@ -187,8 +257,10 @@ def test_cors_allows_configured_origin_only():
 
     cors_app = create_app(
         Settings(
+            database_url="sqlite+pysqlite:///:memory:",
             secret_key="test-cors-secret-key-that-is-at-least-32-bytes",
             cors_allowed_origins=["https://frontend.example"],
+            _env_file=None,
         )
     )
     with TestClient(cors_app) as cors_client:
@@ -217,17 +289,29 @@ def test_security_settings_reject_weak_secret_and_wildcard_cors(monkeypatch):
 
     monkeypatch.delenv("SECRET_KEY", raising=False)
     with pytest.raises(ValidationError, match="SECRET_KEY"):
-        Settings(secret_key="short")
+        Settings(
+            database_url="sqlite+pysqlite:///:memory:",
+            secret_key="short",
+            _env_file=None,
+        )
     with pytest.raises(ValidationError, match="CORS origin"):
         Settings(
+            database_url="sqlite+pysqlite:///:memory:",
             secret_key="test-settings-secret-key-that-is-at-least-32-bytes",
             cors_allowed_origins=["*"],
+            _env_file=None,
         )
     with pytest.raises(ValidationError, match="explicitly configured"):
-        Settings(environment="production")
+        Settings(
+            database_url="sqlite+pysqlite:///:memory:",
+            environment="production",
+            _env_file=None,
+        )
     assert Settings(
+        database_url="sqlite+pysqlite:///:memory:",
         environment="production",
         secret_key="test-production-secret-key-that-is-at-least-32-bytes",
+        _env_file=None,
     ).environment == "production"
 
 
@@ -238,7 +322,11 @@ def test_unexpected_errors_use_the_api_error_envelope(caplog):
     from app.main import create_app
 
     error_app = create_app(
-        Settings(secret_key="test-api-errors-secret-key-that-is-at-least-32-bytes")
+        Settings(
+            database_url="sqlite+pysqlite:///:memory:",
+            secret_key="test-api-errors-secret-key-that-is-at-least-32-bytes",
+            _env_file=None,
+        )
     )
 
     @error_app.get("/intentional-test-error")

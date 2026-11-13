@@ -17,6 +17,13 @@ EXPECTED_TABLES = {
     "analyses",
     "analysis_skill_gaps",
     "learning_resources",
+    "interview_sessions",
+    "interview_questions",
+<<<<<<< HEAD
+    "refresh_tokens",
+=======
+    "interview_answers",
+>>>>>>> 9461ae8730e80cb3e3b53d66094fa669388a2cb1
 }
 
 
@@ -32,6 +39,9 @@ def test_schema_has_normalized_mysql_tables():
     assert "strengths" not in profile_columns
     assert "self_assessed_skills" not in profile_columns
     assert "target_role_id" in profile_columns
+    assert {
+        index.name for index in Base.metadata.tables["student_profiles"].indexes
+    } >= {"ix_student_profiles_target_role_id"}
 
     profile_skill_forekeys = {
         foreign_key.target_fullname
@@ -47,3 +57,25 @@ def test_schema_has_normalized_mysql_tables():
         for foreign_key in Base.metadata.tables["learning_resources"].foreign_keys
     }
     assert resource_forekeys == {"skills.id"}
+
+    analysis_columns = Base.metadata.tables["analyses"].columns
+    assert "source_type" in analysis_columns
+    assert "readiness_score" in analysis_columns
+
+    gap_columns = Base.metadata.tables["analysis_skill_gaps"].columns
+    assert {"current_level", "target_level", "gap", "is_required", "weight"} <= set(
+        gap_columns.keys()
+    )
+
+    refresh_columns = Base.metadata.tables["refresh_tokens"].columns
+    assert {
+        "user_id",
+        "token_hash",
+        "family_id",
+        "expires_at",
+        "revoked_at",
+    } <= set(refresh_columns.keys())
+    assert {
+        foreign_key.target_fullname
+        for foreign_key in Base.metadata.tables["refresh_tokens"].foreign_keys
+    } == {"users.id"}

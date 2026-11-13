@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -56,13 +58,17 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
+def hash_refresh_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
 def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
     settings = get_settings()
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
     )
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "jti": secrets.token_urlsafe(16)})
     if "sub" not in to_encode:
         raise ValueError("Token payload must include 'sub'")
     to_encode["sub"] = str(to_encode["sub"])

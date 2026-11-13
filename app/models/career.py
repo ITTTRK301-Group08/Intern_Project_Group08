@@ -51,6 +51,9 @@ class CareerRole(Base):
     )
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     slug: Mapped[str] = mapped_column(String(170), nullable=False, unique=True)
+    level: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="Junior", server_default="Junior"
+    )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(nullable=False, default=True, server_default="1")
     created_at: Mapped[datetime] = mapped_column(
@@ -65,6 +68,7 @@ class CareerRole(Base):
     )
 
     __table_args__ = (
+        UniqueConstraint("name", "level", name="uq_career_roles_name_level"),
         Index("ix_career_roles_category_id", "category_id"),
         {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_0900_ai_ci"},
     )

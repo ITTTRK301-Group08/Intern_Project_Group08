@@ -24,10 +24,118 @@
     container.appendChild(empty);
   }
 
+  function createLevelBadge(level) {
+    const text = level || 'Junior';
+    const badge = document.createElement('span');
+    const normalized = text.toLocaleLowerCase();
+    let cls = 'level-badge';
+    if (normalized === 'intern') cls += ' level-intern';
+    else if (normalized === 'fresher') cls += ' level-fresher';
+    else if (normalized === 'junior') cls += ' level-junior';
+    badge.className = cls;
+    badge.textContent = text;
+    return badge;
+  }
+
+  async function openRoleDetail(role) {
+    const panel = $('roleDetailSection');
+    const tbody = $('roleDetailSkillsBody');
+    const statusText = $('roleDetailStatus');
+
+    panel.classList.remove('hidden');
+    $('roleDetailTitle').textContent = role.name;
+    const levelBadge = createLevelBadge(role.level);
+    const levelEl = $('roleDetailLevel');
+    levelEl.className = levelBadge.className;
+    levelEl.textContent = levelBadge.textContent;
+    $('roleDetailCategory').textContent = role.category ? role.category.name : 'Chưa phân nhóm';
+    $('roleDetailDesc').textContent = role.description || 'Chưa có mô tả chi tiết cho vị trí này.';
+    $('roleAnalyzeLink').href = '/analysis?career_role_id=' + encodeURIComponent(role.id);
+    statusText.textContent = 'Đang tải chi tiết bộ kỹ năng yêu cầu...';
+    tbody.replaceChildren();
+
+    let requiredSkills = role.required_skills || [];
+    try {
+      requiredSkills = await getData('/api/v1/careers/' + role.id + '/skills');
+      statusText.textContent = 'Hiển thị ' + requiredSkills.length + ' kỹ năng yêu cầu (thang điểm 0–5 kèm trọng số).';
+    } catch (_err) {
+      statusText.textContent = 'Hiển thị ' + requiredSkills.length + ' kỹ năng yêu cầu.';
+    }
+
+    if (!requiredSkills.length) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.className = 'muted';
+      td.textContent = 'Vị trí này chưa cấu hình kỹ năng yêu cầu.';
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+
+    const totalWeight = requiredSkills.reduce((sum, item) => sum + Number(item.weight || 1), 0);
+
+    requiredSkills.forEach((item, index) => {
+      const tr = document.createElement('tr');
+
+      const tdIndex = document.createElement('td');
+      tdIndex.textContent = String(index + 1);
+
+      const tdSkill = document.createElement('td');
+      const strong = document.createElement('strong');
+      strong.textContent = item.skill ? item.skill.name : 'Kỹ năng';
+      tdSkill.appendChild(strong);
+      if (item.skill && item.skill.description) {
+        const desc = document.createElement('div');
+        desc.className = 'resource-meta';
+        desc.textContent = item.skill.description;
+        tdSkill.appendChild(desc);
+      }
+
+      const tdReq = document.createElement('td');
+      const reqBadge = document.createElement('span');
+      const isReq = item.is_required !== false;
+      reqBadge.className = 'req-badge ' + (isReq ? 'required' : 'optional');
+      reqBadge.textContent = isReq ? 'Bắt buộc' : 'Khuyến khích';
+      tdReq.appendChild(reqBadge);
+
+      const tdLevel = document.createElement('td');
+      const levelWrap = document.createElement('div');
+      levelWrap.className = 'benchmark-wrap';
+      const track = document.createElement('div');
+      track.className = 'benchmark-track';
+      const fill = document.createElement('div');
+      fill.className = 'benchmark-fill';
+      const levelVal = Number(item.required_level || 0);
+      fill.style.width = Math.max(0, Math.min(100, (levelVal / 5) * 100)) + '%';
+      track.appendChild(fill);
+      const levelLabel = document.createElement('span');
+      levelLabel.textContent = levelVal + ' / 5';
+      levelWrap.append(track, levelLabel);
+      tdLevel.appendChild(levelWrap);
+
+      const tdWeight = document.createElement('td');
+      const weightVal = Number(item.weight || 1);
+      const pct = totalWeight > 0 ? Math.round((weightVal / totalWeight) * 100) : 0;
+      tdWeight.textContent = weightVal.toFixed(2) + ' (' + pct + '%)';
+
+      tr.append(tdIndex, tdSkill, tdReq, tdLevel, tdWeight);
+      tbody.appendChild(tr);
+    });
+
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
   function renderRoles() {
     const container = $('roles');
     const selectedCategory = $('categoryFilter').value;
-    const filtered = roles.filter((role) => !selectedCategory || String(role.category_id) === selectedCategory);
+    const selectedLevel = $('levelFilter') ? $('levelFilter').value : '';
+    const filtered = roles.filter((role) => {
+      const matchesCat = !selectedCategory || String(role.category_id) === selectedCategory;
+      const matchesLevel = !selectedLevel || (role.level || '').toLocaleLowerCase() === selectedLevel.toLocaleLowerCase();
+      return matchesCat && matchesLevel;
+    });
     container.replaceChildren();
     $('roleCount').textContent = filtered.length + ' vị trí';
     if (!filtered.length) return addEmptyState(container, 'Chưa có vị trí phù hợp với bộ lọc.');
@@ -35,23 +143,40 @@
     filtered.forEach((role) => {
       const card = document.createElement('article');
       card.className = 'explore-card';
+
+      const cardHeader = document.createElement('div');
+      cardHeader.className = 'role-card-header';
       const heading = document.createElement('h3');
       heading.textContent = role.name;
+      cardHeader.append(heading, createLevelBadge(role.level));
+
       const category = document.createElement('p');
       category.className = 'resource-meta';
       category.textContent = role.category ? role.category.name : 'Chưa phân nhóm';
+
       const description = document.createElement('p');
       description.textContent = role.description || 'Chưa có mô tả.';
+
       const skillsList = document.createElement('ul');
       skillsList.className = 'pill-list';
       (role.required_skills || []).forEach((item) => {
         const pill = document.createElement('li');
         pill.className = 'pill';
-        pill.textContent = item.skill.name + ' · mức ' + item.required_level + '/5';
+        const weightNum = item.weight !== undefined ? Number(item.weight) : 1;
+        const weight = Number.isFinite(weightNum) ? String(Number(weightNum.toFixed(2))) : '1';
+        pill.textContent = item.skill.name + ' · mức ' + item.required_level + '/5 · w=' + weight;
         skillsList.appendChild(pill);
       });
-      card.append(heading, category, description);
+
+      const detailBtn = document.createElement('button');
+      detailBtn.type = 'button';
+      detailBtn.className = 'secondary small role-detail-btn';
+      detailBtn.textContent = 'Xem chi tiết kỹ năng & trọng số';
+      detailBtn.addEventListener('click', () => openRoleDetail(role));
+
+      card.append(cardHeader, category, description);
       if (skillsList.childElementCount) card.appendChild(skillsList);
+      card.appendChild(detailBtn);
       container.appendChild(card);
     });
   }
@@ -113,7 +238,7 @@
     try {
       const [categories, roleData, skillData, resourceData] = await Promise.all([
         getData('/api/v1/catalog/categories'),
-        getData('/api/v1/catalog/roles'),
+        getData('/api/v1/careers'),
         getData('/api/v1/catalog/skills'),
         getData('/api/v1/catalog/resources')
       ]);
@@ -127,6 +252,21 @@
         option.textContent = category.name;
         $('categoryFilter').appendChild(option);
       });
+
+      const levelFilter = $('levelFilter');
+      if (levelFilter) {
+        const knownLevels = new Set(Array.from(levelFilter.options).map((o) => o.value.toLocaleLowerCase()));
+        roles.forEach((role) => {
+          if (role.level && !knownLevels.has(role.level.toLocaleLowerCase())) {
+            knownLevels.add(role.level.toLocaleLowerCase());
+            const opt = document.createElement('option');
+            opt.value = role.level;
+            opt.textContent = role.level;
+            levelFilter.appendChild(opt);
+          }
+        });
+      }
+
       skills.forEach((skill) => {
         const option = document.createElement('option');
         option.value = skill.id;
@@ -144,6 +284,12 @@
   }
 
   $('categoryFilter').addEventListener('change', renderRoles);
+  if ($('levelFilter')) $('levelFilter').addEventListener('change', renderRoles);
+  if ($('closeRoleDetail')) {
+    $('closeRoleDetail').addEventListener('click', () => {
+      $('roleDetailSection').classList.add('hidden');
+    });
+  }
   $('skillFilter').addEventListener('change', renderResources);
   $('resourceSearch').addEventListener('input', () => {
     renderSkills();

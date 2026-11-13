@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Đăng nhập La Bàn để quản lý hồ sơ, CV và nhận phân tích kỹ năng." />
+  <title>La Bàn — Đăng nhập</title>
+  <link rel="stylesheet" href="/static/profile.css" />
+  <link rel="stylesheet" href="/static/auth.css" />
+</head>
+<body class="auth-body">
+  <main class="auth-layout">
+    <section class="auth-intro">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" /></svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
+      <h1>Đăng nhập để tiếp tục hành trình</h1>
+      <p class="muted">Lưu hồ sơ, quản lý CV và nhận phân tích kỹ năng theo vị trí nghề nghiệp bạn hướng tới.</p>
+      <ul class="auth-points">
+        <li>Hồ sơ và CV gắn với tài khoản của riêng bạn.</li>
+        <li>Phân tích khoảng cách kỹ năng dựa trên dữ liệu bạn khai báo.</li>
+        <li>Chỉ bạn mới xem được báo cáo và phiên phỏng vấn thử của mình.</li>
+      </ul>
+    </section>
+
+    <section class="card auth-card" aria-labelledby="loginHeading">
+      <h2 id="loginHeading">Đăng nhập</h2>
+      <p class="muted small">Dùng email và mật khẩu đã đăng ký.</p>
+
+      <form id="loginForm" class="auth-form" novalidate>
+        <label for="email">Email
+          <input id="email" name="email" type="email" required maxlength="255" autocomplete="email" placeholder="ban@example.com" />
+        </label>
+        <div class="auth-field">
+          <label for="password">Mật khẩu</label>
+          <span class="password-wrap">
+            <input id="password" name="password" type="password" required maxlength="72" autocomplete="current-password" placeholder="Nhập mật khẩu" />
+            <button type="button" class="password-toggle" data-target="password" aria-pressed="false">Hiện</button>
+          </span>
+        </div>
+        <button type="submit" id="submitBtn">Đăng nhập</button>
+      </form>
+
+      <div id="status" class="status" role="alert" aria-live="polite"></div>
+
+      <div class="auth-footer">
+        <p class="muted small">Chưa có tài khoản? <a href="/register">Đăng ký ngay</a></p>
+        <p class="muted small"><a href="/explore">← Về trang khám phá</a></p>
+      </div>
+    </section>
+  </main>
+  <script src="/static/session.js"></script>
+  <script src="/static/auth.js"></script>
+</body>
+</html>

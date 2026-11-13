@@ -9,7 +9,7 @@
     statusEl.className = 'status' + (type ? ' ' + type : '');
   }
   function setLoading(on) { loadingEl.classList.toggle('hidden', !on); }
-  function getToken() { return localStorage.getItem(TOKEN_KEY) || $('token').value.trim(); }
+  function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
   function authHeaders() {
     const token = getToken();
     return token ? { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
@@ -96,7 +96,6 @@
     }
   }
 
-  $('saveToken').onclick = () => { localStorage.setItem(TOKEN_KEY, $('token').value.trim()); setStatus('Đã lưu token trong trình duyệt.', 'ok'); };
   $('loadProfile').onclick = loadProfile;
   $('addStrength').onclick = () => $('strengthsList').appendChild(strengthRow(''));
   $('addSkill').onclick = () => $('skillsList').appendChild(skillRow({ level: 0 }));
@@ -110,6 +109,5 @@
     } catch (e2) { setStatus(e2.message, 'error'); }
   };
 
-  const saved = localStorage.getItem(TOKEN_KEY);
-  if (saved) $('token').value = saved;
+  loadProfile();
 })();
