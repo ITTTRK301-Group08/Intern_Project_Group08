@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Đăng ký tài khoản La Bàn để lưu hồ sơ, tải CV và nhận phân tích kỹ năng." />
   <title>La Bàn — Đăng ký</title>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<link rel="stylesheet" href="./profile.css">');
+      document.write('<link rel="stylesheet" href="./auth.css">');
+    }
+  </script>
   <link rel="stylesheet" href="/static/profile.css" />
   <link rel="stylesheet" href="/static/auth.css" />
 </head>
@@ -18,11 +24,11 @@
         <span class="brand-name">la bàn<span>.</span></span>
       </a>
       <h1>Tạo tài khoản để bắt đầu</h1>
-      <p class="muted">Chỉ cần email và mật khẩu. Sau khi đăng ký, bạn hoàn thiện hồ sơ và tải CV để nhận phân tích kỹ năng.</p>
+      <p class="muted">Chỉ cần email và mật khẩu. Sau khi đăng ký, bạn hoàn thiện hồ sơ và tải CV để nhận định hướng kỹ năng theo vị trí mơ ước.</p>
       <ul class="auth-points">
-        <li>Miễn phí và không cần thẻ thanh toán.</li>
-        <li>Mật khẩu được băm trước khi lưu, không lưu dạng văn bản.</li>
-        <li>Dữ liệu hồ sơ, CV, báo cáo chỉ thuộc tài khoản của bạn.</li>
+        <li>Hoàn toàn miễn phí dành cho sinh viên.</li>
+        <li>Lưu trữ nhiều phiên bản CV PDF và cập nhật hồ sơ linh hoạt.</li>
+        <li>Thông tin cá nhân, CV và kết quả phân tích được bảo mật riêng tư.</li>
       </ul>
     </section>
 
@@ -53,14 +59,21 @@
 
       <div id="status" class="status" role="alert" aria-live="polite"></div>
 
-      <p class="muted small auth-note">Mật khẩu được băm bằng thuật toán một chiều trước khi lưu; hệ thống không lưu hoặc ghi log mật khẩu dạng văn bản.</p>
+      <p class="muted small auth-note">Mật khẩu của bạn được mã hóa bảo vệ an toàn và không bao giờ hiển thị lại.</p>
 
       <div class="auth-footer">
-        <p class="muted small">Đã có tài khoản? <a href="/login">Đăng nhập</a></p>
+        <p class="muted small">Đã có tài khoản? <a id="switchToLoginLink" href="/login">Đăng nhập</a></p>
         <p class="muted small"><a href="/explore">← Về trang khám phá</a></p>
       </div>
     </section>
   </main>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./session.js"><\/script>');
+      document.write('<script src="./auth.js"><\/script>');
+    }
+  </script>
+  <script src="/static/session.js"></script>
   <script src="/static/auth.js"></script>
 </body>
 </html>

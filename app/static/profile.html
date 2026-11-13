@@ -4,65 +4,166 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>La Bàn — Hồ sơ cá nhân</title>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<link rel="stylesheet" href="./profile.css">');
+    }
+  </script>
   <link rel="stylesheet" href="/static/profile.css" />
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./session.js"><\/script>');
+    }
+  </script>
   <script src="/static/session.js"></script>
 </head>
 <body>
   <main class="container">
-    <header class="header">
+    <header class="topbar">
       <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
         <span class="brand-symbol" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none"><path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" /></svg>
         </span>
         <span class="brand-name">la bàn<span>.</span></span>
       </a>
-      <h1>Hồ sơ cá nhân</h1>
-      <p class="muted">Quản lý thông tin sinh viên (M2 - Student Profile)</p>
       <nav class="site-nav" aria-label="Điều hướng">
         <a href="/explore">Khám phá</a>
         <a href="/profile" aria-current="page">Hồ sơ</a>
-        <a href="/cv">CV</a>
-        <a href="/analysis">Phân tích</a>
-        <a href="/docs">API</a>
+        <a href="/cv">CV của tôi</a>
+        <a href="/analysis">Phân tích kỹ năng</a>
       </nav>
     </header>
 
-    <div id="status" class="status" aria-live="polite"></div>
-    <div id="loading" class="loading hidden">Đang xử lý...</div>
-
-    <section class="card">
-      <h2>Thông tin tài khoản</h2>
-      <div class="grid">
-        <div><span class="label">Email</span><div id="viewEmail" class="value">-</div></div>
+    <section class="page-hero">
+      <div class="page-hero-copy">
+        <p class="page-eyebrow">Hồ sơ học tập</p>
+        <h1>Hồ sơ cá nhân</h1>
+        <p class="muted">Hoàn thiện thông tin học vấn, điểm mạnh và kỹ năng cá nhân để hệ thống đối chiếu chính xác hơn.</p>
+      </div>
+      <div class="page-hero-actions">
+        <a class="btn-link secondary-link small" href="/cv">Quản lý CV</a>
+        <a class="btn-link small" href="/analysis">Phân tích kỹ năng →</a>
       </div>
     </section>
 
-    <form id="profileForm" class="card">
-      <h2>Chỉnh sửa hồ sơ</h2>
-      <div class="grid">
-        <label>Họ và tên *<input id="full_name" name="full_name" required maxlength="150" /></label>
-        <label>Ngành học<input id="major" name="major" maxlength="150" /></label>
-        <label>Trường đại học<input id="university" name="university" maxlength="200" /></label>
-        <label>Mục tiêu nghề nghiệp<input id="career_goal" name="career_goal" maxlength="255" /></label>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="loading" class="loading hidden">Đang tải dữ liệu...</div>
+
+    <section class="card summary-strip" aria-label="Tóm tắt tài khoản">
+      <div>
+        <span class="label">Email tài khoản</span>
+        <div id="viewEmail" class="value">—</div>
       </div>
-      <label>Giới thiệu bản thân<textarea id="bio" name="bio" rows="4"></textarea></label>
+      <div>
+        <span class="label">Mức độ hoàn thiện hồ sơ</span>
+        <div id="profileCompletenessText" class="value">0%</div>
+        <div class="progress-bar" aria-hidden="true">
+          <div id="profileCompletenessBar" class="progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+    </section>
+
+    <form id="profileForm" class="card" novalidate>
+      <div class="card-head">
+        <div>
+          <h2>Thông tin cá nhân &amp; Mục tiêu</h2>
+          <p class="muted small" style="margin:4px 0 0">Các trường có dấu * là bắt buộc. Thông tin được dùng khi bạn chọn phân tích từ hồ sơ.</p>
+        </div>
+      </div>
+
+      <div class="grid">
+        <label>Họ và tên *
+          <input id="full_name" name="full_name" required maxlength="150" placeholder="Ví dụ: Nguyễn Văn An" />
+        </label>
+        <label>Ngành học
+          <input id="major" name="major" maxlength="150" placeholder="Ví dụ: Kỹ thuật phần mềm" />
+        </label>
+        <label>Trường đại học
+          <input id="university" name="university" maxlength="200" placeholder="Ví dụ: Đại học Bách khoa" />
+        </label>
+        <label>Vị trí mục tiêu (từ danh mục)
+          <select id="target_role_id" name="target_role_id">
+            <option value="">-- Chưa chọn vị trí cụ thể --</option>
+            <option value="1">Backend Developer (Junior)</option>
+            <option value="2">Frontend Developer (Fresher)</option>
+            <option value="3">Data Analyst (Intern)</option>
+            <option value="4">Machine Learning Engineer (Junior)</option>
+            <option value="5">Cybersecurity Analyst (Fresher)</option>
+            <option value="6">UX/UI Designer (Intern)</option>
+          </select>
+        </label>
+      </div>
+
+      <div style="margin-top:14px">
+        <label>Mô tả mục tiêu nghề nghiệp
+          <input id="career_goal" name="career_goal" maxlength="255" placeholder="Ví dụ: Trở thành Backend Developer (Python / FastAPI) trong 6 tháng tới" />
+        </label>
+      </div>
+
+      <div style="margin-top:14px">
+        <label>Giới thiệu bản thân &amp; kinh nghiệm nổi bật
+          <textarea id="bio" name="bio" rows="4" placeholder="Tóm tắt các dự án đã làm, môn học chuyên ngành hoặc định hướng phát triển của bạn..."></textarea>
+        </label>
+      </div>
 
       <div class="subsection">
-        <div class="subhead"><h3>Điểm mạnh</h3><button type="button" id="addStrength" class="secondary small">+ Thêm</button></div>
+        <div class="subhead">
+          <div>
+            <h3>Điểm mạnh nổi bật</h3>
+            <p class="field-hint">Thêm các điểm mạnh về chuyên môn hoặc kỹ năng mềm của bạn.</p>
+          </div>
+          <button type="button" id="addStrength" class="secondary small">+ Thêm điểm mạnh</button>
+        </div>
         <div id="strengthsList" class="list"></div>
       </div>
 
       <div class="subsection">
-        <div class="subhead"><h3>Kỹ năng tự đánh giá (0–5)</h3><button type="button" id="addSkill" class="secondary small">+ Thêm</button></div>
+        <div class="subhead">
+          <div>
+            <h3>Kỹ năng tự đánh giá (0–5)</h3>
+            <p class="field-hint">Chọn kỹ năng bạn đã học hoặc từng thực hành và ước lượng mức độ hiện tại.</p>
+          </div>
+          <button type="button" id="addSkill" class="secondary small">+ Thêm kỹ năng</button>
+        </div>
+        <datalist id="catalogSkillsSuggestions">
+          <option value="Python"></option>
+          <option value="SQL"></option>
+          <option value="Git"></option>
+          <option value="REST APIs"></option>
+          <option value="JavaScript"></option>
+          <option value="HTML and CSS"></option>
+          <option value="Data Visualization"></option>
+          <option value="Statistics"></option>
+          <option value="Machine Learning"></option>
+          <option value="Linux"></option>
+          <option value="Networking"></option>
+          <option value="Threat Modeling"></option>
+          <option value="UX Research"></option>
+          <option value="Wireframing"></option>
+        </datalist>
         <div id="skillsList" class="list"></div>
       </div>
 
       <div class="actions">
-        <button type="submit">Lưu cập nhật</button>
-        <button type="button" id="loadProfile" class="secondary">Tải lại hồ sơ</button>
+        <button type="submit" id="saveProfileBtn">Lưu cập nhật</button>
+        <button type="button" id="loadProfile" class="ghost">Khôi phục dữ liệu đã lưu</button>
       </div>
     </form>
+
+    <footer class="site-footer">
+      <span>la bàn. — Định hướng kỹ năng nghề nghiệp dành cho sinh viên</span>
+      <div class="footer-links">
+        <a href="/explore">Khám phá</a>
+        <a href="/cv">CV của tôi</a>
+        <a href="/analysis">Phân tích kỹ năng</a>
+      </div>
+    </footer>
   </main>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./profile.js"><\/script>');
+    }
+  </script>
   <script src="/static/profile.js"></script>
 </body>
 </html>

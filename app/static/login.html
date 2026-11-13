@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Đăng nhập La Bàn để quản lý hồ sơ, CV và nhận phân tích kỹ năng." />
   <title>La Bàn — Đăng nhập</title>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<link rel="stylesheet" href="./profile.css">');
+      document.write('<link rel="stylesheet" href="./auth.css">');
+    }
+  </script>
   <link rel="stylesheet" href="/static/profile.css" />
   <link rel="stylesheet" href="/static/auth.css" />
 </head>
@@ -20,9 +26,9 @@
       <h1>Đăng nhập để tiếp tục hành trình</h1>
       <p class="muted">Lưu hồ sơ, quản lý CV và nhận phân tích kỹ năng theo vị trí nghề nghiệp bạn hướng tới.</p>
       <ul class="auth-points">
-        <li>Hồ sơ và CV gắn với tài khoản của riêng bạn.</li>
-        <li>Phân tích khoảng cách kỹ năng dựa trên dữ liệu bạn khai báo.</li>
-        <li>Chỉ bạn mới xem được báo cáo và phiên phỏng vấn thử của mình.</li>
+        <li>Hồ sơ học tập và CV gắn riêng với tài khoản của bạn.</li>
+        <li>Phân tích khoảng cách kỹ năng dựa trên dữ liệu bạn chọn.</li>
+        <li>Chỉ bạn mới xem được hồ sơ, CV và báo cáo của mình.</li>
       </ul>
     </section>
 
@@ -42,16 +48,24 @@
           </span>
         </div>
         <button type="submit" id="submitBtn">Đăng nhập</button>
+        <button type="button" id="quickDemoBtn" class="ghost" style="width: 100%; margin-top: 8px;">Dùng thử tài khoản mẫu (Demo)</button>
       </form>
 
       <div id="status" class="status" role="alert" aria-live="polite"></div>
 
       <div class="auth-footer">
-        <p class="muted small">Chưa có tài khoản? <a href="/register">Đăng ký ngay</a></p>
+        <p class="muted small">Chưa có tài khoản? <a id="switchToRegisterLink" href="/register">Đăng ký ngay</a></p>
         <p class="muted small"><a href="/explore">← Về trang khám phá</a></p>
       </div>
     </section>
   </main>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./session.js"><\/script>');
+      document.write('<script src="./auth.js"><\/script>');
+    }
+  </script>
+  <script src="/static/session.js"></script>
   <script src="/static/auth.js"></script>
 </body>
 </html>

@@ -4,102 +4,185 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>La Bàn — Phân tích kỹ năng</title>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<link rel="stylesheet" href="./profile.css">');
+    }
+  </script>
   <link rel="stylesheet" href="/static/profile.css" />
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./session.js"><\/script>');
+    }
+  </script>
   <script src="/static/session.js"></script>
-  <style>
-    .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
-    .modal{background:#fff;max-width:640px;width:100%;border-radius:12px;border:1px solid var(--border);padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
-    .modal h2{margin-top:0}.modal ul{margin:8px 0 0 18px}
-    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
-    button.danger{background:#dc2626}
-    .warning-box{background:#fffbeb;border:1px solid #f59e0b;border-radius:10px;padding:14px;margin:12px 0;color:#78350f}
-    .warning-box h3{margin:0 0 6px;color:#92400e}
-    .warning-box p{margin:6px 0;line-height:1.5}
-    .warning-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    .btn-link{display:inline-block;background:var(--primary-soft);color:var(--primary-deep);text-decoration:none;padding:8px 13px;border-radius:8px;font-weight:600;font-size:.9rem}
-  </style>
 </head>
 <body>
   <main class="container">
-    <header class="header">
+    <header class="topbar">
       <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
         <span class="brand-symbol" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none"><path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" /></svg>
         </span>
         <span class="brand-name">la bàn<span>.</span></span>
       </a>
-      <h1>Bắt đầu phân tích kỹ năng (AI Consent)</h1>
-      <p class="muted">Chọn CV hoặc dữ liệu hồ sơ khai báo và vị trí nghề nghiệp mục tiêu, sau đó xác nhận đồng ý gửi dữ liệu cho AI.</p>
       <nav class="site-nav" aria-label="Điều hướng">
         <a href="/explore">Khám phá</a>
         <a href="/profile">Hồ sơ</a>
-        <a href="/cv">CV</a>
-        <a href="/analysis" aria-current="page">Phân tích</a>
-        <a href="/docs">API</a>
+        <a href="/cv">CV của tôi</a>
+        <a href="/analysis" aria-current="page">Phân tích kỹ năng</a>
       </nav>
     </header>
 
-    <div id="status" class="status" aria-live="polite"></div>
-    <div id="loading" class="loading hidden">Đang xử lý...</div>
-
-    <form id="analysisForm" class="card">
-      <h2>Yêu cầu phân tích</h2>
-      <div class="grid">
-        <label>Chọn nhanh CV đã tải lên
-          <select id="cvSelect">
-            <option value="">-- Không chọn CV (Phân tích từ dữ liệu hồ sơ khai báo) --</option>
-          </select>
-        </label>
-        <label>CV đã tải lên (cv_id, để trống nếu phân tích từ hồ sơ)
-          <input id="cv_id" name="cv_id" type="number" min="1" placeholder="Nhập ID CV hoặc chọn ở danh sách" />
-        </label>
-        <label>Chọn nhanh vị trí nghề nghiệp mục tiêu
-          <select id="roleSelect">
-            <option value="">-- Chọn vị trí nghề nghiệp --</option>
-          </select>
-        </label>
-        <label>Vị trí nghề nghiệp mục tiêu (career_role_id)
-          <input id="career_role_id" name="career_role_id" type="number" min="1" placeholder="Nhập ID vị trí hoặc chọn ở danh sách" />
-        </label>
+    <section class="page-hero">
+      <div class="page-hero-copy">
+        <p class="page-eyebrow">Đánh giá mức độ sẵn sàng</p>
+        <h1>Phân tích khoảng cách kỹ năng</h1>
+        <p class="muted">Chọn nguồn dữ liệu từ CV hoặc Hồ sơ cá nhân và đối chiếu với vị trí nghề nghiệp bạn hướng tới.</p>
       </div>
+      <div class="page-hero-actions">
+        <a class="btn-link secondary-link small" href="/explore">Xem danh mục vị trí</a>
+        <a class="btn-link secondary-link small" href="/cv">Quản lý CV</a>
+      </div>
+    </section>
 
-      <div id="scannedCvWarning" class="warning-box hidden" role="alert">
-        <h3>⚠️ Cảnh báo: CV PDF đã chọn không có lớp văn bản</h3>
-        <p><strong>Nguyên nhân:</strong> CV này có thể là PDF ảnh quét nên không có nội dung chữ trích xuất được để AI đối chiếu kỹ năng.</p>
-        <p><strong>Hướng dẫn:</strong> Bạn hãy chuyển sang phân tích trực tiếp từ dữ liệu <strong>Hồ sơ cá nhân khai báo</strong> (điểm mạnh, kỹ năng tự đánh giá, giới thiệu bản thân) hoặc tải lên file CV PDF có văn bản.</p>
-        <div class="warning-actions">
-          <button id="switchToProfileBtn" type="button">Chuyển sang phân tích từ dữ liệu hồ sơ</button>
-          <a class="btn-link" href="/profile">Kiểm tra / Cập nhật Hồ sơ cá nhân</a>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="loading" class="loading hidden">Đang kiểm tra và xử lý yêu cầu...</div>
+
+    <form id="analysisForm" class="card" novalidate>
+      <input id="cv_id" name="cv_id" type="hidden" />
+      <input id="career_role_id" name="career_role_id" type="hidden" />
+
+      <div class="card-head">
+        <div>
+          <h2>Bước 1: Chọn nguồn dữ liệu của bạn</h2>
+          <p class="field-hint">Bạn có thể phân tích dựa trên nội dung CV PDF đã tải lên hoặc thông tin trong Hồ sơ cá nhân.</p>
         </div>
       </div>
 
-      <p class="muted small">Hệ thống chỉ kiểm tra xác nhận đồng ý và quyền sở hữu CV (nếu có). Pipeline phân tích AI (M4) chưa triển khai.</p>
-      <div class="actions"><button type="submit">Bắt đầu phân tích</button></div>
+      <div class="choice-grid" role="radiogroup" aria-label="Nguồn dữ liệu phân tích">
+        <button type="button" id="sourceCvBtn" class="choice-card is-selected" aria-pressed="true">
+          <strong>Dùng CV PDF đã tải lên</strong>
+          <span>Đối chiếu trực tiếp kinh nghiệm và kỹ năng từ tệp CV của bạn</span>
+        </button>
+        <button type="button" id="sourceProfileBtn" class="choice-card" aria-pressed="false">
+          <strong>Dùng Hồ sơ cá nhân</strong>
+          <span>Phân tích dựa trên ngành học, điểm mạnh và kỹ năng tự đánh giá</span>
+        </button>
+      </div>
+
+      <div id="cvPickerWrap">
+        <label for="cvSelect">Chọn phiên bản CV
+          <select id="cvSelect">
+            <option value="">-- Chọn CV PDF đã tải lên --</option>
+            <option value="1" selected>CV_NguyenVanAn_DataAnalyst.pdf (Mới nhất · 1.2 MB)</option>
+          </select>
+        </label>
+        <p id="noCvHint" class="field-hint hidden" style="margin-top:8px">
+          Bạn chưa có CV nào trong hệ thống. <a href="/cv">Tải lên CV PDF</a> hoặc chuyển sang phân tích từ <strong>Hồ sơ cá nhân</strong>.
+        </p>
+      </div>
+
+      <div id="profileSourceHint" class="info-banner hidden">
+        Hệ thống sẽ sử dụng thông tin học vấn, điểm mạnh, kỹ năng tự đánh giá và giới thiệu bản thân từ <a href="/profile">Hồ sơ cá nhân</a> của bạn.
+      </div>
+
+      <div id="scannedCvWarning" class="warning-box hidden" role="alert">
+        <h3>CV đã chọn chưa có lớp văn bản để đọc tự động</h3>
+        <p><strong>Nguyên nhân:</strong> Tệp CV này có thể là PDF ảnh quét nên hệ thống không đọc được nội dung chữ.</p>
+        <p><strong>Gợi ý:</strong> Hãy chuyển sang phân tích bằng dữ liệu <strong>Hồ sơ cá nhân</strong> hoặc tải lên một tệp CV PDF có lớp văn bản.</p>
+        <div class="warning-actions">
+          <button id="switchToProfileBtn" type="button" class="small">Chuyển sang dùng Hồ sơ cá nhân</button>
+          <a class="btn-link secondary-link small" href="/profile">Cập nhật Hồ sơ cá nhân</a>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="card-head" style="margin-bottom:10px">
+          <div>
+            <h2>Bước 2: Chọn vị trí nghề nghiệp mục tiêu</h2>
+            <p class="field-hint">Kỹ năng của bạn sẽ được đối chiếu với bộ tiêu chuẩn của vị trí này.</p>
+          </div>
+        </div>
+
+        <label for="roleSelect">Vị trí nghề nghiệp mục tiêu *
+          <select id="roleSelect" required>
+            <option value="">-- Chọn vị trí nghề nghiệp --</option>
+            <option value="1" selected>Data Analyst (Intern)</option>
+            <option value="2">Frontend Developer (Fresher)</option>
+            <option value="3">Backend Developer (Fresher)</option>
+            <option value="4">AI / Machine Learning Engineer (Intern)</option>
+            <option value="5">DevOps Engineer (Fresher)</option>
+            <option value="6">Product Owner (Intern)</option>
+          </select>
+        </label>
+
+        <div id="selectedRolePreview" class="info-banner" style="margin-top:12px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+            <strong id="previewRoleName">Data Analyst</strong>
+            <span id="previewRoleLevel" class="badge badge-info">Intern</span>
+            <span id="previewRoleCategory" class="badge badge-muted">Data &amp; AI</span>
+          </div>
+          <p id="previewRoleDesc" class="muted small" style="margin:0 0 6px">Thu thập, xử lý và phân tích dữ liệu; trực quan hóa thông tin chi tiết bằng biểu đồ và dashboard.</p>
+          <div id="previewRoleSkills" class="small" style="font-weight:600;color:var(--primary-deep)">Đối chiếu 4 kỹ năng tiêu chuẩn: Python, SQL, Data Visualization, Git</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" id="startAnalysisBtn">Bắt đầu phân tích</button>
+        <span class="field-hint">Bạn sẽ xác nhận đồng ý chia sẻ dữ liệu trước khi AI bắt đầu xử lý.</span>
+      </div>
     </form>
 
-    <section id="resultCard" class="card hidden">
-      <h2>Phản hồi hệ thống</h2>
-      <pre id="resultJson" style="white-space:pre-wrap;word-break:break-word;margin:0"></pre>
+    <section id="resultCard" class="card hidden" aria-live="polite">
+      <div class="card-head">
+        <div>
+          <h2 id="resultTitle">Trạng thái yêu cầu phân tích</h2>
+          <p id="resultSubtitle" class="muted small" style="margin:4px 0 0"></p>
+        </div>
+        <span id="resultBadge" class="badge badge-info"></span>
+      </div>
+      <div id="resultSummary" class="detail-grid"></div>
+      <div id="resultBodyText" class="info-banner" style="margin-top:0"></div>
+      <div class="actions">
+        <a class="btn-link secondary-link small" href="/explore">Xem yêu cầu kỹ năng trên Khám phá</a>
+        <a class="btn-link secondary-link small" href="/profile">Cập nhật Hồ sơ</a>
+        <a class="btn-link secondary-link small" href="/cv">Quản lý CV</a>
+      </div>
     </section>
+
+    <footer class="site-footer">
+      <span>la bàn. — Định hướng kỹ năng nghề nghiệp dành cho sinh viên</span>
+      <div class="footer-links">
+        <a href="/explore">Khám phá</a>
+        <a href="/profile">Hồ sơ</a>
+        <a href="/cv">CV của tôi</a>
+      </div>
+    </footer>
   </main>
 
   <div id="consentModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
     <div class="modal">
-      <h2 id="consentTitle">Xác nhận sử dụng dữ liệu cho AI</h2>
-      <p>Trước khi bắt đầu phân tích, vui lòng xem xét thông tin sau:</p>
+      <h2 id="consentTitle">Xác nhận quyền riêng tư trước khi phân tích</h2>
+      <p class="muted">Để đảm bảo minh bạch về dữ liệu cá nhân, vui lòng xem lại phạm vi thông tin trước khi tiếp tục:</p>
       <ul>
-        <li><strong>Mục đích:</strong> Sử dụng nội dung CV và thông tin hồ sơ cần thiết để phân tích kỹ năng/định hướng nghề nghiệp khi tính năng AI được triển khai.</li>
-        <li><strong>Dữ liệu có thể được gửi đến dịch vụ AI:</strong> nội dung văn bản trích xuất từ CV bạn chọn (nếu có) và thông tin hồ sơ liên quan đến phân tích. <strong>Không</strong> gửi mật khẩu, mật khẩu băm, JWT/access token, refresh token hoặc thông tin xác thực.</li>
-        <li><strong>Quyền từ chối:</strong> Bạn có thể chọn "Từ chối". Nếu từ chối, hệ thống sẽ dừng quy trình và <strong>không gửi dữ liệu CV/hồ sơ đến AI</strong>.</li>
-        <li><strong>Lưu ý:</strong> Task 4 chưa kết nối nhà cung cấp AI thật. Consent được xác nhận theo từng yêu cầu; hệ thống chưa lưu lịch sử đồng ý lâu dài.</li>
+        <li><strong>Mục đích sử dụng:</strong> Đối chiếu kỹ năng hiện tại của bạn với yêu cầu của vị trí mục tiêu và đề xuất hướng cải thiện phù hợp.</li>
+        <li><strong>Dữ liệu được sử dụng:</strong> Nội dung văn bản từ CV bạn chọn (nếu dùng CV) hoặc thông tin chuyên môn trong Hồ sơ cá nhân cùng danh sách kỹ năng của vị trí mục tiêu.</li>
+        <li><strong>Cam kết bảo mật:</strong> Mật khẩu và thông tin xác thực tài khoản <strong>không bao giờ</strong> được gửi ra ngoài dịch vụ phân tích.</li>
+        <li><strong>Quyền kiểm soát:</strong> Bạn có thể chọn <strong>Từ chối</strong> để dừng ngay lập tức mà không gửi bất kỳ dữ liệu nào.</li>
       </ul>
       <div class="modal-actions">
-        <button id="consentReject" type="button" class="danger">Từ chối</button>
+        <button id="consentReject" type="button" class="ghost">Từ chối</button>
         <button id="consentAccept" type="button">Đồng ý và tiếp tục</button>
       </div>
     </div>
   </div>
 
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./analysis.js"><\/script>');
+    }
+  </script>
   <script src="/static/analysis.js"></script>
 </body>
 </html>
