@@ -55,3 +55,75 @@ to promote an existing student account.
 Registering through the public auth API always creates a student account.
 Admin access is granted only through the bootstrap command or an existing
 administrator process.
+
+## Giao diện đăng nhập / đăng ký
+
+Hai trang giao diện tương ứng UI-01 trong SRS:
+
+- `/register`: biểu mẫu email, mật khẩu (8–72 ký tự) và nhập lại mật khẩu.
+  Đăng ký thành công sẽ tự động đăng nhập và chuyển tới `/profile`.
+- `/login`: biểu mẫu email và mật khẩu; đăng nhập thành công lưu access token
+  vào `localStorage` (khóa `acm_access_token`) rồi chuyển tới `next` hoặc
+  `/explore`.
+- Nav của các trang hiển thị `Đăng nhập` khi chưa có phiên và `Đăng xuất` khi
+  đã đăng nhập. `/profile`, `/cv`, `/analysis` chuyển về `/login` nếu chưa có
+  token hoặc token đã hết hạn (401).
+
+Access token dùng chung với các trang hiện có nên không cần dán token thủ công.
+FR-AUTH-06 (refresh token, thu hồi token phía máy chủ) vẫn ở mức Could và chưa
+triển khai; đăng xuất hiện chỉ xóa token trong trình duyệt.
+
+## Cấu hình dịch vụ AI (Gemini)
+
+Task 1 – Sprint 2 xây dựng lớp hạ tầng AI dùng chung, chưa triển khai nghiệp
+vụ Skill Gap Analysis, Learning Roadmap hay Mock Interview.
+
+Thêm các biến sau vào `.env` (không commit `.env`):
+
+```dotenv
+AI_PROVIDER=gemini
+GEMINI_API_KEY=<API Key lấy tại https://aistudio.google.com/apikey>
+GEMINI_MODEL=gemini-2.5-flash
+AI_TIMEOUT=30
+AI_MAX_RETRIES=2
+```
+
+- `AI_PROVIDER`: hiện chỉ hỗ trợ `gemini`. Giá trị khác sẽ phát sinh
+  `AIConfigurationError`.
+- `GEMINI_API_KEY`: bắt buộc khi thực sự gọi AI; không bắt buộc để khởi động
+  ứng dụng hoặc chạy unit test.
+- `GEMINI_MODEL`: tên model Gemini cần sử dụng; không được để trống khi gọi AI.
+- `AI_TIMEOUT`: thời gian chờ mỗi request, tính bằng giây.
+- `AI_MAX_RETRIES`: số lần retry tối đa cho lỗi tạm thời (mạng, 5xx, 429,
+  timeout). Lỗi cấu hình, xác thực, request sai và dữ liệu không hợp lệ không
+  được retry.
+
+Các module nghiệp vụ nên dùng:
+
+```python
+from app.services.ai import AIResponseValidationError, create_ai_service
+
+ai_service = create_ai_service()
+result = await ai_service.generate_structured(
+    prompt=prompt,
+    response_schema=SomePydanticSchema,
+)
+```
+
+Không gọi trực tiếp `google.genai` trong router hoặc business service.
+
+### Chạy unit test AI
+
+Unit test dùng mock hoàn toàn, không gọi Gemini thật và không cần
+`GEMINI_API_KEY`:
+
+```powershell
+python -m pytest tests/test_ai_config.py tests/test_ai_provider.py tests/test_ai_service.py -q
+```
+
+Chạy toàn bộ test suite:
+
+```powershell
+python -m pytest -q
+```
+

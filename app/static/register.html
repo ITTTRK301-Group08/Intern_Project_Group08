@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Đăng ký tài khoản La Bàn để lưu hồ sơ, tải CV và nhận phân tích kỹ năng." />
+  <title>La Bàn — Đăng ký</title>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<link rel="stylesheet" href="./profile.css">');
+      document.write('<link rel="stylesheet" href="./auth.css">');
+    }
+  </script>
+  <link rel="stylesheet" href="/static/profile.css" />
+  <link rel="stylesheet" href="/static/auth.css" />
+</head>
+<body class="auth-body">
+  <main class="auth-layout">
+    <section class="auth-intro">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" /></svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
+      <h1>Tạo tài khoản để bắt đầu</h1>
+      <p class="muted">Chỉ cần email và mật khẩu. Sau khi đăng ký, bạn hoàn thiện hồ sơ và tải CV để nhận định hướng kỹ năng theo vị trí mơ ước.</p>
+      <ul class="auth-points">
+        <li>Hoàn toàn miễn phí dành cho sinh viên.</li>
+        <li>Lưu trữ nhiều phiên bản CV PDF và cập nhật hồ sơ linh hoạt.</li>
+        <li>Thông tin cá nhân, CV và kết quả phân tích được bảo mật riêng tư.</li>
+      </ul>
+    </section>
+
+    <section class="card auth-card" aria-labelledby="registerHeading">
+      <h2 id="registerHeading">Đăng ký</h2>
+      <p class="muted small">Điền email và mật khẩu để tạo tài khoản sinh viên.</p>
+
+      <form id="registerForm" class="auth-form" novalidate>
+        <label for="email">Email
+          <input id="email" name="email" type="email" required maxlength="255" autocomplete="email" placeholder="ban@example.com" />
+        </label>
+        <div class="auth-field">
+          <label for="password">Mật khẩu (tối thiểu 8 ký tự)</label>
+          <span class="password-wrap">
+            <input id="password" name="password" type="password" required minlength="8" maxlength="72" autocomplete="new-password" placeholder="Từ 8 đến 72 ký tự" />
+            <button type="button" class="password-toggle" data-target="password" aria-pressed="false">Hiện</button>
+          </span>
+        </div>
+        <div class="auth-field">
+          <label for="confirmPassword">Nhập lại mật khẩu</label>
+          <span class="password-wrap">
+            <input id="confirmPassword" name="confirmPassword" type="password" required maxlength="72" autocomplete="new-password" placeholder="Nhập lại mật khẩu" />
+            <button type="button" class="password-toggle" data-target="confirmPassword" aria-pressed="false">Hiện</button>
+          </span>
+        </div>
+        <button type="submit" id="submitBtn">Tạo tài khoản</button>
+      </form>
+
+      <div id="status" class="status" role="alert" aria-live="polite"></div>
+
+      <p class="muted small auth-note">Mật khẩu của bạn được mã hóa bảo vệ an toàn và không bao giờ hiển thị lại.</p>
+
+      <div class="auth-footer">
+        <p class="muted small">Đã có tài khoản? <a id="switchToLoginLink" href="/login">Đăng nhập</a></p>
+        <p class="muted small"><a href="/explore">← Về trang khám phá</a></p>
+      </div>
+    </section>
+  </main>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./session.js"><\/script>');
+      document.write('<script src="./auth.js"><\/script>');
+    }
+  </script>
+  <script src="/static/session.js"></script>
+  <script src="/static/auth.js"></script>
+</body>
+</html>
