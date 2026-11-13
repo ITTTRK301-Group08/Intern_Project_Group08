@@ -2,13 +2,15 @@ import logging
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.analysis import Analysis, AnalysisSkillGap
 from app.models.career import Skill
 from app.models.cv import CV
+from app.models.profile_data import ProfileSkill
+from app.models.student_profile import StudentProfile
 from app.schemas.analysis import SUPPORTED_PURPOSE_VERSION, AIConsent
-from app.services import ai_service
+from app.services.ai_service import ProfileAnalysisContext
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,7 @@ CONSENT_REQUIRED = "AI_CONSENT_REQUIRED"
 CONSENT_VERSION_UNSUPPORTED = "AI_CONSENT_VERSION_UNSUPPORTED"
 CV_NOT_FOUND = "CV_NOT_FOUND"
 CV_FORBIDDEN = "CV_FORBIDDEN"
+PROFILE_REQUIRED = "PROFILE_DATA_REQUIRED"
 
 
 def _error(status_code: int, code: str, message: str) -> HTTPException:
@@ -55,6 +58,48 @@ def get_owned_active_cv(db: Session, *, user_id: int, cv_id: int) -> CV:
     return cv
 
 
+def build_profile_analysis_context(
+    db: Session, *, user_id: int
+) -> ProfileAnalysisContext:
+    profile = db.scalar(
+        select(StudentProfile)
+        .options(
+            selectinload(StudentProfile.strength_items),
+            selectinload(StudentProfile.skill_assessments).joinedload(ProfileSkill.skill),
+        )
+        .where(StudentProfile.user_id == user_id)
+    )
+    if profile is None:
+        raise _error(
+            status.HTTP_400_BAD_REQUEST,
+            PROFILE_REQUIRED,
+            "Vui long cap nhat diem manh, ky nang tu danh gia, muc tieu nghe nghiep hoac gioi thieu ban than truoc khi phan tich.",
+        )
+
+    strengths = [strength.strip() for strength in profile.strengths if strength.strip()]
+    self_assessed_skills = [
+        {"skill_name": item["skill_name"].strip(), "level": item["level"]}
+        for item in profile.self_assessed_skills
+        if item["skill_name"].strip()
+    ]
+    career_goal = profile.career_goal.strip() if profile.career_goal else None
+    bio = profile.bio.strip() if profile.bio else None
+    if not (strengths or self_assessed_skills or career_goal or bio):
+        raise _error(
+            status.HTTP_400_BAD_REQUEST,
+            PROFILE_REQUIRED,
+            "Vui long cap nhat diem manh, ky nang tu danh gia, muc tieu nghe nghiep hoac gioi thieu ban than truoc khi phan tich.",
+        )
+
+    return {
+        "strengths": strengths,
+        "self_assessed_skills": self_assessed_skills,
+        "career_goal": career_goal,
+        "bio": bio,
+        "profile_updated_at": profile.updated_at,
+    }
+
+
 def prepare_analysis(
     db: Session,
     *,
@@ -69,11 +114,16 @@ def prepare_analysis(
     # 2) Ownership check when a CV is selected.
     if cv_id is not None:
         get_owned_active_cv(db, user_id=user_id, cv_id=cv_id)
+        source = "CV"
+    else:
+        _profile_context = build_profile_analysis_context(db, user_id=user_id)
+        source = "student_profile"
 
-    # 3) Only minimal, necessary identifiers reach the AI boundary; never auth data.
-    # Task 4 does NOT call any AI provider and does NOT fabricate analysis results.
-    _ = (user_id, cv_id, career_role_id, ai_service)  # integration point retained; unused in Task 4
-    logger.info("AI consent validated for analysis request (no AI call performed)")
+    # The validated context is ready for the AI integration, which remains disabled.
+    logger.info(
+        "AI consent validated for analysis request (source=%s; provider not configured)",
+        source,
+    )
 
     return _error(
         status.HTTP_501_NOT_IMPLEMENTED,

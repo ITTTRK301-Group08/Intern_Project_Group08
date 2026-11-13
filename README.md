@@ -66,6 +66,12 @@ administrator process.
   levels, gap score, evidence, and recommendation.
 - `GET /api/v1/analyses/{analysis_id}/status`: status for polling. The status
   values are `pending`, `processing`, `completed`, and `failed`.
+- A new analysis request can omit `cv_id` and use the authenticated student's
+  strengths, self-assessed skills, career goal, and bio. If all of those fields
+  are empty, the request returns `400 PROFILE_DATA_REQUIRED`.
+- Reports expose `market_source` and `benchmark_date`. The date remains unset
+  until the reference catalog has a verifiable update date; the UI labels this
+  honestly as a reference benchmark and does not infer a live labor-market date.
 
 All report queries are scoped to the authenticated user; an analysis owned by
 another account returns 404. Run `python -m alembic upgrade head` to apply the

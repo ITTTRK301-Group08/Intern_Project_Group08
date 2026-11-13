@@ -67,6 +67,7 @@
             <p id="reportSummary"></p>
           </div>
         </div>
+        <p id="benchmarkInfo" class="muted small"></p>
         <h3>Đối chiếu kỹ năng</h3>
         <div id="skillsEmpty" class="muted hidden">Chưa có dữ liệu kỹ năng.</div>
         <div class="table-wrap">
@@ -82,13 +83,13 @@
 
     <form id="analysisForm" class="card">
       <h2>Yêu cầu phân tích mới</h2>
-      <label>CV đã tải lên (cv_id, tùy chọn nếu luồng cho phép)
-        <input id="cv_id" name="cv_id" type="number" min="1" placeholder="Nhập ID CV (ví dụ: 1)" />
+      <label>CV đã tải lên (không bắt buộc)
+        <input id="cv_id" name="cv_id" type="number" min="1" placeholder="Để trống để dùng dữ liệu hồ sơ cá nhân" />
       </label>
       <label>Vị trí nghề nghiệp mục tiêu (career_role_id, nếu luồng yêu cầu)
         <input id="career_role_id" name="career_role_id" type="number" min="1" placeholder="Nhập ID vị trí (M3 chưa triển khai)" />
       </label>
-      <p class="muted small">Yêu cầu hiện chỉ xác thực consent và quyền sở hữu CV. Pipeline AI tạo báo cáo chưa được triển khai.</p>
+      <p class="muted small">Nếu không chọn CV, hồ sơ cần có điểm mạnh, kỹ năng tự đánh giá, mục tiêu nghề nghiệp hoặc giới thiệu bản thân. Pipeline AI tạo báo cáo chưa được triển khai.</p>
       <div class="actions"><button type="submit">Bắt đầu phân tích</button></div>
     </form>
 
@@ -103,8 +104,8 @@
       <h2 id="consentTitle">Xác nhận sử dụng dữ liệu cho AI</h2>
       <p>Trước khi bắt đầu phân tích, vui lòng xem xét thông tin sau:</p>
       <ul>
-        <li><strong>Mục đích:</strong> Sử dụng nội dung CV và thông tin hồ sơ cần thiết để phân tích kỹ năng/định hướng nghề nghiệp khi tính năng AI được triển khai.</li>
-        <li><strong>Dữ liệu có thể được gửi đến dịch vụ AI:</strong> nội dung văn bản trích xuất từ CV bạn chọn (nếu có) và thông tin hồ sơ liên quan đến phân tích. <strong>Không</strong> gửi mật khẩu, mật khẩu băm, JWT/access token, refresh token hoặc thông tin xác thực.</li>
+        <li><strong>Mục đích:</strong> Sử dụng CV đã chọn hoặc dữ liệu hồ sơ cần thiết để phân tích kỹ năng/định hướng nghề nghiệp khi tính năng AI được triển khai.</li>
+        <li><strong>Dữ liệu có thể được gửi đến dịch vụ AI:</strong> nội dung văn bản trích xuất từ CV bạn chọn, hoặc điểm mạnh, kỹ năng tự đánh giá, mục tiêu nghề nghiệp và giới thiệu bản thân. <strong>Không</strong> gửi mật khẩu, JWT hoặc thông tin xác thực.</li>
         <li><strong>Quyền từ chối:</strong> Bạn có thể chọn "Từ chối". Nếu từ chối, hệ thống sẽ dừng quy trình và <strong>không gửi dữ liệu CV/hồ sơ đến AI</strong>.</li>
         <li><strong>Lưu ý:</strong> Task 4 chưa kết nối nhà cung cấp AI thật. Consent được xác nhận theo từng yêu cầu; hệ thống chưa lưu lịch sử đồng ý lâu dài.</li>
       </ul>

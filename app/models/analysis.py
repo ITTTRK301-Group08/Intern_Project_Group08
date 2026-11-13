@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -16,6 +17,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+
+REFERENCE_BENCHMARK_SOURCE = "Benchmark tham chiếu (danh mục kỹ năng/vị trí nội bộ)"
 
 if TYPE_CHECKING:
     from app.models.career import CareerRole, Skill
@@ -44,6 +47,13 @@ class Analysis(Base):
         String(20), nullable=False, default="pending", server_default="pending"
     )
     readiness_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    market_source: Mapped[str] = mapped_column(
+        String(150),
+        nullable=False,
+        default=REFERENCE_BENCHMARK_SOURCE,
+        server_default=REFERENCE_BENCHMARK_SOURCE,
+    )
+    benchmark_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()

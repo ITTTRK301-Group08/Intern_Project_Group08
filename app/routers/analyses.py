@@ -138,6 +138,8 @@ def get_analysis_report(
             id=analysis.id,
             status=analysis.status,
             readiness_score=analysis.readiness_score,
+            market_source=analysis.market_source,
+            benchmark_date=analysis.benchmark_date,
             summary=analysis.summary,
             career_role_name=analysis.career_role.name if analysis.career_role else None,
             created_at=analysis.created_at,

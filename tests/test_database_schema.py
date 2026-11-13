@@ -34,7 +34,13 @@ def test_schema_has_normalized_mysql_tables():
     assert "target_role_id" in profile_columns
 
     analysis_columns = Base.metadata.tables["analyses"].columns
-    assert {"readiness_score", "status", "created_at"} <= set(analysis_columns.keys())
+    assert {
+        "readiness_score",
+        "market_source",
+        "benchmark_date",
+        "status",
+        "created_at",
+    } <= set(analysis_columns.keys())
     analysis_indexes = {
         tuple(column.name for column in index.columns)
         for index in Base.metadata.tables["analyses"].indexes

@@ -170,6 +170,13 @@
         ? '—'
         : report.readiness_score + '/100';
       $('reportSummary').textContent = report.summary || 'Chưa có nhận xét tổng quan.';
+      const benchmarkSource = report.market_source
+        ? 'Benchmark tham chiếu: ' + report.market_source
+        : 'Benchmark tham chiếu: nguồn chưa được ghi nhận.';
+      const benchmarkDate = report.benchmark_date
+        ? 'Ngày cập nhật benchmark: ' + new Date(report.benchmark_date).toLocaleDateString('vi-VN')
+        : 'Ngày cập nhật benchmark: chưa có dữ liệu xác minh.';
+      $('benchmarkInfo').textContent = benchmarkSource + ' · ' + benchmarkDate;
       await renderSkills(analysisId);
       await loadHistory(historyPage);
       return;
