@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="vi" data-require-auth="true">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Bảng điều khiển tổng hợp năng lực nghề nghiệp, biểu đồ Radar kỹ năng và tiến độ học tập 30 ngày." />
+  <meta name="theme-color" content="#f2f7f5" />
+  <title>La Bàn Nghề Nghiệp — Dashboard & Biểu đồ Radar</title>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<link rel="stylesheet" href="./profile.css">');
+      document.write('<link rel="stylesheet" href="./dashboard.css">');
+    }
+  </script>
+  <link rel="stylesheet" href="/static/profile.css" />
+  <link rel="stylesheet" href="/static/dashboard.css" />
+  <!-- Chart.js via CDN (with built-in clean SVG Radar fallback if offline) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./session.js"><\/script>');
+      document.write('<script src="./dashboard.js"><\/script>');
+    }
+  </script>
+  <script src="/static/session.js"></script>
+  <script src="/static/dashboard.js" defer></script>
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Điều hướng">
+        <a href="/explore">Khám phá</a>
+        <a href="/profile">Hồ sơ</a>
+        <a href="/cv">CV của tôi</a>
+        <a href="/analysis">Phân tích kỹ năng</a>
+        <a href="/roadmap">Lộ trình 30 ngày</a>
+        <a href="/dashboard" aria-current="page">Dashboard</a>
+      </nav>
+    </header>
+
+    <!-- Header Hero -->
+    <section class="dashboard-hero">
+      <p class="eyebrow">Tổng quan năng lực & Tiến độ cá nhân</p>
+      <h1 class="page-title" style="margin-bottom: 8px;">Bảng điều khiển tổng hợp (Dashboard)</h1>
+      <p class="page-desc">
+        Theo dõi độ sẵn sàng ứng tuyển theo vị trí mục tiêu, nhận diện lỗ hổng kỹ năng qua biểu đồ Radar và bám sát tiến độ học tập 30 ngày.
+      </p>
+    </section>
+
+    <!-- KPI Summary Grid -->
+    <section class="dashboard-grid-kpis" aria-label="Chỉ số chính">
+      <!-- 1. Điểm sẵn sàng nghề nghiệp -->
+      <div class="kpi-card kpi-card-highlight">
+        <div class="kpi-header">
+          <span class="kpi-label">Điểm sẵn sàng nghề nghiệp</span>
+          <span id="readinessStatusBadge" class="readiness-pill readiness-mid">Cần nâng cao</span>
+        </div>
+        <div class="kpi-value-row">
+          <span id="kpiReadinessVal" class="kpi-value-big">72.5</span>
+          <span class="kpi-unit">%</span>
+        </div>
+        <div class="kpi-subtext">Công thức chuẩn trọng số (SRS 6.3)</div>
+      </div>
+
+      <!-- 2. Vị trí mục tiêu -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Vị trí mục tiêu</span>
+          <div class="kpi-icon">🎯</div>
+        </div>
+        <div class="kpi-value-row">
+          <span id="kpiRoleName" class="kpi-value-big" style="font-size: 22px;">Backend Developer</span>
+        </div>
+        <div id="kpiRoleLevel" class="kpi-subtext">Cấp độ: Junior • 5 kỹ năng yêu cầu</div>
+      </div>
+
+      <!-- 3. Độ phủ kỹ năng -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Độ phủ kỹ năng</span>
+          <div class="kpi-icon">📊</div>
+        </div>
+        <div class="kpi-value-row">
+          <span id="kpiMatchedRatio" class="kpi-value-big">3 / 5</span>
+        </div>
+        <div id="kpiGapSubtext" class="kpi-subtext">2 kỹ năng cần bổ sung thêm</div>
+      </div>
+
+      <!-- 4. Lộ trình 30 ngày -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Lộ trình học tập 30 ngày</span>
+          <a href="/roadmap" class="kpi-icon" title="Đến lộ trình" style="text-decoration: none;">🚀</a>
+        </div>
+        <div class="kpi-value-row">
+          <span id="kpiPlanProgress" class="kpi-value-big">37.5</span>
+          <span class="kpi-unit">%</span>
+        </div>
+        <div id="kpiPlanDaysLeft" class="kpi-subtext">3 / 8 nhiệm vụ • Còn 22 ngày</div>
+      </div>
+
+      <!-- 5. Phỏng vấn thử -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Phiên phỏng vấn thử</span>
+          <div class="kpi-icon">🎙️</div>
+        </div>
+        <div class="kpi-value-row">
+          <span id="kpiInterviewsCount" class="kpi-value-big">2</span>
+          <span class="kpi-unit">phiên</span>
+        </div>
+        <div class="kpi-subtext">Đã hoàn thành đánh giá câu hỏi</div>
+      </div>
+    </section>
+
+    <!-- Main Two-Column Row -->
+    <div class="dashboard-layout-row">
+      <!-- Left Column: Radar Chart & Skills Table -->
+      <div class="dash-left-col">
+        <!-- Radar Chart Panel -->
+        <section class="dash-panel" aria-labelledby="radarHeading">
+          <div class="dash-panel-header">
+            <div>
+              <h2 id="radarHeading" class="dash-panel-title">
+                <span>🕸️</span> Biểu đồ Radar kỹ năng
+              </h2>
+              <p class="dash-panel-desc">
+                So sánh đa chiều giữa Năng lực hiện tại và Chuẩn yêu cầu của vị trí mục tiêu.
+              </p>
+            </div>
+            <div style="font-size: 13px; color: var(--muted);">
+              <span style="display: inline-block; width: 10px; height: 10px; background: #087c72; border-radius: 50%; margin-right: 4px;"></span>Hiện tại
+              <span style="display: inline-block; width: 10px; height: 10px; background: #eab308; border-radius: 50%; margin-left: 12px; margin-right: 4px;"></span>Chuẩn vị trí
+            </div>
+          </div>
+
+          <div class="radar-container">
+            <canvas id="radarChartCanvas" class="radar-chart-canvas"></canvas>
+            <div id="radarSvgFallback" class="svg-radar-wrap" hidden>
+              <!-- Rendered as SVG if Chart.js is not available -->
+            </div>
+          </div>
+        </section>
+
+        <!-- Skill Gap Details Table -->
+        <section class="dash-panel" aria-labelledby="tableHeading">
+          <div class="dash-panel-header">
+            <div>
+              <h2 id="tableHeading" class="dash-panel-title">
+                <span>📋</span> Chi tiết mức độ đáp ứng kỹ năng
+              </h2>
+              <p class="dash-panel-desc">
+                Đánh giá theo thang 0–5 và xác định các kỹ năng trọng yếu cần ưu tiên rèn luyện.
+              </p>
+            </div>
+          </div>
+
+          <div class="skills-table-wrap">
+            <table class="skills-dash-table">
+              <thead>
+                <tr>
+                  <th>Kỹ năng</th>
+                  <th>Mức hiện tại</th>
+                  <th>Chuẩn vị trí</th>
+                  <th>Độ hụt (Gap)</th>
+                  <th>Trọng số</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="skillsTableBody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Learning Progress & Interview History -->
+      <div class="dash-right-col">
+        <!-- 4-Week Learning Progress Panel -->
+        <section class="dash-panel" aria-labelledby="progressHeading">
+          <div class="dash-panel-header">
+            <div>
+              <h2 id="progressHeading" class="dash-panel-title">
+                <span>🗓️</span> Tiến độ lộ trình 4 tuần
+              </h2>
+              <p class="dash-panel-desc">Theo dõi kế hoạch bù đắp kỹ năng 30 ngày</p>
+            </div>
+          </div>
+
+          <div id="weeklyProgressBarsContainer">
+            <!-- Weekly bars rendered dynamically -->
+          </div>
+
+          <div style="margin-top: 20px; text-align: center;">
+            <a href="/roadmap" class="btn primary-btn" style="text-decoration: none; width: 100%; display: block; text-align: center;">
+              Xem chi tiết lộ trình 30 ngày →
+            </a>
+          </div>
+        </section>
+
+        <!-- Recent Interviews Panel -->
+        <section class="dash-panel" aria-labelledby="interviewHeading">
+          <div class="dash-panel-header">
+            <div>
+              <h2 id="interviewHeading" class="dash-panel-title">
+                <span>🎙️</span> Lịch sử phỏng vấn thử
+              </h2>
+              <p class="dash-panel-desc">Các phiên luyện phỏng vấn kỹ thuật gần đây</p>
+            </div>
+          </div>
+
+          <div id="interviewSessionsContainer">
+            <!-- Interview items rendered dynamically -->
+          </div>
+
+          <div style="margin-top: 16px; text-align: center;">
+            <a href="/analysis" class="btn secondary-btn" style="text-decoration: none; font-size: 14px; width: 100%; display: block;">
+              Bắt đầu phiên phỏng vấn mới
+            </a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

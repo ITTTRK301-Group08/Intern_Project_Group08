@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="vi" data-require-auth="true">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Lộ trình học tập cá nhân hóa 30 ngày giúp bù đắp lỗ hổng kỹ năng và chuẩn bị phỏng vấn." />
+  <meta name="theme-color" content="#f2f7f5" />
+  <title>La Bàn Nghề Nghiệp — Lộ trình học tập 30 ngày</title>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<link rel="stylesheet" href="./profile.css">');
+      document.write('<link rel="stylesheet" href="./roadmap.css">');
+    }
+  </script>
+  <link rel="stylesheet" href="/static/profile.css" />
+  <link rel="stylesheet" href="/static/roadmap.css" />
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./session.js"><\/script>');
+      document.write('<script src="./roadmap.js"><\/script>');
+    }
+  </script>
+  <script src="/static/session.js"></script>
+  <script src="/static/roadmap.js" defer></script>
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Điều hướng">
+        <a href="/explore">Khám phá</a>
+        <a href="/profile">Hồ sơ</a>
+        <a href="/cv">CV của tôi</a>
+        <a href="/analysis">Phân tích kỹ năng</a>
+        <a href="/roadmap" aria-current="page">Lộ trình 30 ngày</a>
+        <a href="/dashboard">Dashboard</a>
+      </nav>
+    </header>
+
+    <!-- Feedback Message Banner -->
+    <div id="roadmapFeedback" class="status-card" role="status" aria-live="polite" hidden></div>
+
+    <!-- Active Plan Section -->
+    <div id="planContent">
+      <section class="roadmap-header-card" aria-labelledby="planTitle">
+        <div class="roadmap-badge-row">
+          <span id="planStatusBadge" class="plan-status-pill plan-status-active">Đang thực hiện</span>
+          <span id="targetRoleBadge" class="role-target-pill">🎯 Vị trí: Backend Developer</span>
+        </div>
+        <h1 id="planTitle" class="roadmap-title">Lộ trình học tập 30 ngày cá nhân hóa</h1>
+        <p id="planDesc" class="roadmap-desc">
+          Kế hoạch 4 tuần tinh gọn được AI thiết kế riêng dựa trên báo cáo phân tích độ hụt kỹ năng, kết nối trực tiếp với tài liệu và bài tập thực hành chuẩn hóa.
+        </p>
+
+        <!-- KPI Grid -->
+        <div class="roadmap-kpi-grid">
+          <div class="roadmap-kpi-item">
+            <div class="roadmap-kpi-label">Thời gian còn lại</div>
+            <div id="kpiDaysLeft" class="roadmap-kpi-value">30 ngày</div>
+          </div>
+          <div class="roadmap-kpi-item">
+            <div class="roadmap-kpi-label">Nhiệm vụ hoàn thành</div>
+            <div id="kpiTasksRatio" class="roadmap-kpi-value">0 / 8</div>
+          </div>
+          <div class="roadmap-kpi-item">
+            <div class="roadmap-kpi-label">Tổng thời lượng ước tính</div>
+            <div id="kpiTotalHours" class="roadmap-kpi-value">32 giờ</div>
+          </div>
+        </div>
+
+        <!-- Overall Progress -->
+        <div class="roadmap-progress-wrap">
+          <div class="roadmap-progress-header">
+            <span>Tiến độ tổng thể</span>
+            <span id="overallProgressText">0%</span>
+          </div>
+          <div class="roadmap-progress-track">
+            <div id="overallProgressBar" class="roadmap-progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Toolbar & Week Filter -->
+      <div class="roadmap-actions">
+        <div class="week-filter-tabs" role="tablist" aria-label="Lọc theo tuần">
+          <button type="button" class="week-tab-btn active" data-week="all">Tất cả các tuần (1 - 4)</button>
+          <button type="button" class="week-tab-btn" data-week="1">Tuần 1</button>
+          <button type="button" class="week-tab-btn" data-week="2">Tuần 2</button>
+          <button type="button" class="week-tab-btn" data-week="3">Tuần 3</button>
+          <button type="button" class="week-tab-btn" data-week="4">Tuần 4</button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" id="archivePlanBtn" class="btn secondary-btn" style="font-size: 14px; padding: 8px 16px;">
+            Lưu trữ lộ trình
+          </button>
+          <a href="/analysis" class="btn primary-btn" style="font-size: 14px; padding: 8px 16px; text-decoration: none;">
+            + Tạo từ báo cáo mới
+          </a>
+        </div>
+      </div>
+
+      <!-- Weekly Task Cards Container -->
+      <div id="weeksContainer">
+        <!-- Rendered dynamically by roadmap.js -->
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyPlanState" class="empty-plan-state" hidden>
+      <svg class="empty-plan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+        <rect x="9" y="3" width="6" height="4" rx="1" />
+        <path d="m9 14 2 2 4-4" />
+      </svg>
+      <h2 class="empty-plan-title">Bạn chưa có lộ trình học tập nào đang hoạt động</h2>
+      <p class="empty-plan-text">
+        Hãy thực hiện bài phân tích kỹ năng theo vị trí mục tiêu để hệ thống tự động thiết kế lộ trình 30 ngày cá nhân hóa dành riêng cho bạn.
+      </p>
+      <a href="/analysis" class="btn primary-btn" style="text-decoration: none; display: inline-block;">
+        Bắt đầu phân tích kỹ năng ngay →
+      </a>
+    </div>
+  </main>
+</body>
+</html>

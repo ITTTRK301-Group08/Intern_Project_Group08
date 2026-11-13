@@ -19,6 +19,8 @@ EXPECTED_TABLES = {
     "learning_resources",
     "interview_sessions",
     "interview_questions",
+    "learning_plans",
+    "learning_plan_items",
 }
 
 

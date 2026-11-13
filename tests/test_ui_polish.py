@@ -2,7 +2,7 @@
 
 
 def test_user_facing_pages_hide_backend_artifacts(client):
-    for path in ("/", "/explore", "/profile", "/cv", "/analysis", "/login", "/register"):
+    for path in ("/", "/explore", "/profile", "/cv", "/analysis", "/roadmap", "/dashboard", "/login", "/register"):
         html = client.get(path).text
         assert 'href="/docs"' not in html
         assert "M2 - Student Profile" not in html

@@ -83,6 +83,14 @@
     'Da xoa CV thanh cong.': 'Đã xóa CV thành công.',
     'CV da gan voi bao cao phan tich lich su nen da duoc xoa mem (an trang thai hoat dong).':
       'CV đã gắn với báo cáo phân tích trước đó nên được chuyển sang trạng thái lưu trữ để bảo toàn lịch sử.',
+    'Khong tim thay bao cao phan tich.': 'Không tìm thấy báo cáo phân tích tương ứng.',
+    'Chỉ có thể tạo lộ trình từ báo cáo phân tích đã hoàn thành.': 'Chỉ có thể tạo lộ trình từ báo cáo phân tích đã hoàn thành.',
+    'Chỉ có thể tạo lộ trình học tập từ báo cáo phân tích đã hoàn thành.': 'Chỉ có thể tạo lộ trình học tập từ báo cáo phân tích đã hoàn thành.',
+    'ACTIVE_PLAN_EXISTS': 'Đã có một lộ trình học tập đang hoạt động. Vui lòng hoàn thành hoặc lưu trữ trước khi tạo lộ trình mới.',
+    'Đã tồn tại một lộ trình học tập đang hoạt động cho báo cáo này. Vui lòng hoàn thành hoặc lưu trữ lộ trình trước khi tạo lộ trình mới.':
+      'Đã tồn tại một lộ trình đang hoạt động cho báo cáo này. Bạn có thể hoàn thành hoặc lưu trữ trước khi tạo mới.',
+    'Tạo lộ trình học tập cá nhân hóa 30 ngày thành công': 'Tạo lộ trình học tập cá nhân hóa 30 ngày thành công.',
+    'Cập nhật trạng thái nhiệm vụ học tập thành công': 'Đã cập nhật trạng thái nhiệm vụ.',
     'Nguoi dung chua dong y cho phep su dung du lieu cho AI.':
       'Bạn cần xác nhận đồng ý sử dụng dữ liệu trước khi bắt đầu phân tích.',
     'Phien ban muc dich consent khong hop le hoac khong duoc ho tro.':
@@ -270,6 +278,8 @@
         '/profile': './profile.html',
         '/cv': './cv.html',
         '/analysis': './analysis.html',
+        '/roadmap': './roadmap.html',
+        '/dashboard': './dashboard.html',
         '/login': './login.html',
         '/register': './register.html'
       };
