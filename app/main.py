@@ -153,6 +153,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def dashboard_page() -> FileResponse:
         return FileResponse(STATIC_DIR / "dashboard.html")
 
+    @application.get("/admin", tags=["frontend"])
+    def admin_page() -> FileResponse:
+        return FileResponse(STATIC_DIR / "admin.html")
+
     @application.get("/health", tags=["health"])
     def health() -> dict[str, bool]:
         return {"ok": True}

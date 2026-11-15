@@ -280,6 +280,7 @@
         '/analysis': './analysis.html',
         '/roadmap': './roadmap.html',
         '/dashboard': './dashboard.html',
+        '/admin': './admin.html',
         '/login': './login.html',
         '/register': './register.html'
       };

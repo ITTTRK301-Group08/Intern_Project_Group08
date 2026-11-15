@@ -291,3 +291,111 @@ def test_admin_bootstrap_command_rejects_mismatched_passwords(
     assert bootstrap_admin_command.main() == 2
     assert "Passwords do not match." in capsys.readouterr().err
     assert db_session.query(User).count() == 0
+
+
+def test_search_and_filter_skills_by_category_and_role(client, db_session):
+    token = register_and_get_token(client, email="catalog_filter@example.com")
+    admin = db_session.query(User).filter_by(email="catalog_filter@example.com").one()
+    admin.role = "admin"
+    db_session.commit()
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Tạo 2 categories
+    cat_sw = client.post(
+        "/api/v1/admin/career-categories",
+        headers=headers,
+        json={"name": "Software Eng", "slug": "software-eng", "description": "Software"},
+    ).json()["data"]
+
+    cat_data = client.post(
+        "/api/v1/admin/career-categories",
+        headers=headers,
+        json={"name": "Data Intelligence", "slug": "data-intelligence", "description": "Data"},
+    ).json()["data"]
+
+    # 2. Tạo skills
+    sk_py = client.post("/api/v1/admin/skills", headers=headers, json={"name": "Python Language"}).json()["data"]
+    sk_sql = client.post("/api/v1/admin/skills", headers=headers, json={"name": "SQL Database"}).json()["data"]
+    sk_js = client.post("/api/v1/admin/skills", headers=headers, json={"name": "JavaScript Frontend"}).json()["data"]
+    sk_stat = client.post("/api/v1/admin/skills", headers=headers, json={"name": "Applied Statistics"}).json()["data"]
+
+    # 3. Tạo roles và liên kết skills
+    role_be = client.post(
+        "/api/v1/admin/career-roles",
+        headers=headers,
+        json={
+            "category_id": cat_sw["id"],
+            "name": "Backend Dev",
+            "slug": "backend-dev",
+            "required_skills": [
+                {"skill_id": sk_py["id"], "required_level": 4},
+                {"skill_id": sk_sql["id"], "required_level": 3},
+            ],
+        },
+    ).json()["data"]
+
+    role_fe = client.post(
+        "/api/v1/admin/career-roles",
+        headers=headers,
+        json={
+            "category_id": cat_sw["id"],
+            "name": "Frontend Dev",
+            "slug": "frontend-dev",
+            "required_skills": [
+                {"skill_id": sk_js["id"], "required_level": 4},
+            ],
+        },
+    ).json()["data"]
+
+    role_ds = client.post(
+        "/api/v1/admin/career-roles",
+        headers=headers,
+        json={
+            "category_id": cat_data["id"],
+            "name": "Data Scientist",
+            "slug": "data-scientist",
+            "required_skills": [
+                {"skill_id": sk_py["id"], "required_level": 4},
+                {"skill_id": sk_stat["id"], "required_level": 4},
+            ],
+        },
+    ).json()["data"]
+
+    # 4. Test tìm kiếm theo từ khóa
+    res_search = client.get("/api/v1/catalog/skills?search=python")
+    assert res_search.status_code == 200
+    names = [s["name"] for s in res_search.json()["data"]]
+    assert "Python Language" in names
+    assert "JavaScript Frontend" not in names
+
+    # 5. Test lọc theo phân nhóm (Category)
+    # Lọc nhóm Data Intelligence -> Chỉ có Python và Applied Statistics
+    res_cat_data = client.get(f"/api/v1/catalog/skills?category_id={cat_data['id']}")
+    assert res_cat_data.status_code == 200
+    data_names = [s["name"] for s in res_cat_data.json()["data"]]
+    assert "Python Language" in data_names
+    assert "Applied Statistics" in data_names
+    assert "SQL Database" not in data_names
+    assert "JavaScript Frontend" not in data_names
+
+    # Lọc nhóm Software Eng -> Python, SQL, JavaScript
+    res_cat_sw = client.get(f"/api/v1/catalog/skills?category_id={cat_sw['id']}")
+    assert res_cat_sw.status_code == 200
+    sw_names = [s["name"] for s in res_cat_sw.json()["data"]]
+    assert "Python Language" in sw_names
+    assert "SQL Database" in sw_names
+    assert "JavaScript Frontend" in sw_names
+    assert "Applied Statistics" not in sw_names
+
+    # 6. Test lọc theo vị trí nghề nghiệp (Role)
+    res_role_fe = client.get(f"/api/v1/catalog/skills?role_id={role_fe['id']}")
+    assert res_role_fe.status_code == 200
+    fe_names = [s["name"] for s in res_role_fe.json()["data"]]
+    assert fe_names == ["JavaScript Frontend"]
+
+    # 7. Kết hợp lọc theo phân nhóm VÀ từ khóa
+    res_combo = client.get(f"/api/v1/catalog/skills?category_id={cat_sw['id']}&search=java")
+    assert res_combo.status_code == 200
+    combo_names = [s["name"] for s in res_combo.json()["data"]]
+    assert combo_names == ["JavaScript Frontend"]
+

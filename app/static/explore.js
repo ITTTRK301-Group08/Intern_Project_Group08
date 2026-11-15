@@ -450,6 +450,21 @@
     var container = $('skills');
     var search = $('resourceSearch').value.trim().toLocaleLowerCase();
     var selectedSkill = $('skillFilter') ? $('skillFilter').value : '';
+    var selectedCategory = $('categoryFilter') ? $('categoryFilter').value : '';
+
+    var categorySkillIds = null;
+    if (selectedCategory) {
+      categorySkillIds = {};
+      roles.forEach(function (r) {
+        if (String(r.category_id) === selectedCategory) {
+          (r.required_skills || []).forEach(function (rs) {
+            if (rs.skill && rs.skill.id) {
+              categorySkillIds[String(rs.skill.id)] = true;
+            }
+          });
+        }
+      });
+    }
 
     var resourceCounts = {};
     resources.forEach(function (r) {
@@ -461,8 +476,9 @@
 
     var filtered = skills.filter(function (skill) {
       var matchesSelected = !selectedSkill || String(skill.id) === selectedSkill;
+      var matchesCat = !categorySkillIds || categorySkillIds[String(skill.id)];
       var matchesSearch = !search || (skill.name + ' ' + (skill.description || '')).toLocaleLowerCase().includes(search);
-      return matchesSelected && matchesSearch;
+      return matchesSelected && matchesCat && matchesSearch;
     });
 
     container.replaceChildren();

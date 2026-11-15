@@ -329,6 +329,8 @@ def get_interview_history(
         select(func.count(InterviewSession.id)).where(InterviewSession.user_id == user_id)
     ) or 0
 
+    total_pages = max(1, (total + page_size - 1) // page_size) if total > 0 else 1
+
     sessions = db.scalars(
         select(InterviewSession)
         .options(
@@ -358,4 +360,5 @@ def get_interview_history(
         "total": total,
         "page": page,
         "page_size": page_size,
+        "total_pages": total_pages,
     }

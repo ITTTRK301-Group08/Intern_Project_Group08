@@ -59,9 +59,18 @@
       ]
     },
     interviews: {
+      total: 7,
+      page: 1,
+      page_size: 3,
+      total_pages: 3,
       items: [
-        { id: 1, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 2 * 86400000).toISOString() },
-        { id: 2, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 5 * 86400000).toISOString() }
+        { id: 1, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 1 * 86400000).toISOString() },
+        { id: 2, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 3 * 86400000).toISOString() },
+        { id: 3, career_role_name: 'Data Analyst', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 5 * 86400000).toISOString() },
+        { id: 4, career_role_name: 'Frontend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 7 * 86400000).toISOString() },
+        { id: 5, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 10 * 86400000).toISOString() },
+        { id: 6, career_role_name: 'DevOps Engineer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 12 * 86400000).toISOString() },
+        { id: 7, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 15 * 86400000).toISOString() }
       ]
     }
   };
@@ -355,14 +364,36 @@
     });
   }
 
+  var currentInterviewPage = 1;
+  var INTERVIEW_PAGE_SIZE = 3;
+
   function renderInterviewHistory(interviewData) {
     var container = $('interviewSessionsContainer');
+    var paginationBar = $('interviewPagination');
+    var pageInfo = $('interviewPageInfo');
+    var prevBtn = $('prevInterviewPageBtn');
+    var nextBtn = $('nextInterviewPageBtn');
+
     if (!container) return;
     container.innerHTML = '';
 
+    var total = interviewData.total || (interviewData.items ? interviewData.items.length : 0);
+    var page = interviewData.page || currentInterviewPage;
+    var pageSize = interviewData.page_size || INTERVIEW_PAGE_SIZE;
+    var totalPages = interviewData.total_pages || Math.max(1, Math.ceil(total / pageSize));
+
+    currentInterviewPage = page;
+
     var items = interviewData.items || [];
+    // Nếu trong direct mode và items chưa được slice theo trang
+    if (isDirectMode && items.length > pageSize) {
+      var start = (page - 1) * pageSize;
+      items = items.slice(start, start + pageSize);
+    }
+
     if (items.length === 0) {
       container.innerHTML = '<p style="color: var(--muted); font-size: 14px; text-align: center; padding: 16px 0;">Chưa có phiên phỏng vấn thử nào.</p>';
+      if (paginationBar) paginationBar.style.display = 'none';
       return;
     }
 
@@ -392,6 +423,60 @@
       card.append(left, badge);
       container.appendChild(card);
     });
+
+    // Cập nhật thanh phân trang
+    if (paginationBar) {
+      if (total > pageSize || totalPages > 1) {
+        paginationBar.style.display = 'flex';
+        if (pageInfo) {
+          pageInfo.textContent = 'Trang ' + page + ' / ' + totalPages + ' (Tổng ' + total + ' phiên)';
+        }
+        if (prevBtn) {
+          prevBtn.disabled = (page <= 1);
+          prevBtn.onclick = function () {
+            if (page > 1) fetchInterviewPage(page - 1);
+          };
+        }
+        if (nextBtn) {
+          nextBtn.disabled = (page >= totalPages);
+          nextBtn.onclick = function () {
+            if (page < totalPages) fetchInterviewPage(page + 1);
+          };
+        }
+      } else {
+        paginationBar.style.display = 'none';
+      }
+    }
+  }
+
+  function fetchInterviewPage(page) {
+    if (isDirectMode) {
+      currentInterviewPage = page;
+      var total = DEMO_DASHBOARD.interviews.total || 7;
+      var totalPages = Math.ceil(total / INTERVIEW_PAGE_SIZE);
+      renderInterviewHistory({
+        total: total,
+        page: page,
+        page_size: INTERVIEW_PAGE_SIZE,
+        total_pages: totalPages,
+        items: DEMO_DASHBOARD.interviews.items
+      });
+      return;
+    }
+
+    var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
+    fetch('/api/v1/dashboard/interview-history?page=' + page + '&page_size=' + INTERVIEW_PAGE_SIZE, {
+      headers: { Authorization: 'Bearer ' + token }
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && res.data) {
+          renderInterviewHistory(res.data);
+        }
+      })
+      .catch(function () {
+        /* Bỏ qua lỗi kết nối và giữ trang hiện tại */
+      });
   }
 
   function loadDashboardData() {

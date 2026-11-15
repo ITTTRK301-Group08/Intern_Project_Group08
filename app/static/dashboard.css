@@ -322,3 +322,42 @@
   font-size: 12px;
   color: var(--muted);
 }
+
+/* ── Pagination bar for Interview History (Sprint 3) ──────────── */
+.dash-pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 14px;
+  margin-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.dash-page-btn {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dash-page-btn:hover:not(:disabled) {
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+  border-color: var(--primary);
+}
+
+.dash-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dash-page-info {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}

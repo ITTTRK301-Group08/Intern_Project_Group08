@@ -236,8 +236,52 @@ def test_interview_history_endpoint(client, db_session):
     data = res.json()["data"]
 
     assert data["total"] == 1
+    assert data["total_pages"] == 1
     assert len(data["items"]) == 1
     item = data["items"][0]
     assert item["career_role_name"] == "Data Analyst"
     assert item["status"] == "completed"
     assert item["question_count"] == 1
+
+
+def test_interview_history_pagination(client, db_session):
+    headers, user_id = register_user(client, "page_user@example.com")
+    fixtures = setup_dashboard_fixture(db_session, user_id)
+    role = fixtures["role"]
+
+    # Thêm 6 phiên phỏng vấn nữa (tổng 7 phiên)
+    for i in range(2, 8):
+        s = InterviewSession(user_id=user_id, career_role_id=role.id, status="completed")
+        db_session.add(s)
+    db_session.commit()
+
+    # Trang 1 với page_size = 3
+    res1 = client.get("/api/v1/dashboard/interview-history?page=1&page_size=3", headers=headers)
+    assert res1.status_code == 200
+    d1 = res1.json()["data"]
+    assert d1["total"] == 7
+    assert d1["total_pages"] == 3
+    assert d1["page"] == 1
+    assert d1["page_size"] == 3
+    assert len(d1["items"]) == 3
+
+    # Trang 2
+    res2 = client.get("/api/v1/dashboard/interview-history?page=2&page_size=3", headers=headers)
+    assert res2.status_code == 200
+    d2 = res2.json()["data"]
+    assert d2["page"] == 2
+    assert len(d2["items"]) == 3
+
+    # Trang 3
+    res3 = client.get("/api/v1/dashboard/interview-history?page=3&page_size=3", headers=headers)
+    assert res3.status_code == 200
+    d3 = res3.json()["data"]
+    assert d3["page"] == 3
+    assert len(d3["items"]) == 1
+
+    # Trang 4 (ngoài phạm vi)
+    res4 = client.get("/api/v1/dashboard/interview-history?page=4&page_size=3", headers=headers)
+    assert res4.status_code == 200
+    d4 = res4.json()["data"]
+    assert len(d4["items"]) == 0
+

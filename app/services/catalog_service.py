@@ -73,12 +73,35 @@ def get_role_skills(
 
 
 def list_skills(
-    db: Session, *, search: str | None = None
+    db: Session,
+    *,
+    search: str | None = None,
+    category_id: int | None = None,
+    role_id: int | None = None,
 ) -> Sequence[Skill]:
     query = select(Skill)
+
+    if category_id is not None:
+        role_subquery = (
+            select(CareerRoleSkill.skill_id)
+            .join(CareerRole, CareerRole.id == CareerRoleSkill.career_role_id)
+            .where(CareerRole.category_id == category_id)
+        )
+        query = query.where(Skill.id.in_(role_subquery))
+
+    if role_id is not None:
+        role_subquery = select(CareerRoleSkill.skill_id).where(
+            CareerRoleSkill.career_role_id == role_id
+        )
+        query = query.where(Skill.id.in_(role_subquery))
+
     if search:
-        query = query.where(Skill.name.ilike(f"%{search.strip()}%"))
-    return db.scalars(query.order_by(Skill.name)).all()
+        term = f"%{search.strip()}%"
+        query = query.where(
+            Skill.name.ilike(term) | Skill.description.ilike(term)
+        )
+
+    return db.scalars(query.order_by(Skill.name).distinct()).all()
 
 
 def list_resources(

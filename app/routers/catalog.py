@@ -61,8 +61,16 @@ def get_catalog_role_skills(db: DbSession, role_id: int = Path(gt=0)):
 def get_skills(
     db: DbSession,
     search: str | None = Query(default=None, max_length=100),
+    category_id: int | None = Query(default=None, gt=0),
+    role_id: int | None = Query(default=None, gt=0),
 ):
-    return ApiResponse(data=list_skills(db, search=search), message="Skills retrieved")
+    """Tìm kiếm và lọc danh mục kỹ năng chuẩn theo từ khóa, phân nhóm (category) hoặc vị trí (role)."""
+    return ApiResponse(
+        data=list_skills(
+            db, search=search, category_id=category_id, role_id=role_id
+        ),
+        message="Skills retrieved",
+    )
 
 
 @router.get("/resources", response_model=ApiResponse[list[LearningResourceRead]])
