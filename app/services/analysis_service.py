@@ -1,9 +1,11 @@
 import logging
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, joinedload
 
+from app.models.analysis import Analysis, AnalysisSkillGap
+from app.models.career import Skill
 from app.models.cv import CV
 from app.schemas.analysis import SUPPORTED_PURPOSE_VERSION, AIConsent
 from app.services import ai_service
@@ -78,3 +80,50 @@ def prepare_analysis(
         ANALYSIS_PIPELINE_NOT_IMPLEMENTED,
         "Da xac nhan consent hop le, nhung pipeline phan tich AI (M4) chua duoc trien khai trong Task 4.",
     )
+
+
+def list_user_analyses(
+    db: Session, *, user_id: int, page: int, page_size: int
+) -> tuple[list[Analysis], int]:
+    filters = Analysis.user_id == user_id
+    total = db.scalar(select(func.count(Analysis.id)).where(filters)) or 0
+    analyses = db.scalars(
+        select(Analysis)
+        .options(joinedload(Analysis.career_role))
+        .where(filters)
+        .order_by(Analysis.created_at.desc(), Analysis.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+    return analyses, total
+
+
+def get_user_analysis(
+    db: Session, *, user_id: int, analysis_id: int
+) -> Analysis | None:
+    return db.scalar(
+        select(Analysis)
+        .options(joinedload(Analysis.career_role))
+        .where(Analysis.id == analysis_id, Analysis.user_id == user_id)
+    )
+
+
+def get_user_analysis_skills(
+    db: Session, *, user_id: int, analysis_id: int
+) -> list[tuple[AnalysisSkillGap, Skill]] | None:
+    analysis_exists = db.scalar(
+        select(Analysis.id).where(
+            Analysis.id == analysis_id, Analysis.user_id == user_id
+        )
+    )
+    if analysis_exists is None:
+        return None
+
+    gaps = db.execute(
+        select(AnalysisSkillGap, Skill)
+        .join(Analysis, Analysis.id == AnalysisSkillGap.analysis_id)
+        .join(Skill, Skill.id == AnalysisSkillGap.skill_id)
+        .where(Analysis.id == analysis_id, Analysis.user_id == user_id)
+        .order_by(Skill.name, AnalysisSkillGap.id)
+    ).all()
+    return [(gap, skill) for gap, skill in gaps]

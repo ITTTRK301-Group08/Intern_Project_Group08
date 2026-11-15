@@ -55,3 +55,20 @@ to promote an existing student account.
 Registering through the public auth API always creates a student account.
 Admin access is granted only through the bootstrap command or an existing
 administrator process.
+
+## Analysis reports
+
+- `GET /api/v1/analyses?page=1&page_size=10`: paginated history for the
+  authenticated student.
+- `GET /api/v1/analyses/{analysis_id}`: report status, readiness score, summary,
+  and target role.
+- `GET /api/v1/analyses/{analysis_id}/skills`: current and required skill
+  levels, gap score, evidence, and recommendation.
+- `GET /api/v1/analyses/{analysis_id}/status`: status for polling. The status
+  values are `pending`, `processing`, `completed`, and `failed`.
+
+All report queries are scoped to the authenticated user; an analysis owned by
+another account returns 404. Run `python -m alembic upgrade head` to apply the
+report fields migration. The analysis creation endpoint remains gated because
+the AI analysis pipeline has not yet been implemented; this page does not
+fabricate reports.
