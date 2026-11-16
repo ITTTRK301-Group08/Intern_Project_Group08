@@ -6,6 +6,9 @@
 (function () {
   'use strict';
 
+  if (window.__LaBanAuthLoaded__) return;
+  window.__LaBanAuthLoaded__ = true;
+
   var TOKEN_KEY = 'acm_access_token';
   var REFRESH_TOKEN_KEY = 'acm_refresh_token';
   var $ = function (id) { return document.getElementById(id); };

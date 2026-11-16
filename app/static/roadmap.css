@@ -1,0 +1,378 @@
+/* ── Roadmap 30 Ngày (UC-08 / M5) ─────────────────────────── */
+
+.roadmap-header-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 32px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+.roadmap-header-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.roadmap-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.plan-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.plan-status-active {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border: 1px solid var(--ok-border);
+}
+
+.plan-status-completed {
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+  border: 1px solid var(--border-strong);
+}
+
+.plan-status-archived {
+  background: var(--surface-soft);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.role-target-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.roadmap-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 10px 0;
+  letter-spacing: -0.02em;
+}
+
+.roadmap-desc {
+  font-size: 15px;
+  color: var(--text-soft);
+  margin: 0 0 24px 0;
+  max-width: 720px;
+}
+
+/* KPI bar */
+.roadmap-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.roadmap-kpi-item {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.roadmap-kpi-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.roadmap-kpi-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-deep);
+}
+
+.roadmap-progress-wrap {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.roadmap-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.roadmap-progress-track {
+  width: 100%;
+  height: 10px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.roadmap-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-deep));
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* Actions bar */
+.roadmap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.week-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.week-tab-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.week-tab-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+  border-color: var(--primary);
+}
+
+.week-tab-btn.active {
+  background: var(--primary-deep);
+  color: #ffffff;
+  border-color: var(--primary-deep);
+}
+
+/* Weekly Sections */
+.week-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.week-card:hover {
+  border-color: var(--border-strong);
+}
+
+.week-card-header {
+  padding: 20px 24px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.week-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.week-num-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--primary-deep);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.week-heading {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.week-subtext {
+  margin: 2px 0 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.week-status-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-deep);
+  background: var(--primary-soft);
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.week-task-list {
+  padding: 12px 24px 20px 24px;
+  list-style: none;
+  margin: 0;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px dashed var(--border);
+  transition: background-color 0.2s ease;
+}
+
+.task-item:last-child {
+  border-bottom: none;
+}
+
+.task-item.completed .task-desc {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.task-checkbox-wrap {
+  padding-top: 3px;
+}
+
+.task-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.task-body {
+  flex: 1;
+}
+
+.task-meta-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.skill-tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+}
+
+.hours-tag {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.task-desc {
+  font-size: 15px;
+  color: var(--text);
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+
+.resource-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border-strong);
+  transition: all 0.2s ease;
+}
+
+.resource-pill:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.resource-type-icon {
+  font-size: 14px;
+}
+
+.empty-plan-state {
+  text-align: center;
+  padding: 60px 24px;
+  background: var(--card);
+  border: 1px dashed var(--border-strong);
+  border-radius: 18px;
+  margin: 32px 0;
+}
+
+.empty-plan-icon {
+  width: 64px;
+  height: 64px;
+  color: var(--primary);
+  margin-bottom: 16px;
+}
+
+.empty-plan-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.empty-plan-text {
+  font-size: 15px;
+  color: var(--text-soft);
+  margin-bottom: 24px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}

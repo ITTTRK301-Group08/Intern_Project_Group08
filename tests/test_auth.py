@@ -113,7 +113,6 @@ def test_refresh_rotates_token_and_rejects_reuse(client):
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {new_tokens['access_token']}"},
     ).status_code == 200
-
     assert client.post(
         "/api/v1/auth/refresh",
         json={"refresh_token": login["refresh_token"]},
@@ -261,8 +260,10 @@ def test_cors_allows_configured_origin_only():
 
     cors_app = create_app(
         Settings(
+            database_url="sqlite+pysqlite:///:memory:",
             secret_key="test-cors-secret-key-that-is-at-least-32-bytes",
             cors_allowed_origins=["https://frontend.example"],
+            _env_file=None,
         )
     )
     with TestClient(cors_app) as cors_client:
@@ -291,16 +292,26 @@ def test_security_settings_reject_weak_secret_and_wildcard_cors(monkeypatch):
 
     monkeypatch.delenv("SECRET_KEY", raising=False)
     with pytest.raises(ValidationError, match="SECRET_KEY"):
-        Settings(secret_key="short", _env_file=None)
+        Settings(
+            database_url="sqlite+pysqlite:///:memory:",
+            secret_key="short",
+            _env_file=None,
+        )
     with pytest.raises(ValidationError, match="CORS origin"):
         Settings(
+            database_url="sqlite+pysqlite:///:memory:",
             secret_key="test-settings-secret-key-that-is-at-least-32-bytes",
             cors_allowed_origins=["*"],
             _env_file=None,
         )
     with pytest.raises(ValidationError, match="explicitly configured"):
-        Settings(environment="production", _env_file=None)
+        Settings(
+            database_url="sqlite+pysqlite:///:memory:",
+            environment="production",
+            _env_file=None,
+        )
     assert Settings(
+        database_url="sqlite+pysqlite:///:memory:",
         environment="production",
         secret_key="test-production-secret-key-that-is-at-least-32-bytes",
         _env_file=None,
@@ -314,7 +325,11 @@ def test_unexpected_errors_use_the_api_error_envelope(caplog):
     from app.main import create_app
 
     error_app = create_app(
-        Settings(secret_key="test-api-errors-secret-key-that-is-at-least-32-bytes")
+        Settings(
+            database_url="sqlite+pysqlite:///:memory:",
+            secret_key="test-api-errors-secret-key-that-is-at-least-32-bytes",
+            _env_file=None,
+        )
     )
 
     @error_app.get("/intentional-test-error")

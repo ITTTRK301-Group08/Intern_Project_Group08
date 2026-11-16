@@ -2,8 +2,10 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -80,6 +82,12 @@ class CareerRoleSkill(Base):
         ForeignKey("skills.id", ondelete="RESTRICT"), primary_key=True
     )
     required_level: Mapped[int] = mapped_column(Integer, nullable=False, default=3, server_default="3")
+    is_required: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="1"
+    )
+    weight: Mapped[float] = mapped_column(
+        Float, nullable=False, default=1.0, server_default="1.0"
+    )
 
     career_role: Mapped["CareerRole"] = relationship(
         "CareerRole", back_populates="required_skills"
@@ -90,6 +98,10 @@ class CareerRoleSkill(Base):
         CheckConstraint(
             "required_level >= 0 AND required_level <= 5",
             name="ck_career_role_skill_level",
+        ),
+        CheckConstraint(
+            "weight > 0",
+            name="ck_career_role_skill_weight",
         ),
         Index("ix_career_role_skills_skill_id", "skill_id"),
         {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_0900_ai_ci"},
