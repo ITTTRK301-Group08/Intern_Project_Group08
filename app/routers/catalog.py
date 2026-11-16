@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Path, Query
 
 from app.core.deps import DbSession
 from app.schemas.auth import ApiResponse
 from app.schemas.catalog import (
     CareerRoleRead,
+    CareerRoleSkillRead,
     CategoryRead,
     LearningResourceRead,
     SkillRead,
 )
 from app.services.catalog_service import (
+    get_role_by_id,
+    get_role_skills,
     list_categories,
     list_resources,
     list_roles,
@@ -27,10 +30,30 @@ def get_categories(db: DbSession):
 def get_roles(
     db: DbSession,
     category_id: int | None = Query(default=None, gt=0),
+    level: str | None = Query(default=None, max_length=50),
 ):
     return ApiResponse(
-        data=list_roles(db, category_id=category_id),
+        data=list_roles(db, category_id=category_id, level=level),
         message="Career roles retrieved",
+    )
+
+
+@router.get("/roles/{role_id}", response_model=ApiResponse[CareerRoleRead])
+def get_role_detail(db: DbSession, role_id: int = Path(gt=0)):
+    return ApiResponse(
+        data=get_role_by_id(db, role_id),
+        message="Career role retrieved",
+    )
+
+
+@router.get(
+    "/roles/{role_id}/skills",
+    response_model=ApiResponse[list[CareerRoleSkillRead]],
+)
+def get_catalog_role_skills(db: DbSession, role_id: int = Path(gt=0)):
+    return ApiResponse(
+        data=get_role_skills(db, role_id),
+        message="Career role skills retrieved",
     )
 
 
@@ -38,8 +61,16 @@ def get_roles(
 def get_skills(
     db: DbSession,
     search: str | None = Query(default=None, max_length=100),
+    category_id: int | None = Query(default=None, gt=0),
+    role_id: int | None = Query(default=None, gt=0),
 ):
-    return ApiResponse(data=list_skills(db, search=search), message="Skills retrieved")
+    """Tìm kiếm và lọc danh mục kỹ năng chuẩn theo từ khóa, phân nhóm (category) hoặc vị trí (role)."""
+    return ApiResponse(
+        data=list_skills(
+            db, search=search, category_id=category_id, role_id=role_id
+        ),
+        message="Skills retrieved",
+    )
 
 
 @router.get("/resources", response_model=ApiResponse[list[LearningResourceRead]])

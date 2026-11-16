@@ -1,78 +1,130 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" data-require-auth="true">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Báo cáo phân tích kỹ năng</title>
+  <title>La Bàn — Phân tích kỹ năng & Báo cáo</title>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<link rel="stylesheet" href="./profile.css">');
+    }
+  </script>
   <link rel="stylesheet" href="/static/profile.css" />
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./session.js"><\/script>');
+    }
+  </script>
+  <script src="/static/session.js"></script>
   <style>
-    .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
-    .modal{background:#fff;max-width:640px;width:100%;border-radius:12px;border:1px solid var(--border);padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
-    .modal h2{margin-top:0}.modal ul{margin:8px 0 0 18px}
-    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
-    button.danger{background:#dc2626}
-    .history-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px}
-    .history-item button{white-space:nowrap}.history-list{display:grid;gap:8px}
-    .pagination{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
-    .report-score{font-size:2rem;font-weight:700;color:var(--primary)}
-    .table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;margin-top:12px}
-    th,td{text-align:left;padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
-    .bar{height:8px;background:#dbeafe;border-radius:8px;overflow:hidden;min-width:80px;margin-top:5px}
-    .bar span{display:block;height:100%;background:var(--primary)}
-    .badge{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:.85rem}
-    @media(max-width:600px){.history-item{align-items:flex-start;flex-direction:column}}
+    .history-list { display: grid; gap: 12px; margin-top: 14px; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); transition: all 0.2s ease; }
+    .history-item:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+    .history-meta { display: flex; flex-direction: column; gap: 4px; }
+    .history-title { font-weight: 700; font-size: 15px; color: var(--text); }
+    .history-sub { font-size: 13px; color: var(--muted); }
+    .report-score-box { display: flex; align-items: baseline; gap: 8px; margin: 12px 0; }
+    .report-score { font-size: 2.75rem; font-weight: 800; color: var(--primary-deep); line-height: 1; }
+    .report-score-label { font-size: 14px; font-weight: 600; color: var(--muted); }
+    .table-wrap { overflow-x: auto; margin-top: 16px; border-radius: 10px; border: 1px solid var(--border); }
+    table.data-table { width: 100%; border-collapse: collapse; }
+    table.data-table th, table.data-table td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; }
+    table.data-table th { background: var(--surface-soft); font-weight: 700; color: var(--text-soft); }
+    table.data-table tr:last-child td { border-bottom: none; }
+    .skill-level-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--surface-soft); border: 1px solid var(--border); }
   </style>
 </head>
 <body>
   <main class="container">
-    <header class="header">
-      <h1>Báo cáo phân tích kỹ năng</h1>
-      <p class="muted">Xem kết quả phân tích và lịch sử các lần phân tích của bạn.</p>
+    <header class="topbar">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" /></svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Điều hướng">
+        <a href="/explore">Khám phá</a>
+        <a href="/profile">Hồ sơ</a>
+        <a href="/cv">CV của tôi</a>
+        <a href="/analysis" aria-current="page">Phân tích kỹ năng</a>
+        <a href="/roadmap">Lộ trình 30 ngày</a>
+        <a href="/dashboard">Dashboard</a>
+      </nav>
     </header>
 
-    <section class="card">
-      <label for="token">JWT Access Token (Bearer)</label>
-      <div class="row">
-        <input id="token" type="password" placeholder="Dán access_token sau khi đăng nhập" autocomplete="off" />
-        <button id="saveToken" type="button" class="secondary">Lưu token</button>
+    <section class="page-hero">
+      <div class="page-hero-copy">
+        <p class="page-eyebrow">Đánh giá mức độ sẵn sàng nghề nghiệp</p>
+        <h1>Phân tích khoảng cách kỹ năng &amp; Báo cáo</h1>
+        <p class="muted">Đối chiếu năng lực thực tế từ CV và Hồ sơ với vị trí tuyển dụng mục tiêu; khám phá điểm mạnh và khoảng cách kỹ năng trọng tâm.</p>
+      </div>
+      <div class="page-hero-actions">
+        <a class="btn-link secondary-link small" href="/explore">Xem danh mục vị trí</a>
+        <a class="btn-link secondary-link small" href="/cv">Quản lý CV</a>
+        <a class="btn-link secondary-link small" href="/dashboard">Dashboard cá nhân</a>
       </div>
     </section>
 
-    <div id="status" class="status" aria-live="polite"></div>
-    <div id="loading" class="loading hidden">Đang xử lý...</div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="loading" class="loading hidden">Đang kiểm tra và xử lý dữ liệu...</div>
 
-    <section class="card" aria-labelledby="historyTitle">
-      <h2 id="historyTitle">Lịch sử phân tích</h2>
+    <!-- Lịch sử phân tích kỹ năng -->
+    <section id="historyCard" class="card" aria-labelledby="historyTitle">
+      <div class="card-head">
+        <div>
+          <h2 id="historyTitle">Lịch sử các phiên phân tích</h2>
+          <p class="field-hint">Xem lại kết quả đánh giá độ sẵn sàng và bảng đối chiếu kỹ năng trước đây của bạn.</p>
+        </div>
+      </div>
       <div id="historyList" class="history-list" aria-live="polite"></div>
-      <div id="historyEmpty" class="muted">Đang tải lịch sử...</div>
-      <div class="pagination">
-        <button id="previousPage" type="button" class="secondary" disabled>Trước</button>
-        <span id="pageInfo" class="muted"></span>
-        <button id="nextPage" type="button" class="secondary" disabled>Sau</button>
+      <div id="historyEmpty" class="muted" style="padding: 16px 0; text-align: center;">Chưa có phiên phân tích nào. Hãy tạo yêu cầu phân tích mới bên dưới.</div>
+      <div class="pagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border);">
+        <button id="previousPage" type="button" class="btn secondary-btn small" disabled>← Trang trước</button>
+        <span id="pageInfo" class="muted small font-weight-bold">Trang 1 / 1</span>
+        <button id="nextPage" type="button" class="btn secondary-btn small" disabled>Trang sau →</button>
       </div>
     </section>
 
+    <!-- Báo cáo chi tiết -->
     <section id="reportCard" class="card hidden" aria-labelledby="reportTitle">
-      <h2 id="reportTitle">Báo cáo chi tiết</h2>
-      <p id="reportRole" class="muted"></p>
+      <div class="card-head">
+        <div>
+          <h2 id="reportTitle">Chi tiết báo cáo năng lực</h2>
+          <p id="reportRole" class="muted small" style="margin-top: 4px; font-weight: 600;"></p>
+        </div>
+        <button type="button" id="closeReportBtn" class="btn ghost small" style="font-size: 13px;">Đóng xem chi tiết ✕</button>
+      </div>
       <div id="reportProgress" class="status" aria-live="polite"></div>
       <div id="reportContent" class="hidden">
-        <div class="grid">
-          <div>
-            <span class="label">Điểm sẵn sàng nghề nghiệp</span>
-            <div id="readinessScore" class="report-score"></div>
+        <div class="grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0;">
+          <div style="background: var(--surface-soft); padding: 18px; border-radius: 12px; border: 1px solid var(--border);">
+            <span class="label" style="font-size: 13px; font-weight: 600; color: var(--muted);">Điểm sẵn sàng nghề nghiệp</span>
+            <div class="report-score-box">
+              <div id="readinessScore" class="report-score">0</div>
+              <span class="report-score-label">/ 100 điểm</span>
+            </div>
+            <p class="muted small" style="margin: 0;">Dựa trên phân tích tiêu chuẩn ngành và trọng số kỹ năng mục tiêu.</p>
           </div>
-          <div>
-            <span class="label">Nhận xét tổng quan</span>
-            <p id="reportSummary"></p>
+          <div style="background: var(--surface-soft); padding: 18px; border-radius: 12px; border: 1px solid var(--border);">
+            <span class="label" style="font-size: 13px; font-weight: 600; color: var(--muted);">Nhận xét tổng quan</span>
+            <p id="reportSummary" style="font-size: 14px; line-height: 1.5; margin-top: 8px; color: var(--text-soft);"></p>
           </div>
         </div>
-        <h3>Đối chiếu kỹ năng</h3>
-        <div id="skillsEmpty" class="muted hidden">Chưa có dữ liệu kỹ năng.</div>
+
+        <h3 style="margin-top: 24px;">Bảng đối chiếu kỹ năng chi tiết</h3>
+        <div id="skillsEmpty" class="muted hidden" style="padding: 12px 0;">Chưa có dữ liệu kỹ năng cho phiên này.</div>
         <div class="table-wrap">
-          <table id="skillsTable" class="hidden">
+          <table id="skillsTable" class="data-table hidden">
             <thead>
-              <tr><th>Kỹ năng</th><th>Hiện tại</th><th>Yêu cầu</th><th>Khoảng cách</th><th>Bằng chứng</th><th>Đề xuất</th></tr>
+              <tr>
+                <th>Kỹ năng</th>
+                <th>Hiện tại</th>
+                <th>Yêu cầu</th>
+                <th>Khoảng cách</th>
+                <th>Bằng chứng trích xuất</th>
+                <th>Đề xuất rèn luyện</th>
+              </tr>
             </thead>
             <tbody id="skillsBody"></tbody>
           </table>
@@ -80,41 +132,142 @@
       </div>
     </section>
 
-    <form id="analysisForm" class="card">
-      <h2>Yêu cầu phân tích mới</h2>
-      <label>CV đã tải lên (cv_id, tùy chọn nếu luồng cho phép)
-        <input id="cv_id" name="cv_id" type="number" min="1" placeholder="Nhập ID CV (ví dụ: 1)" />
-      </label>
-      <label>Vị trí nghề nghiệp mục tiêu (career_role_id, nếu luồng yêu cầu)
-        <input id="career_role_id" name="career_role_id" type="number" min="1" placeholder="Nhập ID vị trí (M3 chưa triển khai)" />
-      </label>
-      <p class="muted small">Yêu cầu hiện chỉ xác thực consent và quyền sở hữu CV. Pipeline AI tạo báo cáo chưa được triển khai.</p>
-      <div class="actions"><button type="submit">Bắt đầu phân tích</button></div>
+    <!-- Biểu mẫu gửi yêu cầu phân tích mới -->
+    <form id="analysisForm" class="card" novalidate>
+      <input id="cv_id" name="cv_id" type="hidden" />
+      <input id="career_role_id" name="career_role_id" type="hidden" />
+
+      <div class="card-head">
+        <div>
+          <h2>Tạo yêu cầu phân tích mới</h2>
+          <p class="field-hint">Chọn nguồn dữ liệu từ CV PDF hoặc Hồ sơ và đối chiếu với tiêu chuẩn nghề nghiệp bạn quan tâm.</p>
+        </div>
+      </div>
+
+      <div class="choice-grid" role="radiogroup" aria-label="Nguồn dữ liệu phân tích">
+        <button type="button" id="sourceCvBtn" class="choice-card is-selected" aria-pressed="true">
+          <strong>Dùng CV PDF đã tải lên</strong>
+          <span>Đối chiếu trực tiếp kinh nghiệm và kỹ năng từ tệp CV của bạn</span>
+        </button>
+        <button type="button" id="sourceProfileBtn" class="choice-card" aria-pressed="false">
+          <strong>Dùng Hồ sơ cá nhân</strong>
+          <span>Phân tích dựa trên ngành học, điểm mạnh và kỹ năng tự đánh giá</span>
+        </button>
+      </div>
+
+      <div id="cvPickerWrap" style="margin-top: 14px;">
+        <label for="cvSelect">Chọn phiên bản CV
+          <select id="cvSelect">
+            <option value="">-- Chọn CV PDF đã tải lên --</option>
+            <option value="1" selected>CV_NguyenVanAn_DataAnalyst.pdf (Mới nhất · 1.2 MB)</option>
+          </select>
+        </label>
+        <p id="noCvHint" class="field-hint hidden" style="margin-top:8px">
+          Bạn chưa có CV nào trong hệ thống. <a href="/cv">Tải lên CV PDF</a> hoặc chuyển sang phân tích từ <strong>Hồ sơ cá nhân</strong>.
+        </p>
+      </div>
+
+      <div id="profileSourceHint" class="info-banner hidden" style="margin-top: 14px;">
+        Hệ thống sẽ sử dụng thông tin học vấn, điểm mạnh, kỹ năng tự đánh giá và giới thiệu bản thân từ <a href="/profile">Hồ sơ cá nhân</a> của bạn.
+      </div>
+
+      <div id="scannedCvWarning" class="warning-box hidden" role="alert" style="margin-top: 14px;">
+        <h3>CV đã chọn chưa có lớp văn bản để đọc tự động</h3>
+        <p><strong>Nguyên nhân:</strong> Tệp CV này có thể là PDF ảnh quét nên hệ thống không đọc được nội dung chữ.</p>
+        <p><strong>Gợi ý:</strong> Hãy chuyển sang phân tích bằng dữ liệu <strong>Hồ sơ cá nhân</strong> hoặc tải lên một tệp CV PDF có lớp văn bản.</p>
+        <div class="warning-actions" style="margin-top: 10px;">
+          <button id="switchToProfileBtn" type="button" class="small">Chuyển sang dùng Hồ sơ cá nhân</button>
+          <a class="btn-link secondary-link small" href="/profile">Cập nhật Hồ sơ cá nhân</a>
+        </div>
+      </div>
+
+      <div class="subsection" style="margin-top: 20px;">
+        <div class="card-head" style="margin-bottom:10px">
+          <div>
+            <h2>Chọn vị trí nghề nghiệp mục tiêu</h2>
+            <p class="field-hint">Kỹ năng của bạn sẽ được đối chiếu với bộ tiêu chuẩn của vị trí này.</p>
+          </div>
+        </div>
+
+        <label for="roleSelect">Vị trí nghề nghiệp mục tiêu *
+          <select id="roleSelect" required>
+            <option value="">-- Chọn vị trí nghề nghiệp --</option>
+            <option value="1" selected>Data Analyst (Intern)</option>
+            <option value="2">Frontend Developer (Fresher)</option>
+            <option value="3">Backend Developer (Fresher)</option>
+            <option value="4">AI / Machine Learning Engineer (Intern)</option>
+            <option value="5">DevOps Engineer (Fresher)</option>
+            <option value="6">Product Owner (Intern)</option>
+          </select>
+        </label>
+
+        <div id="selectedRolePreview" class="info-banner" style="margin-top:12px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+            <strong id="previewRoleName">Data Analyst</strong>
+            <span id="previewRoleLevel" class="badge badge-info">Intern</span>
+            <span id="previewRoleCategory" class="badge badge-muted">Data &amp; AI</span>
+          </div>
+          <p id="previewRoleDesc" class="muted small" style="margin:0 0 6px">Thu thập, xử lý và phân tích dữ liệu; trực quan hóa thông tin chi tiết bằng biểu đồ và dashboard.</p>
+          <div id="previewRoleSkills" class="small" style="font-weight:600;color:var(--primary-deep)">Đối chiếu 4 kỹ năng tiêu chuẩn: Python, SQL, Data Visualization, Git</div>
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top: 20px;">
+        <button type="submit" id="startAnalysisBtn">Bắt đầu phân tích</button>
+        <span class="field-hint">Bạn sẽ xác nhận đồng ý chia sẻ dữ liệu trước khi AI bắt đầu xử lý.</span>
+      </div>
     </form>
 
-    <section id="resultCard" class="card hidden">
-      <h2>Phản hồi hệ thống</h2>
-      <pre id="resultJson" style="white-space:pre-wrap;word-break:break-word;margin:0"></pre>
+    <section id="resultCard" class="card hidden" aria-live="polite">
+      <div class="card-head">
+        <div>
+          <h2 id="resultTitle">Trạng thái yêu cầu phân tích</h2>
+          <p id="resultSubtitle" class="muted small" style="margin:4px 0 0"></p>
+        </div>
+        <span id="resultBadge" class="badge badge-info"></span>
+      </div>
+      <div id="resultSummary" class="detail-grid"></div>
+      <div id="resultBodyText" class="info-banner" style="margin-top:0"></div>
+      <div class="actions">
+        <a id="roadmapLinkBtn" class="btn-link small" href="/roadmap">Lộ trình học tập 30 ngày →</a>
+        <a id="dashboardLinkBtn" class="btn-link small" href="/dashboard">Xem Dashboard &amp; Radar →</a>
+        <a class="btn-link secondary-link small" href="/explore">Xem yêu cầu kỹ năng trên Khám phá</a>
+        <a class="btn-link secondary-link small" href="/profile">Cập nhật Hồ sơ</a>
+      </div>
     </section>
+
+    <footer class="site-footer">
+      <span>la bàn. — Định hướng kỹ năng nghề nghiệp dành cho sinh viên</span>
+      <div class="footer-links">
+        <a href="/explore">Khám phá</a>
+        <a href="/profile">Hồ sơ</a>
+        <a href="/cv">CV của tôi</a>
+      </div>
+    </footer>
   </main>
 
   <div id="consentModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
     <div class="modal">
-      <h2 id="consentTitle">Xác nhận sử dụng dữ liệu cho AI</h2>
-      <p>Trước khi bắt đầu phân tích, vui lòng xem xét thông tin sau:</p>
+      <h2 id="consentTitle">Xác nhận quyền riêng tư trước khi phân tích</h2>
+      <p class="muted">Để đảm bảo minh bạch về dữ liệu cá nhân, vui lòng xem lại phạm vi thông tin trước khi tiếp tục:</p>
       <ul>
-        <li><strong>Mục đích:</strong> Sử dụng nội dung CV và thông tin hồ sơ cần thiết để phân tích kỹ năng/định hướng nghề nghiệp khi tính năng AI được triển khai.</li>
-        <li><strong>Dữ liệu có thể được gửi đến dịch vụ AI:</strong> nội dung văn bản trích xuất từ CV bạn chọn (nếu có) và thông tin hồ sơ liên quan đến phân tích. <strong>Không</strong> gửi mật khẩu, mật khẩu băm, JWT/access token, refresh token hoặc thông tin xác thực.</li>
-        <li><strong>Quyền từ chối:</strong> Bạn có thể chọn "Từ chối". Nếu từ chối, hệ thống sẽ dừng quy trình và <strong>không gửi dữ liệu CV/hồ sơ đến AI</strong>.</li>
-        <li><strong>Lưu ý:</strong> Task 4 chưa kết nối nhà cung cấp AI thật. Consent được xác nhận theo từng yêu cầu; hệ thống chưa lưu lịch sử đồng ý lâu dài.</li>
+        <li><strong>Mục đích sử dụng:</strong> Đối chiếu kỹ năng hiện tại của bạn với yêu cầu của vị trí mục tiêu và đề xuất hướng cải thiện phù hợp.</li>
+        <li><strong>Dữ liệu được sử dụng:</strong> Nội dung văn bản từ CV bạn chọn (nếu dùng CV) hoặc thông tin chuyên môn trong Hồ sơ cá nhân cùng danh sách kỹ năng của vị trí mục tiêu.</li>
+        <li><strong>Cam kết bảo mật:</strong> Mật khẩu và thông tin xác thực tài khoản <strong>không bao giờ</strong> được gửi ra ngoài dịch vụ phân tích.</li>
+        <li><strong>Quyền kiểm soát:</strong> Bạn có thể chọn <strong>Từ chối</strong> để dừng ngay lập tức mà không gửi bất kỳ dữ liệu nào.</li>
       </ul>
       <div class="modal-actions">
-        <button id="consentReject" type="button" class="danger">Từ chối</button>
+        <button id="consentReject" type="button" class="ghost">Từ chối</button>
         <button id="consentAccept" type="button">Đồng ý và tiếp tục</button>
       </div>
     </div>
   </div>
 
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./analysis.js"><\/script>');
+    }
+  </script>
   <script src="/static/analysis.js"></script>
 </body>
 </html>

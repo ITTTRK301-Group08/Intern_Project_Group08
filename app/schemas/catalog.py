@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
@@ -26,8 +27,17 @@ class CategoryRead(CategoryWrite):
 class RequiredSkillWrite(BaseModel):
     skill_id: int = Field(gt=0)
     required_level: int = Field(default=3, ge=0, le=5)
+    is_required: bool = True
+    weight: float = Field(default=1.0, gt=0)
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_validator("weight")
+    @classmethod
+    def weight_must_be_finite(cls, value: float) -> float:
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError("weight must be a positive finite number")
+        return round(float(value), 2)
 
 
 class SkillRead(BaseModel):
@@ -43,11 +53,29 @@ class CareerRoleWrite(BaseModel):
     category_id: int | None = Field(default=None, gt=0)
     name: Annotated[str, Field(min_length=1, max_length=150)]
     slug: Annotated[str, Field(min_length=2, max_length=170, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")]
+    level: Annotated[str, Field(min_length=1, max_length=50)] = "Junior"
     description: str | None = None
     is_active: bool = True
     required_skills: list[RequiredSkillWrite] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("name must not be blank")
+        return stripped
+
+    @field_validator("level")
+    @classmethod
+    def normalize_level(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("level must not be blank")
+        canonical = {"intern": "Intern", "fresher": "Fresher", "junior": "Junior"}
+        return canonical.get(stripped.casefold(), stripped)
 
     @model_validator(mode="after")
     def unique_skill_ids(self) -> "CareerRoleWrite":
@@ -59,6 +87,8 @@ class CareerRoleWrite(BaseModel):
 
 class CareerRoleSkillRead(BaseModel):
     required_level: int
+    is_required: bool = True
+    weight: float = 1.0
     skill: SkillRead
 
     model_config = ConfigDict(from_attributes=True)
@@ -69,6 +99,7 @@ class CareerRoleRead(BaseModel):
     category_id: int | None
     name: str
     slug: str
+    level: str
     description: str | None
     is_active: bool
     category: CategoryRead | None
