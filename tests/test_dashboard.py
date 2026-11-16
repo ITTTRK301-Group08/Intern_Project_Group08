@@ -4,7 +4,7 @@ import pytest
 
 from app.models.analysis import Analysis, AnalysisSkillGap
 from app.models.career import CareerCategory, CareerRole, Skill
-from app.models.interview import InterviewQuestion, InterviewSession
+from app.models.interview import InterviewAnswer, InterviewQuestion, InterviewSession
 from app.models.learning_plan import LearningPlan, LearningPlanItem
 from app.models.profile_data import CareerRoleSkill
 
@@ -84,6 +84,8 @@ def setup_dashboard_fixture(db_session, user_id: int):
         user_id=user_id,
         career_role_id=role.id,
         status="completed",
+        total_score=82.5,
+        completed_at=datetime.utcnow(),
     )
     db_session.add(session)
     db_session.flush()
@@ -96,6 +98,16 @@ def setup_dashboard_fixture(db_session, user_id: int):
         question_order=1,
     )
     db_session.add(q1)
+    db_session.flush()
+
+    db_session.add(
+        InterviewAnswer(
+            question_id=q1.id,
+            answer_text="Tôi kiểm tra EXPLAIN plan và bổ sung index phù hợp.",
+            score=82.5,
+            feedback="Câu trả lời đúng trọng tâm, cần nêu thêm số liệu đo lường.",
+        )
+    )
     db_session.flush()
 
     # 4. Lộ trình học tập đang active
@@ -246,6 +258,9 @@ def test_interview_history_endpoint(client, db_session):
     assert item["career_role_name"] == "Data Analyst"
     assert item["status"] == "completed"
     assert item["question_count"] == 1
+    assert item["answered_count"] == 1
+    assert item["total_score"] == 82.5
+    assert item["completed_at"] is not None
 
 
 def test_interview_history_pagination(client, db_session):
@@ -288,4 +303,48 @@ def test_interview_history_pagination(client, db_session):
     assert res4.status_code == 200
     d4 = res4.json()["data"]
     assert len(d4["items"]) == 0
+
+
+def test_interview_history_reports_real_statuses(client, db_session):
+    """Dashboard phải trả đúng trạng thái thật, không hardcode completed."""
+    headers, user_id = register_user(client, "status_user@example.com")
+    fixtures = setup_dashboard_fixture(db_session, user_id)
+    role = fixtures["role"]
+
+    db_session.add_all(
+        [
+            InterviewSession(
+                user_id=user_id,
+                career_role_id=role.id,
+                status="in_progress",
+            ),
+            InterviewSession(
+                user_id=user_id,
+                career_role_id=role.id,
+                status="abandoned",
+            ),
+            InterviewSession(
+                user_id=user_id,
+                career_role_id=role.id,
+                status="ready",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    res = client.get("/api/v1/dashboard/interview-history?page_size=10", headers=headers)
+    assert res.status_code == 200
+    items = res.json()["data"]["items"]
+    statuses = {item["status"] for item in items}
+
+    assert statuses == {"completed", "in_progress", "abandoned", "ready"}
+    assert all(item["answered_count"] >= 0 for item in items)
+    in_progress = next(item for item in items if item["status"] == "in_progress")
+    assert in_progress["total_score"] is None
+
+    # Không lộ phiên của người khác.
+    other_headers, _ = register_user(client, "status_other@example.com")
+    other_res = client.get("/api/v1/dashboard/interview-history", headers=other_headers)
+    assert other_res.status_code == 200
+    assert other_res.json()["data"]["total"] == 0
 
