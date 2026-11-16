@@ -65,12 +65,16 @@ def setup_dashboard_fixture(db_session, user_id: int):
         skill_id=skill_sql.id,
         current_level=2,
         target_level=4,
+        evidence="Đã thực hành truy vấn SQL.",
+        has_evidence=True,
     )
     gap_viz = AnalysisSkillGap(
         analysis_id=analysis.id,
         skill_id=skill_viz.id,
         current_level=4,
         target_level=4,
+        evidence="Đã xây dựng dashboard dữ liệu.",
+        has_evidence=True,
     )
     db_session.add_all([gap_sql, gap_viz])
     db_session.flush()

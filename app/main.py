@@ -129,14 +129,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def profile_page() -> FileResponse:
         return FileResponse(STATIC_DIR / "profile.html")
 
-    @application.get("/login", tags=["frontend"])
-    def login_page() -> FileResponse:
-        return FileResponse(STATIC_DIR / "login.html")
-
-    @application.get("/register", tags=["frontend"])
-    def register_page() -> FileResponse:
-        return FileResponse(STATIC_DIR / "register.html")
-
     @application.get("/explore", tags=["frontend"])
     def explore_page() -> FileResponse:
         return FileResponse(STATIC_DIR / "explore.html")

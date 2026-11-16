@@ -10,23 +10,6 @@
   var loadingEl = $('loading');
   var saveBtn = $('saveProfileBtn');
 
-  var DEMO_PROFILE = {
-    email: 'sinhvien.an@example.com',
-    full_name: 'Nguyễn Văn An',
-    major: 'Kỹ thuật phần mềm',
-    university: 'Đại học Bách Khoa',
-    target_role_id: 3,
-    career_goal: 'Trở thành Data Analyst (Intern) trong 6 tháng tới',
-    bio: 'Sinh viên năm 3 yêu thích phân tích dữ liệu, có kỹ năng làm việc với Python, SQL và các công cụ trực quan hóa.',
-    strengths: ['Tư duy logic & giải quyết vấn đề', 'Tự học và tìm hiểu tài liệu nhanh', 'Làm việc nhóm và giao tiếp tốt'],
-    self_assessed_skills: [
-      { skill_name: 'Python', level: 3 },
-      { skill_name: 'SQL', level: 4 },
-      { skill_name: 'Git', level: 3 },
-      { skill_name: 'Data Visualization', level: 2 }
-    ]
-  };
-
   var SKILL_LEVEL_LABELS = [
     '0 — Mới tìm hiểu',
     '1 — Cơ bản',
@@ -308,27 +291,28 @@
         }
         return;
       }
+      throw new Error('Máy chủ không trả về dữ liệu hồ sơ.');
     } catch (e) {
       if (e.status === 404) {
-        renderProfile(DEMO_PROFILE);
-        setStatus('Gợi ý mẫu hồ sơ chuẩn. Bạn có thể chỉnh sửa theo thông tin của mình rồi nhấn "Lưu cập nhật".', 'info');
+        renderProfile({});
+        setStatus('Bạn chưa tạo hồ sơ. Hãy nhập thông tin của mình rồi lưu cập nhật.', 'info');
         return;
       }
+      var draft = null;
+      try {
+        var saved = localStorage.getItem('acm_draft_profile');
+        draft = saved ? JSON.parse(saved) : null;
+      } catch (draftError) {
+        console.error('Unable to read saved profile draft:', draftError);
+      }
+      renderProfile(draft && typeof draft === 'object' ? draft : {});
+      setStatus(
+        (e.message || 'Không thể tải hồ sơ từ máy chủ.') +
+          (draft ? ' Đang hiển thị bản nháp đã lưu trên thiết bị.' : ''),
+        'error'
+      );
     } finally {
       setLoading(false);
-    }
-
-    // Chế độ xem trước hoặc mở trực tiếp: nạp bản nháp lưu trữ hoặc dữ liệu mẫu chuẩn để giao diện luôn đầy đủ đẹp mắt
-    try {
-      var saved = localStorage.getItem('acm_draft_profile');
-      if (saved) {
-        renderProfile(JSON.parse(saved));
-        if (showFeedback) setStatus('Đã khôi phục dữ liệu hồ sơ đã lưu.', 'ok');
-      } else {
-        renderProfile(DEMO_PROFILE);
-      }
-    } catch (_) {
-      renderProfile(DEMO_PROFILE);
     }
   }
 
@@ -404,7 +388,7 @@
       setStatus('Đã lưu cập nhật hồ sơ thành công.', 'ok');
     } catch (e2) {
       renderProfile(payload);
-      setStatus('Đã lưu cập nhật hồ sơ thành công.', 'ok');
+      setStatus(e2.message || 'Không thể lưu hồ sơ. Vui lòng thử lại.', 'error');
     } finally {
       setSaving(false);
     }

@@ -92,6 +92,8 @@ def setup_catalog_and_analysis(db_session, user_id: int, status: str = "complete
         skill_id=skill_py.id,
         current_level=2,
         target_level=4,
+        evidence="Đã hoàn thành một dự án Python.",
+        has_evidence=True,
         recommendation="Học thêm nâng cao Python",
     )
     gap_sql = AnalysisSkillGap(
@@ -99,6 +101,8 @@ def setup_catalog_and_analysis(db_session, user_id: int, status: str = "complete
         skill_id=skill_sql.id,
         current_level=1,
         target_level=3,
+        evidence="Đã thực hành câu lệnh SQL cơ bản.",
+        has_evidence=True,
         recommendation="Luyện tập truy vấn SQL",
     )
     db_session.add_all([gap_py, gap_sql])
