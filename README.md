@@ -26,6 +26,20 @@ the current database role on every request. API successes and errors use a
 consistent JSON envelope, retaining `detail` on errors for existing clients.
 In production, `SECRET_KEY` must be explicitly configured.
 
+### Refreshable authentication sessions
+
+Login returns a short-lived access token and a 14-day refresh token. Refresh
+tokens are opaque random values stored only as SHA-256 hashes in the database.
+`POST /api/v1/auth/refresh` rotates a valid refresh token and issues a new
+access token; replaying a rotated token revokes its entire session family.
+`POST /api/v1/auth/logout` revokes the submitted token family server-side.
+Already-issued access tokens expire normally within the configured
+`ACCESS_TOKEN_EXPIRE_MINUTES`. The browser retries protected API requests once
+after a 401 by refreshing the session.
+
+Set `REFRESH_TOKEN_EXPIRE_DAYS` to adjust the refresh-session lifetime. Apply
+the schema migration with `python -m alembic upgrade head`.
+
 Run the database migration; it creates the learning-resource table and seeds
 career categories, roles, role-skill requirements, skills, and curated learning
 links. Then create the administrator. The command prompts for the email and

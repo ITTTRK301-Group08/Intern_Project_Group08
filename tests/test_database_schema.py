@@ -17,6 +17,7 @@ EXPECTED_TABLES = {
     "analyses",
     "analysis_skill_gaps",
     "learning_resources",
+    "refresh_tokens",
 }
 
 
@@ -58,3 +59,15 @@ def test_schema_has_normalized_mysql_tables():
         for foreign_key in Base.metadata.tables["learning_resources"].foreign_keys
     }
     assert resource_forekeys == {"skills.id"}
+
+    refresh_tokens = Base.metadata.tables["refresh_tokens"]
+    assert {
+        "user_id",
+        "token_hash",
+        "family_id",
+        "expires_at",
+        "revoked_at",
+    } <= set(refresh_tokens.columns.keys())
+    assert {
+        foreign_key.target_fullname for foreign_key in refresh_tokens.foreign_keys
+    } == {"users.id"}
