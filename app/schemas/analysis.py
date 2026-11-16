@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -39,3 +40,49 @@ class AnalysisGateError(BaseModel):
     message: str
 
 AnalysisGateResponse = ApiResponse[AnalysisGateData]
+
+
+class AnalysisHistoryItem(BaseModel):
+    id: int
+    status: Literal["pending", "processing", "completed", "failed"]
+    readiness_score: int | None
+    summary: str | None
+    career_role_name: str | None
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class AnalysisHistoryData(BaseModel):
+    items: list[AnalysisHistoryItem]
+    page: int
+    page_size: int
+    total: int
+    pages: int
+
+
+class AnalysisReport(BaseModel):
+    id: int
+    status: Literal["pending", "processing", "completed", "failed"]
+    readiness_score: int | None
+    summary: str | None
+    career_role_name: str | None
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class AnalysisSkillReport(BaseModel):
+    id: int
+    skill_id: int
+    skill_name: str
+    current_level: int = Field(ge=0, le=5)
+    required_level: int = Field(ge=0, le=5)
+    gap_score: int = Field(ge=0, le=5)
+    evidence: str | None
+    has_evidence: bool
+    recommendation: str | None
+
+
+AnalysisHistoryResponse = ApiResponse[AnalysisHistoryData]
+AnalysisReportResponse = ApiResponse[AnalysisReport]
+AnalysisSkillsResponse = ApiResponse[list[AnalysisSkillReport]]
+AnalysisStatusResponse = ApiResponse[dict[str, str]]
