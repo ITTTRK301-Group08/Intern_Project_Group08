@@ -3,7 +3,7 @@ import logging
 
 from fastapi import HTTPException, status
 from sqlalchemy import desc, func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.analysis import Analysis, AnalysisSkillGap
 from app.models.career import CareerRole
@@ -335,7 +335,9 @@ def get_interview_history(
         select(InterviewSession)
         .options(
             joinedload(InterviewSession.career_role),
-            joinedload(InterviewSession.questions),
+            selectinload(InterviewSession.questions).selectinload(
+                InterviewQuestion.answer
+            ),
         )
         .where(InterviewSession.user_id == user_id)
         .order_by(desc(InterviewSession.created_at))
@@ -346,13 +348,17 @@ def get_interview_history(
     items = []
     for s in sessions:
         role_name = s.career_role.name if s.career_role else "Chưa xác định"
+        questions = s.questions or []
         items.append({
             "id": s.id,
             "career_role_id": s.career_role_id,
             "career_role_name": role_name,
             "status": s.status,
             "created_at": s.created_at,
-            "question_count": len(s.questions) if s.questions else 0,
+            "question_count": len(questions),
+            "answered_count": sum(1 for q in questions if q.answer is not None),
+            "total_score": s.total_score,
+            "completed_at": s.completed_at,
         })
 
     return {

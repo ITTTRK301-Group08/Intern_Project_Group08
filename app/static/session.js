@@ -278,6 +278,7 @@
         '/profile': './profile.html',
         '/cv': './cv.html',
         '/analysis': './analysis.html',
+        '/interview': './interview.html',
         '/roadmap': './roadmap.html',
         '/dashboard': './dashboard.html',
         '/admin': './admin.html',

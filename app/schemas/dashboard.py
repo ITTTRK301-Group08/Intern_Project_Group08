@@ -80,6 +80,9 @@ class InterviewHistoryItem(BaseModel):
     status: str
     created_at: datetime
     question_count: int = 0
+    answered_count: int = 0
+    total_score: float | None = None
+    completed_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
