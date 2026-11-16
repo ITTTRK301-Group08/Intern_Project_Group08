@@ -84,8 +84,9 @@ Hai trang giao diện tương ứng UI-01 trong SRS:
   token hoặc token đã hết hạn (401).
 
 Access token dùng chung với các trang hiện có nên không cần dán token thủ công.
-FR-AUTH-06 (refresh token, thu hồi token phía máy chủ) vẫn ở mức Could và chưa
-triển khai; đăng xuất hiện chỉ xóa token trong trình duyệt.
+Khi access token hết hạn, trình duyệt tự làm mới phiên một lần qua
+`POST /api/v1/auth/refresh`. Đăng xuất gọi `POST /api/v1/auth/logout` để thu
+hồi refresh token phía máy chủ, đồng thời xóa token khỏi trình duyệt.
 
 ## Cấu hình dịch vụ AI (Gemini)
 
