@@ -14,25 +14,26 @@
 .kpi-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 22px 24px;
+  border-radius: 18px;
+  padding: 24px 26px;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md), 0 0 20px rgba(99, 102, 241, 0.08);
+  border-color: #cbd5e1;
 }
 
 .kpi-card-highlight {
   background: linear-gradient(135deg, var(--card) 60%, var(--primary-soft) 100%);
-  border-color: var(--border-strong);
+  border-color: #c7d2fe;
 }
 
 .kpi-card-highlight::before {
@@ -42,7 +43,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--primary), var(--accent));
+  background: var(--accent-gradient);
 }
 
 .kpi-header {
@@ -328,8 +329,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 14px;
-  margin-top: 10px;
+  padding-top: 16px;
+  margin-top: 14px;
   border-top: 1px dashed var(--border);
 }
 
@@ -337,18 +338,20 @@
   background: var(--surface-soft);
   border: 1px solid var(--border);
   color: var(--text-soft);
-  padding: 6px 14px;
-  border-radius: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dash-page-btn:hover:not(:disabled) {
   background: var(--primary-soft);
   color: var(--primary-deep);
-  border-color: var(--primary);
+  border-color: #c7d2fe;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
 }
 
 .dash-page-btn:disabled {
@@ -359,5 +362,5 @@
 .dash-page-info {
   font-size: 13px;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 700;
 }

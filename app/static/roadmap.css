@@ -3,12 +3,13 @@
 .roadmap-header-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 32px;
   box-shadow: var(--shadow-sm);
   margin-bottom: 28px;
   position: relative;
   overflow: hidden;
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .roadmap-header-card::before {
@@ -18,7 +19,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--primary), var(--accent));
+  background: var(--accent-gradient);
 }
 
 .roadmap-badge-row {
@@ -139,9 +140,19 @@
 
 .roadmap-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--primary-deep));
+  background: var(--accent-gradient);
   border-radius: 999px;
   transition: width 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.roadmap-progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmerGradient 2s infinite;
 }
 
 /* Actions bar */
@@ -169,19 +180,21 @@
   font-weight: 600;
   color: var(--text-soft);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .week-tab-btn:hover {
   background: var(--primary-soft);
   color: var(--primary-deep);
-  border-color: var(--primary);
+  border-color: #c7d2fe;
+  transform: translateY(-1px);
 }
 
 .week-tab-btn.active {
-  background: var(--primary-deep);
+  background: var(--accent-gradient);
   color: #ffffff;
-  border-color: var(--primary-deep);
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28);
 }
 
 /* Weekly Sections */
