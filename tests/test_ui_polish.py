@@ -38,10 +38,9 @@ def test_profile_cv_analysis_expose_user_friendly_controls(client):
     assert "xóa mềm" not in cv_html.lower()
 
     analysis_html = client.get("/analysis").text
-    assert 'id="cv_id" name="cv_id" type="hidden"' in analysis_html
-    assert 'id="career_role_id" name="career_role_id" type="hidden"' in analysis_html
     assert 'id="cvSelect"' in analysis_html
     assert 'id="roleSelect"' in analysis_html
     assert 'id="sourceCvBtn"' in analysis_html
     assert 'id="sourceProfileBtn"' in analysis_html
+    assert 'id="consentModal"' in analysis_html
     assert "pipeline" not in analysis_html.lower()

@@ -14,20 +14,6 @@
   var pendingDeleteCv = null;
   var droppedFile = null;
 
-  var DEMO_CVS = [
-    {
-      id: 1,
-      file_name: 'CV_NguyenVanAn_DataAnalyst.pdf',
-      file_size: 1258291,
-      created_at: new Date().toISOString(),
-      has_text: true,
-      has_analysis: true,
-      analysis_count: 1,
-      is_active: true,
-      extracted_text: 'HỌ VÀ TÊN: NGUYỄN VĂN AN\nEmail: an.nguyen@example.com | Điện thoại: 0912 345 678\nMục tiêu nghề nghiệp: Ứng tuyển vị trí Data Analyst (Intern)\nHọc vấn: Đại học Bách Khoa — Chuyên ngành Kỹ thuật phần mềm (GPA: 3.4/4.0)\nKỹ năng chính: Python (Pandas, NumPy), SQL (MySQL, PostgreSQL), Power BI, Git, Excel nâng cao.\nDự án nổi bật: Xây dựng dashboard phân tích xu hướng mua hàng của người tiêu dùng thương mại điện tử; tối ưu hóa truy vấn SQL giảm 40% thời gian xử lý dữ liệu.'
-    }
-  ];
-
   function setStatus(message, type) {
     statusEl.textContent = message || '';
     statusEl.className = 'status' + (type ? ' ' + type : '');
@@ -46,12 +32,6 @@
   function requireToken() {
     var token = app ? app.getToken() : (localStorage.getItem('acm_access_token') || '');
     if (!token) {
-      var isDirect = window.location.protocol === 'file:' || window.location.pathname.indexOf('.html') >= 0 || !window.location.host;
-      if (isDirect) {
-        token = 'demo_student_token';
-        try { localStorage.setItem('acm_access_token', token); } catch (_) {}
-        return token;
-      }
       if (app) app.redirectToLogin();
       else window.location.replace('/login');
       return null;
@@ -301,10 +281,7 @@
   async function loadCvList() {
     var token = requireToken();
     var includeInactive = Boolean($('showInactiveCvs') && $('showInactiveCvs').checked);
-    if (!token) {
-      renderCvRows(DEMO_CVS, includeInactive);
-      return;
-    }
+    if (!token) return;
 
     setLoading(true);
     try {
@@ -317,14 +294,15 @@
       }
       var body = await res.json().catch(function () { return {}; });
       if (!res.ok) {
-        renderCvRows(DEMO_CVS, includeInactive);
+        var errMsg = app ? app.extractApiError(body, 'Không thể tải danh sách CV.') : 'Không thể tải danh sách CV.';
+        setStatus(errMsg, 'error');
         return;
       }
 
       var cvs = (body.data && body.data.cvs) || [];
-      renderCvRows(cvs.length ? cvs : DEMO_CVS, includeInactive);
-    } catch (_err) {
-      renderCvRows(DEMO_CVS, includeInactive);
+      renderCvRows(cvs, includeInactive);
+    } catch (error) {
+      setStatus(error.message || 'Không thể kết nối máy chủ để tải danh sách CV.', 'error');
     } finally {
       setLoading(false);
     }
@@ -357,10 +335,8 @@
         setStatus('CV này chưa trích xuất được nội dung chữ. Vui lòng xem gợi ý xử lý bên dưới.', 'warning');
       }
       $('resultCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } catch (_err) {
-      var demo = DEMO_CVS.find(function (c) { return String(c.id) === String(cvId); }) || DEMO_CVS[0];
-      renderCvResult(demo, null, 'Chi tiết: ' + demo.file_name);
-      setStatus('Đang ở chế độ xem trước (Offline). Đã hiển thị CV mẫu.', 'ok');
+    } catch (error) {
+      setStatus(error.message || 'Không thể kết nối máy chủ để tải chi tiết CV.', 'error');
     } finally {
       setLoading(false);
     }
@@ -514,10 +490,8 @@
       $('cvForm').reset();
       showSelectedFileInfo(null);
       await loadCvList();
-    } catch (_err) {
-      var demo = DEMO_CVS[0];
-      renderCvResult(demo, null, 'Chi tiết: ' + demo.file_name);
-      setStatus('Đang ở chế độ xem trước (Offline). Đã hiển thị CV mẫu.', 'ok');
+    } catch (error) {
+      setStatus(error.message || 'Không thể kết nối máy chủ để tải CV lên.', 'error');
     } finally {
       setUploading(false);
       setLoading(false);
