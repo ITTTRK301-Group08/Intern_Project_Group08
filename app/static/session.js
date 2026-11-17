@@ -278,5 +278,29 @@
           });
       }
     }
+
+    if (isDirectMode) {
+      var ROUTE_TO_FILE = {
+        '/': './explore.html',
+        '/explore': './explore.html',
+        '/profile': './profile.html',
+        '/cv': './cv.html',
+        '/analysis': './analysis.html',
+        '/roadmap': './roadmap.html',
+        '/dashboard': './dashboard.html',
+        '/admin': './admin.html',
+        '/login': './login.html',
+        '/register': './register.html'
+      };
+      var links = document.querySelectorAll('a[href]');
+      Array.prototype.forEach.call(links, function (a) {
+        var href = a.getAttribute('href');
+        if (ROUTE_TO_FILE[href]) {
+          a.setAttribute('href', ROUTE_TO_FILE[href]);
+        } else if (href && href.indexOf('/login?next=') === 0) {
+          a.setAttribute('href', './login.html');
+        }
+      });
+    }
   });
 })();

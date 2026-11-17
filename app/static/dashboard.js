@@ -68,13 +68,13 @@
       page_size: 3,
       total_pages: 3,
       items: [
-        { id: 1, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 1 * 86400000).toISOString() },
-        { id: 2, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 3 * 86400000).toISOString() },
-        { id: 3, career_role_name: 'Data Analyst', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 5 * 86400000).toISOString() },
-        { id: 4, career_role_name: 'Frontend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 7 * 86400000).toISOString() },
-        { id: 5, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 10 * 86400000).toISOString() },
-        { id: 6, career_role_name: 'DevOps Engineer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 12 * 86400000).toISOString() },
-        { id: 7, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, created_at: new Date(Date.now() - 15 * 86400000).toISOString() }
+        { id: 1, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, answered_count: 3, total_score: 82.5, created_at: new Date(Date.now() - 1 * 86400000).toISOString(), completed_at: new Date(Date.now() - 1 * 86400000).toISOString() },
+        { id: 2, career_role_name: 'Backend Developer', status: 'in_progress', question_count: 3, answered_count: 1, total_score: null, created_at: new Date(Date.now() - 3 * 86400000).toISOString(), completed_at: null },
+        { id: 3, career_role_name: 'Data Analyst', status: 'completed', question_count: 3, answered_count: 3, total_score: 71.25, created_at: new Date(Date.now() - 5 * 86400000).toISOString(), completed_at: new Date(Date.now() - 5 * 86400000).toISOString() },
+        { id: 4, career_role_name: 'Frontend Developer', status: 'abandoned', question_count: 3, answered_count: 2, total_score: null, created_at: new Date(Date.now() - 7 * 86400000).toISOString(), completed_at: null },
+        { id: 5, career_role_name: 'Backend Developer', status: 'completed', question_count: 3, answered_count: 3, total_score: 90, created_at: new Date(Date.now() - 10 * 86400000).toISOString(), completed_at: new Date(Date.now() - 10 * 86400000).toISOString() },
+        { id: 6, career_role_name: 'DevOps Engineer', status: 'ready', question_count: 3, answered_count: 0, total_score: null, created_at: new Date(Date.now() - 12 * 86400000).toISOString(), completed_at: null },
+        { id: 7, career_role_name: 'Backend Developer', status: 'failed', question_count: 3, answered_count: 0, total_score: null, created_at: new Date(Date.now() - 15 * 86400000).toISOString(), completed_at: null }
       ]
     },
     readinessHistory: {
@@ -794,6 +794,27 @@
   var currentInterviewPage = 1;
   var INTERVIEW_PAGE_SIZE = 3;
 
+  var INTERVIEW_STATUS_META = {
+    ready: { label: 'Sẵn sàng', cls: 'plan-status-pending' },
+    in_progress: { label: 'Đang thực hiện', cls: 'plan-status-inprogress' },
+    completed: { label: 'Hoàn thành', cls: 'plan-status-completed' },
+    abandoned: { label: 'Đã bỏ dở', cls: 'plan-status-abandoned' },
+    failed: { label: 'Thất bại', cls: 'plan-status-failed' }
+  };
+
+  function interviewStatusMeta(status) {
+    return INTERVIEW_STATUS_META[status] || {
+      label: status || 'Không xác định',
+      cls: 'plan-status-pending'
+    };
+  }
+
+  function formatInterviewScore(value) {
+    var number = Number(value);
+    if (!Number.isFinite(number)) return '—';
+    return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
   function renderInterviewHistory(interviewData) {
     var container = $('interviewSessionsContainer');
     var paginationBar = $('interviewPagination');
@@ -802,7 +823,7 @@
     var nextBtn = $('nextInterviewPageBtn');
 
     if (!container) return;
-    container.innerHTML = '';
+    container.replaceChildren();
 
     var total = interviewData.total || (interviewData.items ? interviewData.items.length : 0);
     var page = interviewData.page || currentInterviewPage;
@@ -819,7 +840,10 @@
     }
 
     if (items.length === 0) {
-      container.innerHTML = '<p style="color: var(--muted); font-size: 14px; text-align: center; padding: 16px 0;">Chưa có phiên phỏng vấn thử nào.</p>';
+      var empty = document.createElement('p');
+      empty.className = 'interview-empty';
+      empty.textContent = 'Chưa có phiên phỏng vấn thử nào.';
+      container.replaceChildren(empty);
       if (paginationBar) paginationBar.style.display = 'none';
       return;
     }
@@ -835,19 +859,40 @@
       roleTitle.className = 'interview-item-role';
       roleTitle.textContent = session.career_role_name || 'Phỏng vấn kỹ thuật';
 
+      var totalQuestions = session.question_count || 3;
+      var answeredCount = typeof session.answered_count === 'number'
+        ? session.answered_count
+        : null;
+
       var dateSpan = document.createElement('span');
       dateSpan.className = 'interview-item-date';
       dateSpan.textContent = (session.created_at ? new Date(session.created_at).toLocaleDateString('vi-VN') : 'Gần đây') +
-                             ' • ' + (session.question_count || 3) + ' câu hỏi';
+                             ' • ' + (answeredCount === null
+                               ? totalQuestions + ' câu hỏi'
+                               : answeredCount + '/' + totalQuestions + ' câu đã trả lời');
 
       left.append(roleTitle, dateSpan);
 
-      var badge = document.createElement('span');
-      badge.className = 'plan-status-pill plan-status-completed';
-      badge.style.fontSize = '11px';
-      badge.textContent = 'Hoàn thành';
+      var right = document.createElement('div');
+      right.className = 'interview-item-right';
 
-      card.append(left, badge);
+      var meta = interviewStatusMeta(session.status);
+      var badge = document.createElement('span');
+      badge.className = 'plan-status-pill ' + meta.cls;
+      badge.style.fontSize = '11px';
+      badge.textContent = meta.label;
+
+      var scoreSpan = document.createElement('span');
+      scoreSpan.className = 'interview-item-score';
+      if (session.status === 'completed' && session.total_score !== null && session.total_score !== undefined) {
+        scoreSpan.textContent = 'Điểm: ' + formatInterviewScore(session.total_score) + '/100';
+      } else {
+        scoreSpan.textContent = 'Chưa có điểm tổng';
+      }
+
+      right.append(badge, scoreSpan);
+
+      card.append(left, right);
       container.appendChild(card);
     });
 

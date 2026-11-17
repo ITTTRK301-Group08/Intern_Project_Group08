@@ -4,6 +4,7 @@ import asyncio
 
 import pytest
 from google.genai import errors
+from pydantic import BaseModel
 
 from app.services.ai import gemini_provider as gemini_provider_module
 from app.services.ai.exceptions import (
@@ -129,8 +130,8 @@ def test_provider_sends_schema_and_system_instruction(monkeypatch):
     monkeypatch.setattr(gemini_provider_module.genai, "Client", _FakeClient)
     provider = _provider()
 
-    class _Schema:
-        pass
+    class _Schema(BaseModel):
+        ok: bool
 
     asyncio.run(
         provider.generate(
@@ -142,7 +143,10 @@ def test_provider_sends_schema_and_system_instruction(monkeypatch):
 
     config = captured["models"].calls[0]["config"]
     assert config.response_mime_type == "application/json"
-    assert config.response_schema is _Schema
+    assert isinstance(config.response_schema, dict)
+    assert config.response_schema["type"] == "object"
+    assert "ok" in config.response_schema["properties"]
+    assert "additionalProperties" not in config.response_schema
     assert config.system_instruction == "Chỉ trả JSON"
 
 

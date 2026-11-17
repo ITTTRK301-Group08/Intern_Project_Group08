@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="vi" data-require-auth="true">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Phỏng vấn thử bằng AI: trả lời 3 câu hỏi, nhận điểm và nhận xét cải thiện cho từng câu." />
+  <meta name="theme-color" content="#f2f7f5" />
+  <title>La Bàn Nghề Nghiệp — Phỏng vấn thử</title>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<link rel="stylesheet" href="./profile.css">');
+      document.write('<link rel="stylesheet" href="./interview.css">');
+    }
+  </script>
+  <link rel="stylesheet" href="/static/profile.css" />
+  <link rel="stylesheet" href="/static/interview.css" />
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./session.js"><\/script>');
+    }
+  </script>
+  <script src="/static/session.js"></script>
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /><path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" /></svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Điều hướng">
+        <a href="/explore">Khám phá</a>
+        <a href="/profile">Hồ sơ</a>
+        <a href="/cv">CV của tôi</a>
+        <a href="/analysis">Phân tích kỹ năng</a>
+        <a href="/interview" aria-current="page">Phỏng vấn</a>
+        <a href="/roadmap">Lộ trình 30 ngày</a>
+        <a href="/dashboard">Dashboard</a>
+      </nav>
+    </header>
+
+    <section class="page-hero">
+      <div class="page-hero-copy">
+        <p class="page-eyebrow">Luyện phỏng vấn cùng AI</p>
+        <h1>Phỏng vấn thử</h1>
+        <p class="muted">Chọn vị trí nghề nghiệp, trả lời 3 câu hỏi và nhận điểm cùng nhận xét cải thiện cho từng câu.</p>
+      </div>
+      <div class="page-hero-actions">
+        <a class="btn-link secondary-link small" href="/dashboard">Xem lịch sử trên Dashboard</a>
+        <a class="btn-link secondary-link small" href="/explore">Xem danh mục vị trí</a>
+      </div>
+    </section>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="loading" class="loading hidden" role="status" aria-live="polite">Đang xử lý yêu cầu...</div>
+
+    <div class="interview-layout">
+      <div class="interview-main">
+        <form id="createSessionForm" class="card" novalidate>
+          <div class="card-head">
+            <div>
+              <h2>Tạo phiên phỏng vấn mới</h2>
+              <p class="field-hint">Hệ thống sẽ sinh 3 câu hỏi phù hợp với vị trí bạn chọn.</p>
+            </div>
+          </div>
+
+          <label for="roleSelect">Vị trí nghề nghiệp muốn phỏng vấn *
+            <select id="roleSelect" name="career_role_id" required>
+              <option value="">-- Chọn vị trí nghề nghiệp --</option>
+            </select>
+          </label>
+          <p id="roleHint" class="field-hint" style="margin-top:8px">Đang tải danh sách vị trí nghề nghiệp...</p>
+
+          <label class="checkbox-inline consent-check" for="consentCheckbox">
+            <input id="consentCheckbox" name="ai_consent" type="checkbox" required />
+            <span>Tôi đồng ý cho hệ thống sử dụng nội dung câu trả lời để AI chấm điểm và đưa ra nhận xét.</span>
+          </label>
+
+          <div class="actions">
+            <button type="submit" id="createSessionBtn">Bắt đầu phỏng vấn</button>
+            <span class="field-hint">AI chỉ dùng nội dung câu trả lời của bạn cho mục đích chấm điểm.</span>
+          </div>
+        </form>
+
+        <section id="sessionCard" class="card hidden" aria-live="polite">
+          <div class="card-head">
+            <div class="session-title-block">
+              <h2 id="sessionRoleName">Phiên phỏng vấn</h2>
+              <p id="sessionMeta" class="muted small">Đang tải thông tin phiên...</p>
+            </div>
+            <span id="sessionStatusBadge" class="badge badge-info">Sẵn sàng</span>
+          </div>
+
+          <div class="progress-row">
+            <span id="sessionProgressText" class="field-hint">0/3 câu đã trả lời</span>
+            <div class="progress-track" role="progressbar" aria-label="Tiến độ trả lời" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="sessionProgressFill" class="progress-fill"></div>
+            </div>
+          </div>
+
+          <div id="questionsContainer" class="question-list"></div>
+
+          <div class="actions">
+            <button type="button" id="completeBtn" disabled>Hoàn thành phiên</button>
+            <span id="completeHint" class="field-hint">Bạn cần trả lời đủ tất cả câu hỏi trước khi hoàn thành.</span>
+          </div>
+
+          <div id="completionBox" class="completion-box hidden" aria-live="polite">
+            <p class="completion-label">Điểm trung bình của phiên</p>
+            <p id="completionScore" class="completion-score">0.0/100</p>
+            <p id="completionMeta" class="field-hint"></p>
+          </div>
+        </section>
+      </div>
+
+      <aside class="interview-side">
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2>Lịch sử phỏng vấn</h2>
+              <p class="field-hint">Các phiên gần đây của bạn.</p>
+            </div>
+          </div>
+          <div id="historyContainer" class="history-list">
+            <p class="muted small">Đang tải lịch sử...</p>
+          </div>
+          <div class="actions">
+            <a class="btn-link secondary-link small" href="/dashboard">Mở Dashboard</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <footer class="site-footer">
+      <span>la bàn. — Định hướng kỹ năng nghề nghiệp dành cho sinh viên</span>
+      <div class="footer-links">
+        <a href="/explore">Khám phá</a>
+        <a href="/analysis">Phân tích kỹ năng</a>
+        <a href="/dashboard">Dashboard</a>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./interview.js"><\/script>');
+    }
+  </script>
+  <script src="/static/interview.js"></script>
+</body>
+</html>

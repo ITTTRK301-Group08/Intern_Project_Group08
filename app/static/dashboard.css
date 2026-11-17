@@ -413,6 +413,68 @@
   color: var(--muted);
 }
 
+.interview-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.interview-item-score {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-deep);
+}
+
+.interview-empty {
+  margin: 0;
+  padding: 16px 0;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Trạng thái phiên phỏng vấn — dùng chung tên lớp với roadmap. */
+.plan-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--surface-soft);
+  color: var(--text-soft);
+}
+
+.plan-status-completed {
+  border-color: #b7e2c6;
+  background: #e8f7ee;
+  color: #1f6b41;
+}
+
+.plan-status-inprogress {
+  border-color: #f2d9a8;
+  background: #fdf4e3;
+  color: #8a5a00;
+}
+
+.plan-status-pending {
+  border-color: #cfe0f5;
+  background: #eef5ff;
+  color: #2b5b95;
+}
+
+.plan-status-abandoned,
+.plan-status-failed {
+  border-color: #f3c9cb;
+  background: #fdeef0;
+  color: #9b2c33;
+}
+
 /* ── Pagination bar for Interview History (Sprint 3) ──────────── */
 .dash-pagination-bar {
   display: flex;
@@ -452,4 +514,20 @@
   font-size: 13px;
   color: var(--muted);
   font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .interview-item-card {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .interview-item-right {
+    align-items: flex-end;
+  }
+
+  .plan-status-pill {
+    white-space: normal;
+    text-align: right;
+  }
 }
