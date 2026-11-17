@@ -14,7 +14,6 @@
 
   var isDirectMode = window.location.protocol === 'file:' ||
                      window.location.pathname.indexOf('/app/static/') !== -1 ||
-                     window.location.pathname.endsWith('.html') ||
                      !window.location.host;
 
   function readToken() {
@@ -73,8 +72,6 @@
     'Career role not found': 'Không tìm thấy vị trí nghề nghiệp đã chọn.',
     'Khong tim thay CV hoac CV khong kha dung.': 'CV đã chọn không tồn tại hoặc không còn khả dụng.',
     'Ban khong co quyen su dung CV nay.': 'Bạn không có quyền sử dụng CV này.',
-    'Da xac nhan consent hop le, nhung pipeline phan tich AI (M4) chua duoc trien khai trong Task 4.':
-      'Đã xác nhận đồng ý sử dụng dữ liệu. Tính năng phân tích tự động đang được hoàn thiện.',
     'Lay ho so thanh cong': 'Đã tải hồ sơ cá nhân.',
     'Cap nhat ho so thanh cong': 'Đã lưu cập nhật hồ sơ thành công.',
     'Upload CV thanh cong': 'Đã tải CV lên thành công.',

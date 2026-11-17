@@ -10,7 +10,6 @@
 
   var isDirectMode = window.location.protocol === 'file:' ||
                      window.location.pathname.indexOf('/app/static/') !== -1 ||
-                     window.location.pathname.endsWith('.html') ||
                      !window.location.host;
 
   var catalogData = {
@@ -321,6 +320,12 @@
     list.forEach(function (res) {
       var skill = catalogData.skills.find(function (s) { return s.id === res.skill_id; });
       var skillName = skill ? skill.name : 'Chung';
+      var approvalStatus = res.approval_status || 'pending';
+      var approvalLabel = {
+        pending: 'Chờ duyệt',
+        approved: 'Đã duyệt',
+        rejected: 'Từ chối'
+      }[approvalStatus] || 'Chờ duyệt';
 
       var tr = document.createElement('tr');
       tr.innerHTML = '<td>#' + res.id + '</td>' +
@@ -328,6 +333,9 @@
         '<td>' + res.provider + '</td>' +
         '<td><span class="skill-tag">' + skillName + '</span></td>' +
         '<td>' + (res.resource_type || 'Tài liệu') + '</td>' +
+        '<td><span class="badge ' + (approvalStatus === 'approved' ? 'badge-ok' : approvalStatus === 'rejected' ? 'badge-muted' : 'badge-warn') + '">' + approvalLabel + '</span> ' +
+          '<button type="button" class="admin-action-btn" data-review-res="' + res.id + '" data-review-status="' + (approvalStatus === 'approved' ? 'rejected' : 'approved') + '">' +
+          (approvalStatus === 'approved' ? 'Từ chối' : 'Phê duyệt') + '</button></td>' +
         '<td>' + (res.is_free !== false ? '<span style="color:var(--ok);font-weight:600;">Miễn phí</span>' : 'Có phí') + '</td>' +
         '<td style="text-align: right;">' +
           '<button type="button" class="admin-action-btn admin-btn-edit" data-edit-res="' + res.id + '">Sửa</button>' +
@@ -348,6 +356,60 @@
         deleteResource(id);
       };
     });
+    Array.prototype.forEach.call(tbody.querySelectorAll('[data-review-res]'), function (btn) {
+      btn.onclick = function () {
+        reviewResource(
+          Number(btn.getAttribute('data-review-res')),
+          btn.getAttribute('data-review-status')
+        );
+      };
+    });
+  }
+
+  function getAdminHeaders() {
+    var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
+    if (!token) throw new Error('Vui lòng đăng nhập tài khoản Admin để quản lý tài nguyên.');
+    return {
+      Authorization: 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    };
+  }
+
+  function refreshAdminCatalog(message) {
+    loadInitialData().then(function (loaded) {
+      if (message && loaded) showFeedback(message, false);
+    }).catch(function (error) {
+      showFeedback(error.message, true);
+    });
+  }
+
+  function reviewResource(resourceId, approvalStatus) {
+    if (isDirectMode) {
+      showFeedback('Hãy mở trang qua FastAPI và đăng nhập Admin để kiểm duyệt.', true);
+      return;
+    }
+    var headers;
+    try {
+      headers = getAdminHeaders();
+    } catch (error) {
+      showFeedback(error.message, true);
+      return;
+    }
+    fetch('/api/v1/admin/resources/' + resourceId + '/approval', {
+      method: 'PATCH',
+      headers: headers,
+      body: JSON.stringify({ approval_status: approvalStatus })
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error('Không thể cập nhật trạng thái kiểm duyệt.');
+        return response.json();
+      })
+      .then(function () {
+        refreshAdminCatalog(approvalStatus === 'approved' ? 'Đã phê duyệt tài nguyên.' : 'Đã từ chối tài nguyên.');
+      })
+      .catch(function (error) {
+        showFeedback(error.message, true);
+      });
   }
 
   function openResourceModal(resId) {
@@ -365,20 +427,24 @@
       if (!res) return;
       $('resourceModalTitle').textContent = 'Chỉnh sửa tài nguyên #' + res.id;
       $('resourceFormId').value = res.id;
+      $('resourceFormSlug').value = res.slug;
       $('resourceFormTitle').value = res.title;
       $('resourceFormProvider').value = res.provider;
       $('resourceFormUrl').value = res.url;
       $('resourceFormSkill').value = res.skill_id || '';
       $('resourceFormType').value = res.resource_type || 'documentation';
+      $('resourceFormDescription').value = res.description || '';
       $('resourceFormFree').value = (res.is_free !== false) ? 'true' : 'false';
     } else {
       $('resourceModalTitle').textContent = 'Thêm tài nguyên học tập mới';
       $('resourceFormId').value = '';
+      $('resourceFormSlug').value = '';
       $('resourceFormTitle').value = '';
       $('resourceFormProvider').value = '';
       $('resourceFormUrl').value = '';
       $('resourceFormSkill').value = '';
       $('resourceFormType').value = 'documentation';
+      $('resourceFormDescription').value = '';
       $('resourceFormFree').value = 'true';
     }
     $('resourceModal').style.display = 'flex';
@@ -386,10 +452,23 @@
 
   function deleteResource(resId) {
     if (!confirm('Bạn có chắc chắn muốn xóa tài nguyên #' + resId + ' không?')) return;
-    catalogData.resources = catalogData.resources.filter(function (r) { return r.id !== resId; });
-    renderResourcesTable($('searchResourcesInput').value);
-    updateStats();
-    showFeedback('Đã xóa tài nguyên học tập thành công.', false);
+    if (isDirectMode) {
+      showFeedback('Hãy mở trang qua FastAPI và đăng nhập Admin để xóa tài nguyên.', true);
+      return;
+    }
+    var headers;
+    try {
+      headers = getAdminHeaders();
+    } catch (error) {
+      showFeedback(error.message, true);
+      return;
+    }
+    fetch('/api/v1/admin/resources/' + resId, { method: 'DELETE', headers: headers })
+      .then(function (response) {
+        if (!response.ok) throw new Error('Không thể xóa tài nguyên.');
+        refreshAdminCatalog('Đã xóa tài nguyên học tập.');
+      })
+      .catch(function (error) { showFeedback(error.message, true); });
   }
 
   /* ── Tab Controller ──────────────────────────────────────── */
@@ -524,55 +603,76 @@
     $('resourceForm').addEventListener('submit', function (e) {
       e.preventDefault();
       var id = $('resourceFormId').value;
+      var slug = $('resourceFormSlug').value.trim();
       var title = $('resourceFormTitle').value.trim();
       var provider = $('resourceFormProvider').value.trim();
       var url = $('resourceFormUrl').value.trim();
       var skillId = $('resourceFormSkill').value ? Number($('resourceFormSkill').value) : null;
       var rType = $('resourceFormType').value;
+      var description = $('resourceFormDescription').value.trim();
       var isFree = $('resourceFormFree').value === 'true';
 
-      if (id) {
-        var existing = catalogData.resources.find(function (r) { return r.id === Number(id); });
-        if (existing) {
-          existing.title = title;
-          existing.provider = provider;
-          existing.url = url;
-          existing.skill_id = skillId;
-          existing.resource_type = rType;
-          existing.is_free = isFree;
-        }
-        showFeedback('Cập nhật tài nguyên học tập thành công.', false);
-      } else {
-        var newId = Math.max.apply(null, catalogData.resources.map(function (r) { return r.id; }).concat([0])) + 1;
-        catalogData.resources.push({
-          id: newId,
+      if (isDirectMode) {
+        showFeedback('Hãy mở trang qua FastAPI và đăng nhập Admin để lưu tài nguyên.', true);
+        return;
+      }
+      var headers;
+      try {
+        headers = getAdminHeaders();
+      } catch (error) {
+        showFeedback(error.message, true);
+        return;
+      }
+      var existingResource = id ? catalogData.resources.find(function (r) { return r.id === Number(id); }) : null;
+      if (id && !existingResource) {
+        showFeedback('Không tìm thấy tài nguyên cần cập nhật.', true);
+        return;
+      }
+      var payload = {
+          slug: slug,
           title: title,
           provider: provider,
           url: url,
           skill_id: skillId,
           resource_type: rType,
-          is_free: isFree
+          description: description || null,
+          is_free: isFree,
+          is_active: true
+        };
+      fetch(id ? '/api/v1/admin/resources/' + id : '/api/v1/admin/resources', {
+        method: id ? 'PUT' : 'POST',
+        headers: headers,
+        body: JSON.stringify(payload)
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            return response.json().then(function (body) {
+              throw new Error(body.message || 'Không thể lưu tài nguyên.');
+            });
+          }
+          return response.json();
+        })
+        .then(function () {
+          closeAllModals();
+          refreshAdminCatalog(id ? 'Tài nguyên đã cập nhật và chuyển về trạng thái chờ duyệt.' : 'Tài nguyên đã được tạo ở trạng thái chờ duyệt.');
+        })
+        .catch(function (error) {
+          showFeedback(error.message, true);
         });
-        showFeedback('Tạo tài nguyên học tập mới thành công.', false);
-      }
-      closeAllModals();
-      renderResourcesTable($('searchResourcesInput').value);
-      updateStats();
     });
   }
 
   function loadInitialData() {
     var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
-    if (isDirectMode || !token || token === 'demo_student_token') {
-      renderRolesTable('');
-      renderCategoriesTable('');
-      renderSkillsTable('');
+    if (isDirectMode || !token) {
+      catalogData.resources = [];
       renderResourcesTable('');
       updateStats();
-      return;
+      showFeedback('Đăng nhập Admin qua FastAPI để tải kho tài nguyên.', true);
+      return Promise.resolve(false);
     }
 
-    fetch('/api/v1/admin/catalog', {
+    return fetch('/api/v1/admin/catalog', {
       headers: { Authorization: 'Bearer ' + token }
     })
       .then(function (res) {
@@ -586,9 +686,12 @@
           if (body.data.skills) catalogData.skills = body.data.skills;
           if (body.data.resources) catalogData.resources = body.data.resources;
         }
+        return true;
       })
-      .catch(function () {
-        // Fallback demo data
+      .catch(function (error) {
+        catalogData.resources = [];
+        showFeedback(error.message || 'Không thể tải dữ liệu kho tài nguyên từ máy chủ.', true);
+        return false;
       })
       .finally(function () {
         renderRolesTable('');

@@ -99,8 +99,7 @@ class AnalysisSkillGap(Base):
         UniqueConstraint("analysis_id", "skill_id", name="uq_analysis_skill_gap"),
         CheckConstraint(
             "current_level >= 0 AND current_level <= 5 "
-            "AND target_level >= 0 AND target_level <= 5 "
-            "AND target_level >= current_level",
+            "AND target_level >= 0 AND target_level <= 5",
             name="ck_analysis_skill_gap_levels",
         ),
         CheckConstraint(

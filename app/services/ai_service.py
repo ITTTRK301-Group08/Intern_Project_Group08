@@ -1,9 +1,7 @@
-"""Điểm tích hợp AI dùng chung (giữ tên module cũ để tương thích ngược).
+"""Điểm tích hợp AI dùng chung, giữ tên module cũ để tương thích ngược.
 
-Các module Sprint 1 đang import `app.services.ai_service`; module này tái xuất
-toàn bộ thành phần của package `app.services.ai` và giữ nguyên điểm vào
-`request_skill_gap_analysis`. Pipeline nghiệp vụ thực tế sẽ được triển khai ở
-task sau và phải gọi `AIService` thay vì gọi SDK trực tiếp.
+Pipeline báo cáo hiện chạy trong `analysis_service` qua `AIService`; các module
+nghiệp vụ không gọi trực tiếp SDK. Hàm cũ vẫn được giữ cho import tương thích.
 """
 
 from app.services.ai import (
@@ -47,12 +45,7 @@ __all__ = [
 def request_skill_gap_analysis(
     *, user_id: int, cv_id: int | None, career_role_id: int | None
 ) -> None:
-    """Điểm vào cũ của luồng phân tích Skill Gap (chưa triển khai).
-
-    Task 1 chỉ xây dựng hạ tầng AI dùng chung. Logic nghiệp vụ Skill Gap sẽ
-    được triển khai ở task riêng và phải sử dụng `AIService` để bảo đảm dữ liệu
-    đầu ra luôn được xác thực.
-    """
+    """Entry point cũ không còn được dùng; cần phiên đăng nhập và session DB."""
     raise NotImplementedError(
-        "AI analysis pipeline is not implemented (Task 4 consent gate only)"
+        "Use the authenticated POST /api/v1/analyses endpoint instead."
     )

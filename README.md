@@ -46,11 +46,13 @@ to promote an existing student account.
 
 - `/` and `/explore`: browse career paths, required skills, and learning links.
 - `/api/v1/catalog/categories`, `/roles`, `/skills`, `/resources`: public,
-  read-only catalog APIs.
+  read-only catalog APIs. Student resource search and detail endpoints expose
+  only active resources approved by an administrator.
 - `/api/v1/admin/catalog`: Admin-only catalog overview.
 - `/api/v1/admin/career-categories`, `/career-roles`, `/skills`, `/resources`:
-  Admin-only create, update, and delete APIs. Interactive API documentation is
-  at `/docs`; authenticate with an Admin access token to use these endpoints.
+  Admin-only create, update, and delete APIs. New or edited resources return to
+  Pending until reviewed; Admins can approve or reject them. Interactive API
+  documentation is at `/docs`.
 
 Registering through the public auth API always creates a student account.
 Admin access is granted only through the bootstrap command or an existing
@@ -86,14 +88,41 @@ triển khai; đăng xuất hiện chỉ xóa token trong trình duyệt.
 
 All report queries are scoped to the authenticated user; an analysis owned by
 another account returns 404. Run `python -m alembic upgrade head` to apply the
-report fields migration. The analysis creation endpoint remains gated because
-the AI analysis pipeline has not yet been implemented; this page does not
-fabricate reports.
+report, curated-resource, and skill-level constraint migrations.
+
+`POST /api/v1/analyses` requires an active target role, an owned active CV or
+usable student profile, and an explicit consent object:
+
+```json
+{
+  "cv_id": 1,
+  "career_role_id": 1,
+  "ai_consent": {
+    "accepted": true,
+    "purpose_version": "v1"
+  }
+}
+```
+
+The endpoint returns `202 Accepted` and creates a separate report for every
+request. FastAPI `BackgroundTasks` evaluates only the selected role's required
+skills, validates AI-returned skill IDs and cited source text, then persists
+skill gaps and the readiness score together. Profile self-assessments are
+stored as such rather than presented as CV evidence. Gemini is called only
+after consent; the app does not call Gemini during startup or unit tests.
+
+`GET /api/v1/dashboard/readiness-history` returns completed report scores in
+chronological order, real score deltas, and per-skill levels when present.
+The dashboard chart and summary use these saved reports; an empty history is
+shown without estimated values. BackgroundTasks is an in-process MVP: a server
+restart can interrupt a pending analysis, so use a durable job queue if
+surviving process restarts becomes a requirement.
 
 ## Cấu hình dịch vụ AI (Gemini)
 
-Task 1 – Sprint 2 xây dựng lớp hạ tầng AI dùng chung, chưa triển khai nghiệp
-vụ Skill Gap Analysis, Learning Roadmap hay Mock Interview.
+Lớp AI dùng chung xác thực đầu ra theo schema. Phân tích báo cáo chỉ được chạy
+sau khi người dùng chấp thuận consent; lộ trình học chọn tài nguyên từ kho
+được kiểm duyệt thay vì để AI tự tạo tài nguyên.
 
 Thêm các biến sau vào `.env` (không commit `.env`):
 

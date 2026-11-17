@@ -147,10 +147,129 @@ def test_dashboard_summary_empty(client, db_session):
     res = client.get("/api/v1/dashboard/summary", headers=headers)
     assert res.status_code == 200
     data = res.json()["data"]
-    assert data["readiness_score"] == 0.0
+    assert data["readiness_score"] is None
     assert data["total_analyses"] == 0
     assert data["total_interviews"] == 0
     assert data["active_plan"] is None
+
+
+def test_readiness_history_stats_are_real_chronological_and_user_scoped(
+    client, db_session
+):
+    headers, user_id = register_user(client, "readiness_history@example.com")
+    other_headers, other_user_id = register_user(client, "other_readiness@example.com")
+    role = CareerRole(name="History Role", slug="history-role")
+    python_skill = Skill(name="Python")
+    db_session.add_all([role, python_skill])
+    db_session.flush()
+    first_report = Analysis(
+        user_id=user_id,
+        career_role_id=role.id,
+        consent_accepted=True,
+        consent_purpose_version="v1",
+        status="completed",
+        readiness_score=60,
+        completed_at=datetime(2025, 1, 1),
+    )
+    second_report = Analysis(
+        user_id=user_id,
+        career_role_id=role.id,
+        consent_accepted=True,
+        consent_purpose_version="v1",
+        status="completed",
+        readiness_score=80,
+        completed_at=datetime(2025, 1, 3),
+    )
+    db_session.add_all(
+        [
+            first_report,
+            second_report,
+            Analysis(
+                user_id=user_id,
+                career_role_id=role.id,
+                consent_accepted=True,
+                consent_purpose_version="v1",
+                status="processing",
+                readiness_score=None,
+            ),
+            Analysis(
+                user_id=other_user_id,
+                career_role_id=role.id,
+                consent_accepted=True,
+                consent_purpose_version="v1",
+                status="completed",
+                readiness_score=99,
+                completed_at=datetime(2025, 1, 4),
+            ),
+        ]
+    )
+    db_session.flush()
+    db_session.add_all(
+        [
+            AnalysisSkillGap(
+                analysis_id=first_report.id,
+                skill_id=python_skill.id,
+                current_level=2,
+                target_level=4,
+                evidence="Built one Python project",
+                has_evidence=True,
+            ),
+            AnalysisSkillGap(
+                analysis_id=second_report.id,
+                skill_id=python_skill.id,
+                current_level=4,
+                target_level=4,
+                evidence="Built several Python projects",
+                has_evidence=True,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    response = client.get(
+        "/api/v1/dashboard/readiness-history", headers=headers
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert [point["score"] for point in data["points"]] == [60, 80]
+    assert [point["career_role_name"] for point in data["points"]] == [
+        "History Role",
+        "History Role",
+    ]
+    assert [point["skills"][0]["current_level"] for point in data["points"]] == [2, 4]
+    assert data["stats"] == {
+        "report_count": 2,
+        "latest_score": 80,
+        "previous_score": 60,
+        "change_since_first": 20,
+        "latest_change": 20,
+        "highest_score": 80,
+        "lowest_score": 60,
+        "trend": "improving",
+    }
+
+    other_response = client.get(
+        "/api/v1/dashboard/readiness-history", headers=other_headers
+    )
+    assert other_response.json()["data"]["stats"]["report_count"] == 1
+
+
+def test_readiness_history_empty_has_no_fabricated_statistics(client):
+    headers, _ = register_user(client, "no_readiness@example.com")
+    response = client.get(
+        "/api/v1/dashboard/readiness-history", headers=headers
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["points"] == []
+    assert data["stats"]["report_count"] == 0
+    assert data["stats"]["latest_score"] is None
+    assert data["stats"]["trend"] is None
+
+
+def test_readiness_history_requires_authentication(client):
+    response = client.get("/api/v1/dashboard/readiness-history")
+    assert response.status_code == 401
 
 
 def test_dashboard_summary_with_data(client, db_session):

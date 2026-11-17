@@ -173,6 +173,95 @@
   margin: 4px 0 0 0;
 }
 
+.readiness-history-panel {
+  margin-bottom: 28px;
+}
+
+.readiness-history-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.readiness-chart-wrap {
+  min-width: 0;
+  min-height: 270px;
+  position: relative;
+}
+
+.readiness-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.readiness-stat {
+  padding: 14px;
+  background: var(--surface-soft);
+  border-left: 2px solid var(--primary);
+}
+
+.readiness-stat-label {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.readiness-stat-value {
+  display: block;
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.readiness-history-state {
+  padding: 24px 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.readiness-refresh-status {
+  margin: -8px 0 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.readiness-skill-history {
+  grid-column: 1 / -1;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.skill-history-heading h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.skill-history-heading p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.skill-history-chart-wrap {
+  min-height: 230px;
+  margin-top: 12px;
+}
+
+@media (max-width: 720px) {
+  .readiness-history-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .readiness-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Radar chart container */
 .radar-container {
   position: relative;

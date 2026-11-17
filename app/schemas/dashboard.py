@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Any
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -21,7 +21,7 @@ class ActivePlanBrief(BaseModel):
 
 
 class DashboardSummaryData(BaseModel):
-    readiness_score: float = Field(default=0.0, description="Điểm sẵn sàng nghề nghiệp (%)")
+    readiness_score: float | None = Field(default=None, description="Điểm sẵn sàng nghề nghiệp (%)")
     target_role_id: int | None = None
     target_role: str | None = None
     target_role_level: str | None = None
@@ -94,7 +94,39 @@ class InterviewHistoryData(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ReadinessSkillPoint(BaseModel):
+    skill_id: int
+    skill_name: str
+    current_level: int = Field(ge=0, le=5)
+    required_level: int = Field(ge=0, le=5)
+
+
+class ReadinessHistoryPoint(BaseModel):
+    analysis_id: int
+    score: int = Field(ge=0, le=100)
+    analyzed_at: datetime
+    career_role_name: str | None = None
+    skills: list[ReadinessSkillPoint] = Field(default_factory=list)
+
+
+class ReadinessHistoryStats(BaseModel):
+    report_count: int
+    latest_score: int | None = None
+    previous_score: int | None = None
+    change_since_first: int | None = None
+    latest_change: int | None = None
+    highest_score: int | None = None
+    lowest_score: int | None = None
+    trend: Literal["improving", "declining", "stable"] | None = None
+
+
+class ReadinessHistoryData(BaseModel):
+    points: list[ReadinessHistoryPoint] = Field(default_factory=list)
+    stats: ReadinessHistoryStats
+
+
 DashboardSummaryResponse = ApiResponse[DashboardSummaryData]
 SkillRadarResponse = ApiResponse[SkillRadarData]
 LearningProgressResponse = ApiResponse[LearningProgressData]
 InterviewHistoryResponse = ApiResponse[InterviewHistoryData]
+ReadinessHistoryResponse = ApiResponse[ReadinessHistoryData]

@@ -62,10 +62,10 @@
       <div class="kpi-card kpi-card-highlight">
         <div class="kpi-header">
           <span class="kpi-label">Điểm sẵn sàng nghề nghiệp</span>
-          <span id="readinessStatusBadge" class="readiness-pill readiness-mid">Cần nâng cao</span>
+          <span id="readinessStatusBadge" class="readiness-pill">Chưa có báo cáo</span>
         </div>
         <div class="kpi-value-row">
-          <span id="kpiReadinessVal" class="kpi-value-big">72.5</span>
+          <span id="kpiReadinessVal" class="kpi-value-big">--</span>
           <span class="kpi-unit">%</span>
         </div>
         <div class="kpi-subtext">Công thức chuẩn trọng số (SRS 6.3)</div>
@@ -78,9 +78,9 @@
           <div class="kpi-icon">🎯</div>
         </div>
         <div class="kpi-value-row">
-          <span id="kpiRoleName" class="kpi-value-big" style="font-size: 22px;">Backend Developer</span>
+          <span id="kpiRoleName" class="kpi-value-big" style="font-size: 22px;">Chưa chọn</span>
         </div>
-        <div id="kpiRoleLevel" class="kpi-subtext">Cấp độ: Junior • 5 kỹ năng yêu cầu</div>
+        <div id="kpiRoleLevel" class="kpi-subtext">Chưa có báo cáo phân tích</div>
       </div>
 
       <!-- 3. Độ phủ kỹ năng -->
@@ -90,9 +90,9 @@
           <div class="kpi-icon">📊</div>
         </div>
         <div class="kpi-value-row">
-          <span id="kpiMatchedRatio" class="kpi-value-big">3 / 5</span>
+          <span id="kpiMatchedRatio" class="kpi-value-big">0 / 0</span>
         </div>
-        <div id="kpiGapSubtext" class="kpi-subtext">2 kỹ năng cần bổ sung thêm</div>
+        <div id="kpiGapSubtext" class="kpi-subtext">Chưa có dữ liệu đánh giá</div>
       </div>
 
       <!-- 4. Lộ trình 30 ngày -->
@@ -102,10 +102,10 @@
           <a href="/roadmap" class="kpi-icon" title="Đến lộ trình" style="text-decoration: none;">🚀</a>
         </div>
         <div class="kpi-value-row">
-          <span id="kpiPlanProgress" class="kpi-value-big">37.5</span>
+          <span id="kpiPlanProgress" class="kpi-value-big">0</span>
           <span class="kpi-unit">%</span>
         </div>
-        <div id="kpiPlanDaysLeft" class="kpi-subtext">3 / 8 nhiệm vụ • Còn 22 ngày</div>
+        <div id="kpiPlanDaysLeft" class="kpi-subtext">Chưa có lộ trình đang thực hiện</div>
       </div>
 
       <!-- 5. Phỏng vấn thử -->
@@ -115,10 +115,37 @@
           <div class="kpi-icon">🎙️</div>
         </div>
         <div class="kpi-value-row">
-          <span id="kpiInterviewsCount" class="kpi-value-big">2</span>
+          <span id="kpiInterviewsCount" class="kpi-value-big">0</span>
           <span class="kpi-unit">phiên</span>
         </div>
         <div class="kpi-subtext">Đã hoàn thành đánh giá câu hỏi</div>
+      </div>
+    </section>
+
+    <section class="dash-panel readiness-history-panel" aria-labelledby="readinessHistoryHeading">
+      <div class="dash-panel-header">
+        <div>
+          <h2 id="readinessHistoryHeading" class="dash-panel-title">Tiến độ điểm sẵn sàng nghề nghiệp</h2>
+          <p class="dash-panel-desc">Mỗi điểm tương ứng với một báo cáo phân tích đã hoàn tất.</p>
+        </div>
+      </div>
+      <div id="readinessHistoryState" class="readiness-history-state" role="status" hidden></div>
+      <p id="readinessRefreshStatus" class="readiness-refresh-status" role="status" hidden></p>
+      <div id="readinessHistoryContent" class="readiness-history-grid" hidden>
+        <div class="readiness-chart-wrap">
+          <canvas id="readinessHistoryChart" aria-label="Biểu đồ đường lịch sử điểm readiness" role="img"></canvas>
+        </div>
+        <div id="readinessHistoryStats" class="readiness-stats-grid"></div>
+        <div id="skillHistoryPanel" class="readiness-skill-history">
+          <div class="skill-history-heading">
+            <h3>Tiến bộ theo kỹ năng</h3>
+            <p>Mức hiện tại trong các báo cáo có đánh giá kỹ năng tương ứng.</p>
+          </div>
+          <div id="skillHistoryState" class="readiness-history-state" role="status" hidden></div>
+          <div class="readiness-chart-wrap skill-history-chart-wrap">
+            <canvas id="readinessSkillHistoryChart" aria-label="Biểu đồ đường mức kỹ năng qua các lần phân tích" role="img"></canvas>
+          </div>
+        </div>
       </div>
     </section>
 

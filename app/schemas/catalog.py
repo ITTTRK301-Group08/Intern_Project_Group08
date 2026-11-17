@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-ResourceType = Literal["documentation", "course", "video", "article", "practice"]
+ResourceType = Literal["documentation", "course", "video", "article", "practice", "project"]
 Slug = Annotated[str, Field(min_length=2, max_length=180, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")]
 
 
@@ -139,9 +139,23 @@ class LearningResourceWrite(BaseModel):
         return value
 
 
+class ResourceRelatedRoleRead(BaseModel):
+    id: int
+    name: str
+    level: str
+
+
+class LearningResourceReviewRequest(BaseModel):
+    approval_status: Literal["approved", "rejected"]
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class LearningResourceRead(LearningResourceWrite):
     id: int
     skill: SkillRead | None
+    approval_status: Literal["pending", "approved", "rejected"]
+    related_roles: list[ResourceRelatedRoleRead] = Field(default_factory=list)
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

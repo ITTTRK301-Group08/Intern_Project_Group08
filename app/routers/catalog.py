@@ -7,15 +7,18 @@ from app.schemas.catalog import (
     CareerRoleSkillRead,
     CategoryRead,
     LearningResourceRead,
+    ResourceType,
     SkillRead,
 )
 from app.services.catalog_service import (
+    get_approved_resource,
     get_role_by_id,
     get_role_skills,
     list_categories,
     list_resources,
     list_roles,
     list_skills,
+    serialize_learning_resource,
 )
 
 router = APIRouter(prefix="/api/v1/catalog", tags=["catalog"])
@@ -77,12 +80,34 @@ def get_skills(
 def get_resources(
     db: DbSession,
     skill_id: int | None = Query(default=None, gt=0),
+    role_id: int | None = Query(default=None, gt=0),
     search: str | None = Query(default=None, max_length=100),
+    resource_type: ResourceType | None = None,
     limit: int = Query(default=100, ge=1, le=200),
 ):
     return ApiResponse(
-        data=list_resources(
-            db, skill_id=skill_id, search=search, limit=limit
-        ),
+        data=[
+            serialize_learning_resource(item)
+            for item in list_resources(
+                db,
+                skill_id=skill_id,
+                role_id=role_id,
+                search=search,
+                resource_type=resource_type,
+                limit=limit,
+            )
+        ],
         message="Learning resources retrieved",
+    )
+
+
+@router.get(
+    "/resources/{resource_id}",
+    response_model=ApiResponse[LearningResourceRead],
+)
+def get_resource(db: DbSession, resource_id: int = Path(gt=0)):
+    resource = get_approved_resource(db, resource_id)
+    return ApiResponse(
+        data=serialize_learning_resource(resource),
+        message="Learning resource retrieved",
     )

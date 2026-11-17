@@ -12,7 +12,6 @@
   var TOKEN_KEY = 'acm_access_token';
   var isDirectMode = window.location.protocol === 'file:' ||
                      window.location.pathname.indexOf('/app/static/') !== -1 ||
-                     window.location.pathname.endsWith('.html') ||
                      !window.location.host;
   var $ = function (id) { return document.getElementById(id); };
 

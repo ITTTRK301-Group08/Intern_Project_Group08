@@ -21,7 +21,6 @@
   var isDirectMode =
     window.location.protocol === 'file:' ||
     window.location.pathname.indexOf('/app/static/') !== -1 ||
-    window.location.pathname.endsWith('.html') ||
     !window.location.host;
 
   var DEFAULT_ROLES = [
@@ -323,13 +322,17 @@
       return;
     }
     fetch('/api/v1/catalog/roles')
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Không thể tải danh sách vị trí');
+        return r.json();
+      })
       .then(function (res) {
-        var roles = (res && res.data) || DEFAULT_ROLES;
+        var roles = (res && res.data) || [];
         populateRoleSelect(roles);
       })
       .catch(function () {
-        populateRoleSelect(DEFAULT_ROLES);
+        populateRoleSelect([]);
+        setStatus('Không thể tải danh sách vị trí mục tiêu. Vui lòng thử lại.', 'error');
       });
   }
 
@@ -342,13 +345,17 @@
     fetch('/api/v1/cvs', {
       headers: { Authorization: 'Bearer ' + token }
     })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Không thể tải danh sách CV');
+        return r.json();
+      })
       .then(function (res) {
-        var cvs = (res && res.data) || DEFAULT_CVS;
+        var cvs = (res && res.data) || [];
         populateCvSelect(cvs);
       })
       .catch(function () {
-        populateCvSelect(DEFAULT_CVS);
+        populateCvSelect([]);
+        setStatus('Không thể tải danh sách CV của bạn. Vui lòng thử lại.', 'error');
       });
   }
 
@@ -379,7 +386,13 @@
 
       var sub = document.createElement('div');
       sub.className = 'history-sub';
-      var statusBadge = analysis.status === 'completed' ? 'Hoàn tất' : (analysis.status === 'processing' ? 'Đang xử lý...' : 'Chờ xử lý');
+      var statusBadge = analysis.status === 'completed'
+        ? 'Hoàn tất'
+        : analysis.status === 'failed'
+          ? 'Thất bại'
+          : analysis.status === 'processing'
+            ? 'Đang xử lý...'
+            : 'Chờ xử lý';
       var scoreText = analysis.readiness_score != null ? ' · Điểm sẵn sàng: ' + analysis.readiness_score + '/100' : '';
       sub.textContent = 'Thời gian: ' + formatRelativeDate(analysis.created_at) + ' · ' + statusBadge + scoreText;
 
@@ -433,7 +446,10 @@
     fetch('/api/v1/analyses?page=' + historyPage + '&page_size=5', {
       headers: { Authorization: 'Bearer ' + token }
     })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Không thể tải lịch sử phân tích');
+        return r.json();
+      })
       .then(function (res) {
         if (res && res.data) {
           var items = res.data.items || [];
@@ -441,13 +457,14 @@
           renderHistoryList(items);
           updatePaginationControls(historyPage, historyTotalPages);
         } else {
-          renderHistoryList(DEFAULT_HISTORY);
+          renderHistoryList([]);
           updatePaginationControls(1, 1);
         }
       })
       .catch(function () {
-        renderHistoryList(DEFAULT_HISTORY);
+        renderHistoryList([]);
         updatePaginationControls(1, 1);
+        setStatus('Không thể tải lịch sử phân tích. Vui lòng thử lại.', 'error');
       });
   }
 
@@ -491,8 +508,14 @@
     if (progress) progress.textContent = 'Đang tải chi tiết báo cáo...';
 
     Promise.all([
-      fetch('/api/v1/analyses/' + analysisId, { headers: headers }).then(function (r) { return r.json(); }),
-      fetch('/api/v1/analyses/' + analysisId + '/skills', { headers: headers }).then(function (r) { return r.json(); })
+      fetch('/api/v1/analyses/' + analysisId, { headers: headers }).then(function (r) {
+        if (!r.ok) throw new Error('Không thể tải báo cáo');
+        return r.json();
+      }),
+      fetch('/api/v1/analyses/' + analysisId + '/skills', { headers: headers }).then(function (r) {
+        if (!r.ok) throw new Error('Không thể tải chi tiết kỹ năng');
+        return r.json();
+      })
     ])
       .then(function (results) {
         var reportData = results[0] && results[0].data;
@@ -520,12 +543,8 @@
         renderSkillsTable(skillsData || []);
       })
       .catch(function () {
-        if (progress) progress.textContent = 'Không thể kết nối đến máy chủ. Hiển thị báo cáo mẫu xem trước.';
-        if (content) content.classList.remove('hidden');
-        var mock = cachedAnalysis || DEFAULT_HISTORY[0];
-        if (scoreEl) scoreEl.textContent = String(mock.readiness_score || 80);
-        if (summaryEl) summaryEl.textContent = mock.summary || '';
-        renderSkillsTable(DEFAULT_SKILLS_GAP[1]);
+        if (progress) progress.textContent = 'Không thể tải báo cáo từ máy chủ. Vui lòng thử lại.';
+        if (content) content.classList.add('hidden');
       });
   }
 
@@ -681,8 +700,6 @@
 
     var payload = {
       career_role_id: parseInt(roleId, 10),
-      ai_consent: true,
-      consent_purpose_version: PURPOSE_VERSION
     };
 
     if (sourceMode === 'cv') {
@@ -701,6 +718,7 @@
   $('consentAccept').addEventListener('click', async function () {
     if (!pendingPayload) return;
     var payload = Object.assign({}, pendingPayload);
+    payload.ai_consent = { accepted: true, purpose_version: PURPOSE_VERSION };
     closeConsentModal();
     setLoading(true);
     setStatus('Đang gửi yêu cầu và đối chiếu thông tin năng lực...', 'info');
@@ -742,26 +760,6 @@
       });
       var data = await res.json().catch(function () { return {}; });
 
-      var code = (data && data.detail && data.detail.data && data.detail.data.code) || '';
-
-      if (res.status === 501 && code === 'ANALYSIS_PIPELINE_NOT_IMPLEMENTED') {
-        setStatus('Thông tin đầu vào và sự đồng ý của bạn đã được xác nhận hợp lệ.', 'ok');
-        renderResultCard({
-          title: 'Dữ liệu đã sẵn sàng cho phân tích AI',
-          subtitle: 'Quyền truy cập và xác nhận của bạn đã được kiểm tra thành công.',
-          badgeText: 'Sẵn sàng',
-          badgeClass: 'badge-ok',
-          items: [
-            { label: 'Nguồn dữ liệu', value: sourceSummary },
-            { label: 'Vị trí mục tiêu', value: roleSummary },
-            { label: 'Quyền riêng tư', value: 'Đã xác nhận đồng ý' }
-          ],
-          bodyText: 'Hệ thống đã tiếp nhận yêu cầu phân tích năng lực của bạn thành công.'
-        });
-        loadHistory(1);
-        return;
-      }
-
       if (!res.ok) {
         var msg = (app && typeof app.extractApiError === 'function')
           ? app.extractApiError(data, 'Không thể bắt đầu phân tích lúc này.')
@@ -784,21 +782,11 @@
         bodyText: 'Yêu cầu phân tích của bạn đã được ghi nhận thành công.'
       });
       loadHistory(1);
+      if (data && data.data && data.data.id) {
+        loadReport(data.data.id);
+      }
     } catch (_err) {
-      setStatus('Đã ghi nhận yêu cầu phân tích thành công (Chế độ xem trước).', 'ok');
-      renderResultCard({
-        title: 'Báo cáo sơ bộ mức độ sẵn sàng nghề nghiệp',
-        subtitle: 'Đối chiếu dữ liệu với tiêu chuẩn vị trí ' + roleSummary,
-        badgeText: 'Mức độ sẵn sàng: 82%',
-        badgeClass: 'badge-ok',
-        items: [
-          { label: 'Nguồn dữ liệu', value: sourceSummary },
-          { label: 'Vị trí mục tiêu', value: roleSummary },
-          { label: 'Kỹ năng đạt chuẩn', value: '4 / 5 kỹ năng chính' }
-        ],
-        bodyText: 'Bạn đã đáp ứng tốt các yêu cầu nền tảng của vị trí này.'
-      });
-      loadHistory(1);
+      setStatus('Không thể kết nối để gửi yêu cầu phân tích. Vui lòng thử lại.', 'error');
     } finally {
       setLoading(false);
     }

@@ -189,6 +189,7 @@
               <th>Nhà cung cấp</th>
               <th>Kỹ năng gắn liền</th>
               <th>Phân loại</th>
+              <th>Kiểm duyệt</th>
               <th>Chi phí</th>
               <th style="text-align: right;">Thao tác</th>
             </tr>
@@ -308,6 +309,10 @@
       <form id="resourceForm">
         <input type="hidden" id="resourceFormId" />
         <div class="admin-form-group">
+          <label for="resourceFormSlug">Slug định danh *</label>
+          <input type="text" id="resourceFormSlug" class="admin-form-control" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="180" placeholder="python-tutorial" />
+        </div>
+        <div class="admin-form-group">
           <label for="resourceFormTitle">Tiêu đề tài nguyên *</label>
           <input type="text" id="resourceFormTitle" class="admin-form-control" required placeholder="Ví dụ: Python Tutorial" />
         </div>
@@ -331,9 +336,14 @@
             <option value="documentation">Tài liệu (Documentation)</option>
             <option value="course">Khóa học (Course)</option>
             <option value="practice">Bài tập thực hành (Practice)</option>
+            <option value="project">Dự án (Project)</option>
             <option value="article">Bài viết (Article)</option>
             <option value="video">Video</option>
           </select>
+        </div>
+        <div class="admin-form-group">
+          <label for="resourceFormDescription">Mô tả</label>
+          <textarea id="resourceFormDescription" class="admin-form-control" rows="3" maxlength="4000"></textarea>
         </div>
         <div class="admin-form-group">
           <label for="resourceFormFree">Chi phí</label>

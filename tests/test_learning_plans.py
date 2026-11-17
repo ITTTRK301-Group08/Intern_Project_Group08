@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 
 import pytest
@@ -9,6 +10,30 @@ from app.models.learning_plan import LearningPlan, LearningPlanItem
 from app.models.learning_resource import LearningResource
 from app.models.profile_data import CareerRoleSkill
 from app.models.user import User
+from app.schemas.learning_plan_ai import ResourceSelectionResponse
+from app.services import learning_plan_service
+
+
+@pytest.fixture(autouse=True)
+def mock_resource_selector(monkeypatch):
+    class FakeAIService:
+        async def generate_structured(self, *, prompt, response_schema, system_instruction):
+            payload = json.loads(prompt)
+            resources_by_skill = {}
+            for resource in payload["approved_resources"]:
+                resources_by_skill.setdefault(resource["skill_id"], resource["id"])
+            return response_schema.model_validate({
+                "selections": [
+                    {
+                        "skill_id": task["skill_id"],
+                        "week_number": task["week_number"],
+                        "resource_id": resources_by_skill.get(task["skill_id"]),
+                    }
+                    for task in payload["tasks"]
+                ]
+            })
+
+    monkeypatch.setattr(learning_plan_service, "get_ai_service", FakeAIService)
 
 
 def register_user(client, email: str, password: str = "StrongPass123!") -> tuple[dict, int]:
@@ -57,8 +82,10 @@ def setup_catalog_and_analysis(db_session, user_id: int, status: str = "complete
         provider="Python Docs",
         url="https://docs.python.org/3/",
         resource_type="documentation",
+        description="Python's official tutorial",
         language="vi",
         is_free=True,
+        approval_status="approved",
     )
     res_sql = LearningResource(
         slug="sql-bolt-practice",
@@ -67,8 +94,10 @@ def setup_catalog_and_analysis(db_session, user_id: int, status: str = "complete
         provider="SQLBolt",
         url="https://sqlbolt.com/",
         resource_type="practice",
+        description="Interactive SQL exercises",
         language="en",
         is_free=True,
+        approval_status="approved",
     )
     db_session.add_all([res_py, res_sql])
     db_session.flush()
@@ -175,6 +204,14 @@ def test_create_plan_success_and_br06_enforcement(client, db_session):
     assert len(items_with_resource) > 0
     first_res = items_with_resource[0]["resource"]
     assert first_res["url"].startswith("http")
+    assert first_res["relevance_score"] == 100
+    assert first_res["description"] is not None
+    assert all(
+        item["resource_match_status"] == (
+            "available" if item["resource_id"] is not None else "no_approved_match"
+        )
+        for item in data["items"]
+    )
 
     plan_id = data["id"]
 
@@ -224,4 +261,52 @@ def test_create_plan_success_and_br06_enforcement(client, db_session):
     res_new = client.post("/api/v1/learning-plans", json=payload, headers=headers)
     assert res_new.status_code == 201
     assert res_new.json()["data"]["id"] != plan_id
+
+
+def test_plan_has_no_unapproved_resources_when_no_approved_match(client, db_session):
+    headers, user_id = register_user(client, "resource-free-plan@example.com")
+    analysis = setup_catalog_and_analysis(db_session, user_id=user_id)
+    db_session.query(LearningResource).update({"approval_status": "pending"})
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/learning-plans",
+        json={"analysis_id": analysis.id},
+        headers=headers,
+    )
+    assert response.status_code == 201
+    items = response.json()["data"]["items"]
+    assert items
+    assert all(item["resource_id"] is None for item in items)
+    assert all(item["resource"] is None for item in items)
+    assert all(item["resource_match_status"] == "no_approved_match" for item in items)
+
+
+def test_ai_cannot_attach_unknown_resource_id(client, db_session, monkeypatch):
+    headers, user_id = register_user(client, "invalid-resource-selection@example.com")
+    analysis = setup_catalog_and_analysis(db_session, user_id=user_id)
+
+    class InvalidAIService:
+        async def generate_structured(self, *, prompt, response_schema, system_instruction):
+            payload = json.loads(prompt)
+            return response_schema.model_validate({
+                "selections": [
+                    {
+                        "skill_id": task["skill_id"],
+                        "week_number": task["week_number"],
+                        "resource_id": 999999,
+                    }
+                    for task in payload["tasks"]
+                ]
+            })
+
+    monkeypatch.setattr(learning_plan_service, "get_ai_service", InvalidAIService)
+    response = client.post(
+        "/api/v1/learning-plans",
+        json={"analysis_id": analysis.id},
+        headers=headers,
+    )
+    assert response.status_code == 502
+    assert response.json()["detail"]["data"]["code"] == "INVALID_RESOURCE_RECOMMENDATION"
+    assert db_session.query(LearningPlan).count() == 0
 
