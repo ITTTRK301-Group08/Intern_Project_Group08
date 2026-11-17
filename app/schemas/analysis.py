@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -64,6 +64,8 @@ class AnalysisReport(BaseModel):
     id: int
     status: Literal["pending", "processing", "completed", "failed"]
     readiness_score: int | None
+    market_source: str
+    benchmark_date: date | None
     summary: str | None
     career_role_name: str | None
     created_at: datetime
