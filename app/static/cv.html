@@ -31,6 +31,7 @@
         <a href="/profile">Hồ sơ</a>
         <a href="/cv" aria-current="page">CV của tôi</a>
         <a href="/analysis">Phân tích kỹ năng</a>
+        <a href="/interview">Phỏng vấn</a>
         <a href="/roadmap">Lộ trình 30 ngày</a>
         <a href="/dashboard">Dashboard</a>
       </nav>
@@ -118,7 +119,7 @@
       <div class="card-head">
         <div>
           <h2>Các phiên bản CV đã tải</h2>
-          <span id="cvListCount" class="muted small">1 phiên bản</span>
+          <span id="cvListCount" class="muted small">Đang tải...</span>
         </div>
         <div class="actions" style="margin-top:0">
           <label class="checkbox-inline">
@@ -141,22 +142,7 @@
               <th>Thao tác</th>
             </tr>
           </thead>
-          <tbody id="cvListBody">
-            <tr>
-              <td><strong>CV_NguyenVanAn_DataAnalyst.pdf</strong></td>
-              <td>1.2 MB</td>
-              <td>Hôm nay, 10:30</td>
-              <td><span class="badge badge-ok">Đọc được chữ</span></td>
-              <td><span class="badge badge-info">Đã phân tích (1)</span></td>
-              <td><span class="badge badge-ok">Đang dùng</span></td>
-              <td>
-                <div class="action-group">
-                  <button type="button" class="secondary small" onclick="if(window.viewCvDetail){window.viewCvDetail(1);}else{document.getElementById('resultCard').classList.remove('hidden');}">Xem chi tiết</button>
-                  <a class="btn-link small" href="/analysis?cv_id=1">Phân tích</a>
-                </div>
-              </td>
-            </tr>
-          </tbody>
+          <tbody id="cvListBody"></tbody>
         </table>
       </div>
     </section>

@@ -1,40 +1,51 @@
-/**
- * Quản lý phiên đăng nhập dùng chung cho các trang La Bàn.
- * - Trang khai báo data-require-auth="true" sẽ chuyển về /login nếu chưa có token.
- * - Hiển thị tài khoản đang đăng nhập và nút "Đăng nhập"/"Đăng xuất" trên nav chung.
- * - Chuẩn hóa thông điệp phản hồi từ backend sang tiếng Việt thân thiện, tránh lộ chi tiết kỹ thuật.
- */
 (function () {
   'use strict';
 
-  if (window.LaBanApp) return;
+  if (window.__LaBanSessionLoaded__) return;
+  window.__LaBanSessionLoaded__ = true;
 
   var TOKEN_KEY = 'acm_access_token';
+  var REFRESH_TOKEN_KEY = 'acm_refresh_token';
   var requiresAuth = document.documentElement.getAttribute('data-require-auth') === 'true';
-
   var isDirectMode = window.location.protocol === 'file:' ||
                      window.location.pathname.indexOf('/app/static/') !== -1 ||
                      window.location.pathname.endsWith('.html') ||
                      !window.location.host;
+  var originalFetch = window.fetch.bind(window);
+  var refreshInFlight = null;
 
-  function readToken() {
+  function readToken(key) {
+    var storageKey = key || TOKEN_KEY;
     try {
-      var stored = localStorage.getItem(TOKEN_KEY) || '';
-      if (!stored && isDirectMode) {
+      var stored = localStorage.getItem(storageKey) || '';
+      if (!stored && storageKey === TOKEN_KEY && isDirectMode) {
         stored = 'demo_student_token';
-        try { localStorage.setItem(TOKEN_KEY, stored); } catch (_) {}
+        try { localStorage.setItem(storageKey, stored); } catch (_) {}
       }
       return stored;
     } catch (_) {
-      return isDirectMode ? 'demo_student_token' : '';
+      return storageKey === TOKEN_KEY && isDirectMode ? 'demo_student_token' : '';
     }
   }
 
-  function clearToken() {
+  function clearTokens() {
     try {
       localStorage.removeItem(TOKEN_KEY);
-    } catch (_) {
-      /* bỏ qua khi trình duyệt chặn storage */
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+    } catch (error) {
+      console.error('Unable to clear session tokens:', error);
+    }
+  }
+
+  function saveTokens(tokens) {
+    try {
+      localStorage.setItem(TOKEN_KEY, tokens.access_token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+      return true;
+    } catch (error) {
+      console.error('Unable to save session tokens:', error);
+      clearTokens();
+      return false;
     }
   }
 
@@ -45,9 +56,72 @@
   }
 
   function redirectToLogin() {
-    clearToken();
+    clearTokens();
     window.location.replace(loginUrl());
   }
+
+  function refreshAccessToken() {
+    if (refreshInFlight) return refreshInFlight;
+    var refreshToken = readToken(REFRESH_TOKEN_KEY);
+    if (!refreshToken) return Promise.resolve(null);
+
+    refreshInFlight = originalFetch('/api/v1/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken })
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (body) {
+        if (!response.ok || !body.data ||
+            !body.data.access_token || !body.data.refresh_token) {
+          if (response.status === 401 || response.status === 403) clearTokens();
+          throw new Error('Refresh token rejected with status ' + response.status);
+        }
+        if (!saveTokens(body.data)) throw new Error('Unable to save refreshed tokens');
+        return body.data.access_token;
+      });
+    }).catch(function (error) {
+      console.error('Session refresh failed:', error);
+      return null;
+    }).then(function (accessToken) {
+      refreshInFlight = null;
+      return accessToken;
+    });
+    return refreshInFlight;
+  }
+
+  function retryWithToken(request, accessToken) {
+    var headers = new Headers(request.headers);
+    headers.set('Authorization', 'Bearer ' + accessToken);
+    return originalFetch(new Request(request, { headers: headers }));
+  }
+
+  window.fetch = function (input, init) {
+    var request = new Request(input, init);
+    var authorization = request.headers.get('Authorization') || '';
+    var requestUrl = new URL(request.url, window.location.href);
+    var refreshable = requestUrl.origin === window.location.origin &&
+      requestUrl.pathname.indexOf('/api/v1/') === 0 &&
+      !/^\/api\/v1\/auth\/(login|register|refresh|logout)$/.test(requestUrl.pathname) &&
+      authorization.indexOf('Bearer ') === 0;
+
+    return originalFetch(request.clone()).then(function (response) {
+      if (!refreshable || response.status !== 401) return response;
+
+      var latestToken = readToken(TOKEN_KEY);
+      var sentToken = authorization.substring(7);
+      if (latestToken && latestToken !== sentToken) {
+        return retryWithToken(request, latestToken);
+      }
+
+      return refreshAccessToken().then(function (accessToken) {
+        if (!accessToken) {
+          if (requiresAuth) window.location.replace(loginUrl());
+          return response;
+        }
+        return retryWithToken(request, accessToken);
+      });
+    });
+  };
 
   var MESSAGE_MAP = {
     'Email already registered': 'Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.',
@@ -58,18 +132,6 @@
     'Not authenticated': 'Bạn cần đăng nhập để thực hiện thao tác này.',
     'Profile not found': 'Chưa có hồ sơ cá nhân.',
     'CV not found': 'Không tìm thấy CV yêu cầu.',
-    'CV not found or already deleted': 'CV này đã bị xóa hoặc không còn khả dụng.',
-    'You do not have permission to access this CV': 'Bạn không có quyền truy cập CV này.',
-    'You do not have permission to delete this CV': 'Bạn không có quyền xóa CV này.',
-    'Only PDF files are allowed': 'Chỉ hỗ trợ tải lên tệp định dạng PDF.',
-    'File is empty': 'Tệp tải lên đang bị trống.',
-    'File size exceeds 5MB limit': 'Dung lượng tệp vượt quá giới hạn tối đa 5 MB.',
-    'Invalid file MIME type': 'Định dạng tệp không phải PDF hợp lệ.',
-    'Invalid PDF file content': 'Nội dung tệp không phải PDF hợp lệ (có thể tệp bị đổi đuôi hoặc hỏng).',
-    'Encrypted PDF is not supported': 'Hệ thống chưa hỗ trợ tệp PDF có đặt mật khẩu bảo vệ. Vui lòng gỡ mật khẩu rồi tải lại.',
-    'Unable to read or extract text from PDF': 'Không thể đọc nội dung tệp PDF này. Vui lòng kiểm tra lại tệp trước khi tải lên.',
-    'Request validation failed': 'Thông tin nhập chưa hợp lệ. Vui lòng kiểm tra lại các trường bắt buộc.',
-    'Internal server error': 'Hệ thống đang bận xử lý. Vui lòng thử lại sau ít phút.',
     'Career role not found': 'Không tìm thấy vị trí nghề nghiệp đã chọn.',
     'Khong tim thay CV hoac CV khong kha dung.': 'CV đã chọn không tồn tại hoặc không còn khả dụng.',
     'Ban khong co quyen su dung CV nay.': 'Bạn không có quyền sử dụng CV này.',
@@ -99,44 +161,24 @@
 
   function translateText(raw) {
     if (!raw || typeof raw !== 'string') return '';
-    var trimmed = raw.trim();
-    if (Object.prototype.hasOwnProperty.call(MESSAGE_MAP, trimmed)) {
-      return MESSAGE_MAP[trimmed];
-    }
-    var lower = trimmed.toLowerCase();
-    if (lower.indexOf('khong trich xuat duoc') >= 0) {
-      return 'CV đã được tải lên nhưng chưa đọc được văn bản (có thể là tệp PDF dạng ảnh quét). Bạn có thể xem hướng dẫn bên dưới.';
-    }
-    if (lower.indexOf('full_name') >= 0 && lower.indexOf('required') >= 0) {
-      return 'Vui lòng nhập họ và tên của bạn.';
-    }
-    if (lower.indexOf('5mb') >= 0) {
-      return 'Dung lượng tệp vượt quá 5 MB.';
-    }
-    return trimmed;
+    var text = raw.trim();
+    return Object.prototype.hasOwnProperty.call(MESSAGE_MAP, text) ? MESSAGE_MAP[text] : text;
   }
 
   function extractApiError(body, fallback) {
-    if (!body || typeof body !== 'object') return fallback || 'Yêu cầu chưa thể thực hiện. Vui lòng thử lại.';
-    var detail = body.detail;
-    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
-      if (typeof detail.message === 'string') return translateText(detail.message);
+    var detail = body && body.detail;
+    if (detail && typeof detail === 'object' && !Array.isArray(detail) &&
+        typeof detail.message === 'string') {
+      return translateText(detail.message);
     }
-    if (Array.isArray(detail) && detail.length) {
-      var msgs = detail.map(function (item) {
-        if (!item) return '';
-        var loc = Array.isArray(item.loc) ? item.loc.join('.') : '';
-        if (loc.indexOf('full_name') >= 0) return 'Họ và tên không được để trống.';
-        if (loc.indexOf('skill_name') >= 0) return 'Tên kỹ năng không được để trống.';
-        if (loc.indexOf('strength') >= 0) return 'Nội dung điểm mạnh không được để trống.';
-        if (loc.indexOf('level') >= 0) return 'Mức đánh giá kỹ năng phải nằm trong khoảng 0 đến 5.';
-        if (typeof item.msg === 'string') return translateText(item.msg);
-        return '';
+    if (Array.isArray(detail)) {
+      var messages = detail.map(function (item) {
+        return item && typeof item.msg === 'string' ? translateText(item.msg) : '';
       }).filter(Boolean);
-      if (msgs.length) return msgs.join(' ');
+      if (messages.length) return messages.join(' ');
     }
     if (typeof detail === 'string') return translateText(detail);
-    if (typeof body.message === 'string' && body.message) return translateText(body.message);
+    if (body && typeof body.message === 'string') return translateText(body.message);
     return fallback || 'Yêu cầu chưa thể thực hiện. Vui lòng thử lại.';
   }
 
@@ -147,23 +189,16 @@
     return (size / (1024 * 1024)).toFixed(2) + ' MB';
   }
 
-  function formatDate(iso) {
-    if (!iso) return '-';
-    var dt = new Date(iso);
-    if (Number.isNaN(dt.getTime())) return String(iso);
-    return dt.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  function formatDate(value) {
+    if (!value) return '-';
+    var date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('vi-VN');
   }
 
   window.LaBanApp = {
     TOKEN_KEY: TOKEN_KEY,
-    getToken: readToken,
-    clearToken: clearToken,
+    getToken: function () { return readToken(TOKEN_KEY); },
+    clearToken: clearTokens,
     redirectToLogin: redirectToLogin,
     translateText: translateText,
     extractApiError: extractApiError,
@@ -171,102 +206,75 @@
     formatDate: formatDate
   };
 
-  var token = readToken();
+  var token = readToken(TOKEN_KEY);
   if (requiresAuth && !token) {
     window.location.replace(loginUrl());
     return;
   }
 
   function renderGuestNav(nav) {
-    Array.prototype.slice.call(nav.querySelectorAll('[data-auth-slot="true"]')).forEach(function (el) {
-      el.remove();
-    });
-
-    var divider = document.createElement('span');
-    divider.className = 'nav-divider';
-    divider.setAttribute('aria-hidden', 'true');
-    divider.setAttribute('data-auth-slot', 'true');
-
-    var registerLink = document.createElement('a');
-    registerLink.href = isDirectMode ? './register.html' : '/register';
-    registerLink.textContent = 'Đăng ký';
-    registerLink.setAttribute('data-auth-slot', 'true');
-
-    var loginLink = document.createElement('a');
-    loginLink.href = isDirectMode ? './login.html' : loginUrl();
-    loginLink.className = 'nav-cta';
-    loginLink.textContent = 'Đăng nhập';
-    loginLink.setAttribute('data-auth-slot', 'true');
-
-    nav.append(divider, registerLink, loginLink);
+    var login = document.createElement('a');
+    login.href = isDirectMode ? './login.html' : loginUrl();
+    login.className = 'nav-cta';
+    login.textContent = 'Đăng nhập';
+    nav.appendChild(login);
   }
 
-  function renderSignedInNav(nav) {
-    Array.prototype.slice.call(nav.querySelectorAll('[data-auth-slot="true"]')).forEach(function (el) {
-      el.remove();
+  function renderSignedInNav(nav, email) {
+    var user = document.createElement('span');
+    user.className = 'nav-user';
+    user.textContent = email || 'Tài khoản';
+    user.title = email || 'Tài khoản của bạn';
+    var logout = document.createElement('button');
+    logout.type = 'button';
+    logout.className = 'nav-action';
+    logout.textContent = 'Đăng xuất';
+    logout.addEventListener('click', function () {
+      var refreshToken = readToken(REFRESH_TOKEN_KEY);
+      logout.disabled = true;
+      var revoke = refreshToken
+        ? originalFetch('/api/v1/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken })
+        }).then(function (response) {
+          if (!response.ok) throw new Error('Logout request failed with status ' + response.status);
+        })
+        : Promise.resolve();
+      revoke.catch(function (error) {
+        console.error('Session revocation failed:', error);
+        window.alert('Không thể xác nhận thu hồi phiên với máy chủ. Phiên đăng nhập trên trình duyệt sẽ được xóa.');
+      }).then(function () {
+        clearTokens();
+        window.location.assign(isDirectMode ? './login.html' : '/login');
+      });
     });
-
-    var divider = document.createElement('span');
-    divider.className = 'nav-divider';
-    divider.setAttribute('aria-hidden', 'true');
-    divider.setAttribute('data-auth-slot', 'true');
-
-    var userPill = document.createElement('span');
-    userPill.className = 'nav-user';
-    userPill.id = 'navUserEmail';
-    userPill.hidden = false;
-    userPill.textContent = 'sinhvien@example.com';
-    userPill.title = 'Tài khoản của bạn';
-    userPill.setAttribute('data-auth-slot', 'true');
-
-    var logoutBtn = document.createElement('button');
-    logoutBtn.type = 'button';
-    logoutBtn.className = 'nav-action';
-    logoutBtn.textContent = 'Đăng xuất';
-    logoutBtn.setAttribute('data-auth-slot', 'true');
-    logoutBtn.addEventListener('click', function () {
-      clearToken();
-      window.location.assign(isDirectMode ? './login.html' : '/login');
-    });
-
-    nav.append(divider, userPill, logoutBtn);
-    return userPill;
+    nav.append(user, logout);
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     var nav = document.querySelector('.site-nav');
     if (nav) {
-      var userPill = null;
-      if (token) {
-        userPill = renderSignedInNav(nav);
-      } else {
+      if (!token) {
         renderGuestNav(nav);
-      }
-
-      if (token && token !== 'demo_student_token') {
+      } else {
+        renderSignedInNav(nav, '');
         fetch('/api/v1/auth/me', { headers: { Authorization: 'Bearer ' + token } })
-          .then(function (res) {
-            if (res.status === 401) {
-              clearToken();
-              if (requiresAuth) {
-                window.location.replace(loginUrl());
-              } else {
-                renderGuestNav(nav);
-              }
-              return null;
-            }
-            if (!res.ok) return null;
-            return res.json().catch(function () { return null; });
+          .then(function (response) {
+            if (response.status === 401 && requiresAuth) redirectToLogin();
+            if (!response.ok) return null;
+            return response.json().catch(function () { return null; });
           })
           .then(function (body) {
-            if (userPill && body && body.data && body.data.email) {
-              userPill.textContent = body.data.email;
-              userPill.title = body.data.email;
-              userPill.hidden = false;
+            var user = nav.querySelector('.nav-user');
+            var email = body && body.data && body.data.email;
+            if (user && email) {
+              user.textContent = email;
+              user.title = email;
             }
           })
-          .catch(function () {
-            /* Giữ nguyên trạng thái hiện tại. */
+          .catch(function (error) {
+            console.error('Unable to load current session:', error);
           });
       }
     }

@@ -60,6 +60,12 @@ class AnalysisHistoryData(BaseModel):
     pages: int
 
 
+class AnalysisAcceptedData(BaseModel):
+    id: int
+    status: Literal["pending", "processing", "completed", "failed"]
+    created_at: datetime
+
+
 class AnalysisReport(BaseModel):
     id: int
     status: Literal["pending", "processing", "completed", "failed"]
@@ -83,6 +89,7 @@ class AnalysisSkillReport(BaseModel):
 
 
 AnalysisHistoryResponse = ApiResponse[AnalysisHistoryData]
+AnalysisAcceptedResponse = ApiResponse[AnalysisAcceptedData]
 AnalysisReportResponse = ApiResponse[AnalysisReport]
 AnalysisSkillsResponse = ApiResponse[list[AnalysisSkillReport]]
 AnalysisStatusResponse = ApiResponse[dict[str, str]]

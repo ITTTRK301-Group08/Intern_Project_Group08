@@ -26,6 +26,20 @@ the current database role on every request. API successes and errors use a
 consistent JSON envelope, retaining `detail` on errors for existing clients.
 In production, `SECRET_KEY` must be explicitly configured.
 
+### Refreshable authentication sessions
+
+Login returns a short-lived access token and a 14-day refresh token. Refresh
+tokens are opaque random values stored only as SHA-256 hashes in the database.
+`POST /api/v1/auth/refresh` rotates a valid refresh token and issues a new
+access token; replaying a rotated token revokes its entire session family.
+`POST /api/v1/auth/logout` revokes the submitted token family server-side.
+Already-issued access tokens expire normally within the configured
+`ACCESS_TOKEN_EXPIRE_MINUTES`. The browser retries protected API requests once
+after a 401 by refreshing the session.
+
+Set `REFRESH_TOKEN_EXPIRE_DAYS` to adjust the refresh-session lifetime. Apply
+the schema migration with `python -m alembic upgrade head`.
+
 Run the database migration; it creates the learning-resource table and seeds
 career categories, roles, role-skill requirements, skills, and curated learning
 links. Then create the administrator. The command prompts for the email and
@@ -46,11 +60,13 @@ to promote an existing student account.
 
 - `/` and `/explore`: browse career paths, required skills, and learning links.
 - `/api/v1/catalog/categories`, `/roles`, `/skills`, `/resources`: public,
-  read-only catalog APIs.
+  read-only catalog APIs. Student resource search and detail endpoints expose
+  only active resources approved by an administrator.
 - `/api/v1/admin/catalog`: Admin-only catalog overview.
 - `/api/v1/admin/career-categories`, `/career-roles`, `/skills`, `/resources`:
-  Admin-only create, update, and delete APIs. Interactive API documentation is
-  at `/docs`; authenticate with an Admin access token to use these endpoints.
+  Admin-only create, update, and delete APIs. New or edited resources return to
+  Pending until reviewed; Admins can approve or reject them. Interactive API
+  documentation is at `/docs`.
 
 Registering through the public auth API always creates a student account.
 Admin access is granted only through the bootstrap command or an existing
@@ -73,27 +89,11 @@ Access token dùng chung với các trang hiện có nên không cần dán toke
 FR-AUTH-06 (refresh token, thu hồi token phía máy chủ) vẫn ở mức Could và chưa
 triển khai; đăng xuất hiện chỉ xóa token trong trình duyệt.
 
-## Analysis reports
-
-- `GET /api/v1/analyses?page=1&page_size=10`: paginated history for the
-  authenticated student.
-- `GET /api/v1/analyses/{analysis_id}`: report status, readiness score, summary,
-  and target role.
-- `GET /api/v1/analyses/{analysis_id}/skills`: current and required skill
-  levels, gap score, evidence, and recommendation.
-- `GET /api/v1/analyses/{analysis_id}/status`: status for polling. The status
-  values are `pending`, `processing`, `completed`, and `failed`.
-
-All report queries are scoped to the authenticated user; an analysis owned by
-another account returns 404. Run `python -m alembic upgrade head` to apply the
-report fields migration. The analysis creation endpoint remains gated because
-the AI analysis pipeline has not yet been implemented; this page does not
-fabricate reports.
-
 ## Cấu hình dịch vụ AI (Gemini)
 
-Task 1 – Sprint 2 xây dựng lớp hạ tầng AI dùng chung, chưa triển khai nghiệp
-vụ Skill Gap Analysis, Learning Roadmap hay Mock Interview.
+Lớp AI dùng chung xác thực đầu ra theo schema. Phân tích báo cáo chỉ được chạy
+sau khi người dùng chấp thuận consent; lộ trình học chọn tài nguyên từ kho
+được kiểm duyệt thay vì để AI tự tạo tài nguyên.
 
 Thêm các biến sau vào `.env` (không commit `.env`):
 
@@ -143,3 +143,22 @@ Chạy toàn bộ test suite:
 ```powershell
 python -m pytest -q
 ```
+
+=========
+## Analysis reports
+
+- `GET /api/v1/analyses?page=1&page_size=10`: paginated history for the
+  authenticated student.
+- `GET /api/v1/analyses/{analysis_id}`: report status, readiness score, summary,
+  and target role.
+- `GET /api/v1/analyses/{analysis_id}/skills`: current and required skill
+  levels, gap score, evidence, and recommendation.
+- `GET /api/v1/analyses/{analysis_id}/status`: status for polling. The status
+  values are `pending`, `processing`, `completed`, and `failed`.
+
+All report queries are scoped to the authenticated user; an analysis owned by
+another account returns 404. Run `python -m alembic upgrade head` to apply the
+report fields migration. The analysis creation endpoint remains gated because
+the AI analysis pipeline has not yet been implemented; this page does not
+fabricate reports.
+>>>>>>>>> Temporary merge branch 2

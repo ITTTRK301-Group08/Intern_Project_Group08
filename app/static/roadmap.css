@@ -334,10 +334,43 @@
   line-height: 1.5;
 }
 
+.resource-detail {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--primary);
+  background: var(--surface-soft);
+  border-radius: 0 10px 10px 0;
+}
+
+.resource-title {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.resource-meta,
+.resource-description,
+.resource-unavailable {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.resource-description {
+  color: var(--text-soft);
+}
+
+.resource-unavailable {
+  color: var(--muted);
+  font-style: italic;
+}
+
 .resource-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  margin-top: 10px;
   padding: 6px 14px;
   border-radius: 8px;
   background: var(--primary-soft);

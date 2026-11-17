@@ -2,7 +2,7 @@
 
 
 def test_user_facing_pages_hide_backend_artifacts(client):
-    for path in ("/", "/explore", "/profile", "/cv", "/analysis", "/roadmap", "/dashboard", "/admin", "/login", "/register"):
+    for path in ("/", "/explore", "/profile", "/cv", "/analysis", "/interview", "/roadmap", "/dashboard", "/admin", "/login", "/register"):
         html = client.get(path).text
         assert 'href="/docs"' not in html
         assert "M2 - Student Profile" not in html
@@ -38,10 +38,19 @@ def test_profile_cv_analysis_expose_user_friendly_controls(client):
     assert "xóa mềm" not in cv_html.lower()
 
     analysis_html = client.get("/analysis").text
-    assert 'id="cv_id" name="cv_id" type="hidden"' in analysis_html
-    assert 'id="career_role_id" name="career_role_id" type="hidden"' in analysis_html
     assert 'id="cvSelect"' in analysis_html
     assert 'id="roleSelect"' in analysis_html
     assert 'id="sourceCvBtn"' in analysis_html
     assert 'id="sourceProfileBtn"' in analysis_html
+    assert 'id="consentModal"' in analysis_html
+    assert 'id="cv_id"' in analysis_html
+    assert 'id="career_role_id"' in analysis_html
     assert "pipeline" not in analysis_html.lower()
+
+
+def test_analysis_assets_have_no_unresolved_merge_markers(client):
+    for path in ("/analysis", "/static/analysis.js"):
+        content = client.get(path).text
+        assert "Temporary merge branch" not in content
+        assert "<<<<<<<" not in content
+        assert ">>>>>>>" not in content

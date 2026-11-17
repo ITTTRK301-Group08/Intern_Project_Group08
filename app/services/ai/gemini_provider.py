@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from google import genai
@@ -32,6 +33,91 @@ logger = logging.getLogger(__name__)
 _TIMEOUT_STATUS_CODES = frozenset({408, 504})
 # Các mã HTTP thể hiện lỗi xác thực hoặc phân quyền.
 _AUTHENTICATION_STATUS_CODES = frozenset({401, 403})
+
+# Các khóa JSON Schema được Gemini Structured Output (Gemini Developer API v1)
+# và lớp `types.Schema` của `google-genai` chấp nhận.
+#
+# `$defs`/`$ref` được giữ lại để SDK tự động nội tuyến (inline) các model lồng
+# nhau; nếu bỏ đi, cấu trúc object/array bên trong sẽ bị mất. Các khóa metadata
+# như `title`, `default`, `pattern`, `example`, `propertyOrdering` đều có trong
+# `types.Schema` nên an toàn khi gửi đi.
+#
+# Các ràng buộc số lượng/độ dài (`minimum`, `maximum`, `minLength`, `maxLength`,
+# `minItems`, `maxItems`, `minProperties`, `maxProperties`) và
+# `additionalProperties` KHÔNG nằm trong allowlist này. Chúng vẫn được Pydantic
+# xác thực đầy đủ ở `AIService`, nhưng không được gửi tới Gemini.
+_GEMINI_ALLOWED_SCHEMA_KEYS = frozenset(
+    {
+        "$defs",
+        "$ref",
+        "anyOf",
+        "const",
+        "default",
+        "description",
+        "enum",
+        "example",
+        "format",
+        "items",
+        "nullable",
+        "pattern",
+        "prefixItems",
+        "properties",
+        "propertyOrdering",
+        "required",
+        "title",
+        "type",
+    }
+)
+# Các khóa chứa map tên trường -> schema con.
+_SCHEMA_MAP_KEYS = frozenset({"$defs", "properties"})
+# Các khóa chứa schema con hoặc danh sách schema con.
+_SCHEMA_CHILD_KEYS = frozenset({"anyOf", "items", "prefixItems"})
+
+
+def _sanitize_schema_node(node: Any) -> Any:
+    """Tạo bản sao schema chỉ gồm các khóa Gemini hỗ trợ.
+
+    Hàm đệ quy qua object, map `properties`/`$defs`, `items` và `anyOf` (kể cả
+    danh sách schema con) nhưng không sửa đổi dict/list đầu vào.
+    """
+    if isinstance(node, list):
+        return [_sanitize_schema_node(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+
+    cleaned: dict[str, Any] = {}
+    for key, value in node.items():
+        if key not in _GEMINI_ALLOWED_SCHEMA_KEYS:
+            continue
+        if key in _SCHEMA_MAP_KEYS and isinstance(value, dict):
+            cleaned[key] = {
+                name: _sanitize_schema_node(child)
+                for name, child in value.items()
+            }
+        elif key in _SCHEMA_CHILD_KEYS:
+            cleaned[key] = _sanitize_schema_node(value)
+        else:
+            cleaned[key] = value
+    return cleaned
+
+
+def _to_gemini_compatible_schema(
+    response_schema: type[BaseModel] | Mapping[str, Any],
+) -> dict[str, Any]:
+    """Chuyển JSON Schema của Pydantic sang dạng Gemini chấp nhận.
+
+    Gemini Developer API v1 từ chối `additionalProperties` và các ràng buộc
+    số lượng/độ dài do Pydantic sinh ra, nên chúng bị lược khỏi payload gửi đi.
+    Pydantic model gốc không bị thay đổi: hàm chỉ đọc `model_json_schema()` và
+    tạo dictionary mới, nhờ đó `AIService` vẫn xác thực đầy đủ mọi ràng buộc
+    sau khi Gemini trả kết quả.
+    """
+    raw_schema = (
+        response_schema
+        if isinstance(response_schema, Mapping)
+        else response_schema.model_json_schema()
+    )
+    return _sanitize_schema_node(raw_schema)
 
 
 class GeminiProvider(BaseAIProvider):
@@ -99,7 +185,7 @@ class GeminiProvider(BaseAIProvider):
         config = types.GenerateContentConfig()
         if response_schema is not None:
             config.response_mime_type = "application/json"
-            config.response_schema = response_schema
+            config.response_schema = _to_gemini_compatible_schema(response_schema)
         if system_instruction:
             config.system_instruction = system_instruction
 

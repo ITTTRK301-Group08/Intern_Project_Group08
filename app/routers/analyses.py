@@ -1,10 +1,11 @@
 from math import ceil
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
 
 from app.core.deps import CurrentUser, DbSession
 from app.schemas.analysis import (
-    AnalysisGateError,
+    AnalysisAcceptedData,
+    AnalysisAcceptedResponse,
     AnalysisHistoryData,
     AnalysisHistoryItem,
     AnalysisHistoryResponse,
@@ -20,6 +21,7 @@ from app.services.analysis_service import (
     get_user_analysis_skills,
     list_user_analyses,
     prepare_analysis,
+    process_analysis_background,
 )
 
 router = APIRouter(prefix="/api/v1/analyses", tags=["analyses"])
@@ -27,17 +29,30 @@ router = APIRouter(prefix="/api/v1/analyses", tags=["analyses"])
 
 @router.post(
     "",
-    responses={501: {"model": AnalysisGateError, "description": "Consent valid but AI pipeline not implemented"}},
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=AnalysisAcceptedResponse,
 )
-def create_analysis(payload: AnalysisRequest, current_user: CurrentUser, db: DbSession):
-    # Consent + ownership checks are enforced in the service (independent of frontend).
-    # user_id is taken from the authenticated token; never from client input.
-    raise prepare_analysis(
+def create_analysis(
+    payload: AnalysisRequest,
+    background_tasks: BackgroundTasks,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> AnalysisAcceptedResponse:
+    analysis = prepare_analysis(
         db,
         user_id=current_user.id,
         cv_id=payload.cv_id,
         career_role_id=payload.career_role_id,
         consent=payload.ai_consent,
+    )
+    background_tasks.add_task(process_analysis_background, analysis.id)
+    return AnalysisAcceptedResponse(
+        data=AnalysisAcceptedData(
+            id=analysis.id,
+            status=analysis.status,
+            created_at=analysis.created_at,
+        ),
+        message="Yêu cầu phân tích đã được tiếp nhận và đang chờ xử lý",
     )
 
 

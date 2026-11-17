@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     secret_key: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     jwt_algorithm: Literal["HS256"] = "HS256"
     access_token_expire_minutes: int = Field(default=30, gt=0)
+    refresh_token_expire_days: int = Field(default=14, gt=0)
     cors_allowed_origins: list[str] = Field(default_factory=list)
 
     # Cấu hình lớp AI dùng chung. API Key không bắt buộc khi khởi động app

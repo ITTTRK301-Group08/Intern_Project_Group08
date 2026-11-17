@@ -17,8 +17,10 @@ EXPECTED_TABLES = {
     "analyses",
     "analysis_skill_gaps",
     "learning_resources",
+    "refresh_tokens",
     "interview_sessions",
     "interview_questions",
+    "interview_answers",
     "learning_plans",
     "learning_plan_items",
 }

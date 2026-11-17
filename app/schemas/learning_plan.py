@@ -28,14 +28,30 @@ class LearningPlanItemUpdateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ResourceSkillBrief(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+
+
+class ResourceRoleBrief(BaseModel):
+    id: int
+    name: str
+    level: str
+
+
 class ResourceBrief(BaseModel):
     id: int
     title: str
     provider: str
     url: str
     resource_type: str
+    description: str | None = None
     language: str = "en"
     is_free: bool = True
+    skill: ResourceSkillBrief | None = None
+    related_roles: list[ResourceRoleBrief] = Field(default_factory=list)
+    relevance_score: int = Field(ge=0, le=100)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -47,6 +63,7 @@ class LearningPlanItemResponse(BaseModel):
     skill_name: str
     resource_id: int | None = None
     resource: ResourceBrief | None = None
+    resource_match_status: Literal["available", "no_approved_match"]
     week_number: int
     task_description: str
     estimated_hours: float | None = None

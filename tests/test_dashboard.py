@@ -4,7 +4,7 @@ import pytest
 
 from app.models.analysis import Analysis, AnalysisSkillGap
 from app.models.career import CareerCategory, CareerRole, Skill
-from app.models.interview import InterviewQuestion, InterviewSession
+from app.models.interview import InterviewAnswer, InterviewQuestion, InterviewSession
 from app.models.learning_plan import LearningPlan, LearningPlanItem
 from app.models.profile_data import CareerRoleSkill
 
@@ -65,16 +65,16 @@ def setup_dashboard_fixture(db_session, user_id: int):
         skill_id=skill_sql.id,
         current_level=2,
         target_level=4,
+        evidence="Đã thực hiện truy vấn SQL trong dự án",
         has_evidence=True,
-        evidence="Kinh nghiệm truy vấn cơ sở dữ liệu SQL",
     )
     gap_viz = AnalysisSkillGap(
         analysis_id=analysis.id,
         skill_id=skill_viz.id,
         current_level=4,
         target_level=4,
+        evidence="Đã tạo dashboard trực quan hóa dữ liệu",
         has_evidence=True,
-        evidence="Thiết kế biểu đồ trực quan hóa dữ liệu",
     )
     db_session.add_all([gap_sql, gap_viz])
     db_session.flush()
@@ -84,6 +84,8 @@ def setup_dashboard_fixture(db_session, user_id: int):
         user_id=user_id,
         career_role_id=role.id,
         status="completed",
+        total_score=82.5,
+        completed_at=datetime.utcnow(),
     )
     db_session.add(session)
     db_session.flush()
@@ -96,6 +98,16 @@ def setup_dashboard_fixture(db_session, user_id: int):
         question_order=1,
     )
     db_session.add(q1)
+    db_session.flush()
+
+    db_session.add(
+        InterviewAnswer(
+            question_id=q1.id,
+            answer_text="Tôi kiểm tra EXPLAIN plan và bổ sung index phù hợp.",
+            score=82.5,
+            feedback="Câu trả lời đúng trọng tâm, cần nêu thêm số liệu đo lường.",
+        )
+    )
     db_session.flush()
 
     # 4. Lộ trình học tập đang active
@@ -147,10 +159,129 @@ def test_dashboard_summary_empty(client, db_session):
     res = client.get("/api/v1/dashboard/summary", headers=headers)
     assert res.status_code == 200
     data = res.json()["data"]
-    assert data["readiness_score"] == 0.0
+    assert data["readiness_score"] is None
     assert data["total_analyses"] == 0
     assert data["total_interviews"] == 0
     assert data["active_plan"] is None
+
+
+def test_readiness_history_stats_are_real_chronological_and_user_scoped(
+    client, db_session
+):
+    headers, user_id = register_user(client, "readiness_history@example.com")
+    other_headers, other_user_id = register_user(client, "other_readiness@example.com")
+    role = CareerRole(name="History Role", slug="history-role")
+    python_skill = Skill(name="Python")
+    db_session.add_all([role, python_skill])
+    db_session.flush()
+    first_report = Analysis(
+        user_id=user_id,
+        career_role_id=role.id,
+        consent_accepted=True,
+        consent_purpose_version="v1",
+        status="completed",
+        readiness_score=60,
+        completed_at=datetime(2025, 1, 1),
+    )
+    second_report = Analysis(
+        user_id=user_id,
+        career_role_id=role.id,
+        consent_accepted=True,
+        consent_purpose_version="v1",
+        status="completed",
+        readiness_score=80,
+        completed_at=datetime(2025, 1, 3),
+    )
+    db_session.add_all(
+        [
+            first_report,
+            second_report,
+            Analysis(
+                user_id=user_id,
+                career_role_id=role.id,
+                consent_accepted=True,
+                consent_purpose_version="v1",
+                status="processing",
+                readiness_score=None,
+            ),
+            Analysis(
+                user_id=other_user_id,
+                career_role_id=role.id,
+                consent_accepted=True,
+                consent_purpose_version="v1",
+                status="completed",
+                readiness_score=99,
+                completed_at=datetime(2025, 1, 4),
+            ),
+        ]
+    )
+    db_session.flush()
+    db_session.add_all(
+        [
+            AnalysisSkillGap(
+                analysis_id=first_report.id,
+                skill_id=python_skill.id,
+                current_level=2,
+                target_level=4,
+                evidence="Built one Python project",
+                has_evidence=True,
+            ),
+            AnalysisSkillGap(
+                analysis_id=second_report.id,
+                skill_id=python_skill.id,
+                current_level=4,
+                target_level=4,
+                evidence="Built several Python projects",
+                has_evidence=True,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    response = client.get(
+        "/api/v1/dashboard/readiness-history", headers=headers
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert [point["score"] for point in data["points"]] == [60, 80]
+    assert [point["career_role_name"] for point in data["points"]] == [
+        "History Role",
+        "History Role",
+    ]
+    assert [point["skills"][0]["current_level"] for point in data["points"]] == [2, 4]
+    assert data["stats"] == {
+        "report_count": 2,
+        "latest_score": 80,
+        "previous_score": 60,
+        "change_since_first": 20,
+        "latest_change": 20,
+        "highest_score": 80,
+        "lowest_score": 60,
+        "trend": "improving",
+    }
+
+    other_response = client.get(
+        "/api/v1/dashboard/readiness-history", headers=other_headers
+    )
+    assert other_response.json()["data"]["stats"]["report_count"] == 1
+
+
+def test_readiness_history_empty_has_no_fabricated_statistics(client):
+    headers, _ = register_user(client, "no_readiness@example.com")
+    response = client.get(
+        "/api/v1/dashboard/readiness-history", headers=headers
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["points"] == []
+    assert data["stats"]["report_count"] == 0
+    assert data["stats"]["latest_score"] is None
+    assert data["stats"]["trend"] is None
+
+
+def test_readiness_history_requires_authentication(client):
+    response = client.get("/api/v1/dashboard/readiness-history")
+    assert response.status_code == 401
 
 
 def test_dashboard_summary_with_data(client, db_session):
@@ -246,6 +377,9 @@ def test_interview_history_endpoint(client, db_session):
     assert item["career_role_name"] == "Data Analyst"
     assert item["status"] == "completed"
     assert item["question_count"] == 1
+    assert item["answered_count"] == 1
+    assert item["total_score"] == 82.5
+    assert item["completed_at"] is not None
 
 
 def test_interview_history_pagination(client, db_session):
@@ -288,4 +422,48 @@ def test_interview_history_pagination(client, db_session):
     assert res4.status_code == 200
     d4 = res4.json()["data"]
     assert len(d4["items"]) == 0
+
+
+def test_interview_history_reports_real_statuses(client, db_session):
+    """Dashboard phải trả đúng trạng thái thật, không hardcode completed."""
+    headers, user_id = register_user(client, "status_user@example.com")
+    fixtures = setup_dashboard_fixture(db_session, user_id)
+    role = fixtures["role"]
+
+    db_session.add_all(
+        [
+            InterviewSession(
+                user_id=user_id,
+                career_role_id=role.id,
+                status="in_progress",
+            ),
+            InterviewSession(
+                user_id=user_id,
+                career_role_id=role.id,
+                status="abandoned",
+            ),
+            InterviewSession(
+                user_id=user_id,
+                career_role_id=role.id,
+                status="ready",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    res = client.get("/api/v1/dashboard/interview-history?page_size=10", headers=headers)
+    assert res.status_code == 200
+    items = res.json()["data"]["items"]
+    statuses = {item["status"] for item in items}
+
+    assert statuses == {"completed", "in_progress", "abandoned", "ready"}
+    assert all(item["answered_count"] >= 0 for item in items)
+    in_progress = next(item for item in items if item["status"] == "in_progress")
+    assert in_progress["total_score"] is None
+
+    # Không lộ phiên của người khác.
+    other_headers, _ = register_user(client, "status_other@example.com")
+    other_res = client.get("/api/v1/dashboard/interview-history", headers=other_headers)
+    assert other_res.status_code == 200
+    assert other_res.json()["data"]["total"] == 0
 

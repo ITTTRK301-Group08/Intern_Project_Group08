@@ -147,7 +147,8 @@
     course: 'Khóa học',
     video: 'Video',
     article: 'Bài viết',
-    practice: 'Thực hành'
+    practice: 'Thực hành',
+    project: 'Dự án'
   };
 
   function setStatus(message, isError) {
@@ -164,6 +165,16 @@
     if (!response.ok) throw new Error('Không thể tải dữ liệu khám phá lúc này.');
     var body = await response.json();
     return body.data || [];
+  }
+
+  async function getDataOrFallback(path, fallback, failedEndpoints) {
+    try {
+      return await getData(path);
+    } catch (error) {
+      failedEndpoints.push(path);
+      console.error('Unable to load explore data from ' + path + ':', error);
+      return fallback.slice();
+    }
   }
 
   function addEmptyState(container, message) {
@@ -360,6 +371,7 @@
 
   function renderRoles() {
     var container = $('roles');
+    container.hidden = false;
     var selectedCategory = $('categoryFilter').value;
     var selectedLevel = $('levelFilter') ? $('levelFilter').value : '';
     var selectedSkill = $('skillFilter') ? $('skillFilter').value : '';
@@ -448,6 +460,7 @@
 
   function renderSkills() {
     var container = $('skills');
+    container.hidden = false;
     var search = $('resourceSearch').value.trim().toLocaleLowerCase();
     var selectedSkill = $('skillFilter') ? $('skillFilter').value : '';
     var selectedCategory = $('categoryFilter') ? $('categoryFilter').value : '';
@@ -535,14 +548,22 @@
 
   function renderResources() {
     var container = $('resources');
+    container.hidden = false;
     var search = $('resourceSearch').value.trim().toLocaleLowerCase();
     var selectedSkill = $('skillFilter').value;
+    var selectedType = $('resourceTypeFilter').value;
+    var selectedRole = $('resourceRoleFilter').value;
 
     var filtered = resources.filter(function (resource) {
       var matchesSkill = !selectedSkill || String(resource.skill_id) === selectedSkill;
+      var matchesType = !selectedType || resource.resource_type === selectedType;
+      var matchesRole = !selectedRole || (resource.related_roles || []).some(function (role) {
+        return String(role.id) === selectedRole;
+      });
       var skillName = resource.skill ? resource.skill.name : '';
-      var searchable = (resource.title + ' ' + resource.provider + ' ' + skillName + ' ' + (resource.description || '')).toLocaleLowerCase();
-      return matchesSkill && (!search || searchable.includes(search));
+      var roleNames = (resource.related_roles || []).map(function (role) { return role.name; }).join(' ');
+      var searchable = (resource.title + ' ' + resource.provider + ' ' + skillName + ' ' + roleNames + ' ' + (resource.description || '')).toLocaleLowerCase();
+      return matchesSkill && matchesType && matchesRole && (!search || searchable.includes(search));
     });
 
     container.replaceChildren();
@@ -569,6 +590,12 @@
         skillBadge.textContent = resource.skill.name;
         tagsRow.appendChild(skillBadge);
       }
+      (resource.related_roles || []).forEach(function (role) {
+        var roleBadge = document.createElement('span');
+        roleBadge.className = 'badge badge-muted';
+        roleBadge.textContent = role.name;
+        tagsRow.appendChild(roleBadge);
+      });
 
       var priceBadge = document.createElement('span');
       priceBadge.className = 'badge ' + (resource.is_free ? 'badge-ok' : 'badge-warn');
@@ -641,36 +668,74 @@
         skillFilter.appendChild(option);
       });
     }
+
+    var resourceRoleFilter = $('resourceRoleFilter');
+    if (resourceRoleFilter) {
+      resourceRoleFilter.replaceChildren();
+      var allRoles = document.createElement('option');
+      allRoles.value = '';
+      allRoles.textContent = 'Tất cả vị trí';
+      resourceRoleFilter.appendChild(allRoles);
+      (rolesData || []).forEach(function (role) {
+        var option = document.createElement('option');
+        option.value = String(role.id);
+        option.textContent = role.name + (role.level ? ' · ' + role.level : '');
+        resourceRoleFilter.appendChild(option);
+      });
+    }
   }
 
   async function initialize() {
-    // 1. Nạp sẵn bộ danh mục chuẩn để giao diện luôn hiển thị đầy đủ, đẹp mắt ngay cả khi mở file trực tiếp
-    roles = DEFAULT_ROLES.slice();
-    skills = DEFAULT_SKILLS.slice();
-    resources = DEFAULT_RESOURCES.slice();
-    populateFilters(DEFAULT_CATEGORIES, roles, skills);
+    var isDirectMode = window.location.protocol === 'file:' ||
+      window.location.pathname.indexOf('/app/static/') !== -1 ||
+      !window.location.host;
+    if (isDirectMode) {
+      roles = DEFAULT_ROLES.slice();
+      skills = DEFAULT_SKILLS.slice();
+      resources = DEFAULT_RESOURCES.slice();
+      populateFilters(DEFAULT_CATEGORIES, roles, skills);
+      renderRoles();
+      renderSkills();
+      renderResources();
+      setLoading(false);
+      return;
+    }
+
+    roles = [];
+    skills = [];
+    resources = [];
     renderRoles();
     renderSkills();
     renderResources();
-    setLoading(false);
-
-    // 2. Đồng bộ ngầm với máy chủ backend nếu dịch vụ đang chạy
+    var failedEndpoints = [];
     try {
       var results = await Promise.all([
-        getData('/api/v1/catalog/categories'),
-        getData('/api/v1/careers'),
-        getData('/api/v1/catalog/skills'),
-        getData('/api/v1/catalog/resources')
+        getDataOrFallback('/api/v1/catalog/categories', DEFAULT_CATEGORIES, failedEndpoints),
+        getDataOrFallback('/api/v1/careers', DEFAULT_ROLES, failedEndpoints),
+        getDataOrFallback('/api/v1/catalog/skills', DEFAULT_SKILLS, failedEndpoints),
+        getDataOrFallback('/api/v1/catalog/resources', DEFAULT_RESOURCES, failedEndpoints)
       ]);
-      if (Array.isArray(results[1]) && results[1].length) roles = results[1];
-      if (Array.isArray(results[2]) && results[2].length) skills = results[2];
-      if (Array.isArray(results[3]) && results[3].length) resources = results[3];
+      roles = Array.isArray(results[1]) ? results[1] : [];
+      skills = Array.isArray(results[2]) ? results[2] : [];
+      resources = Array.isArray(results[3]) ? results[3] : [];
       populateFilters(results[0], roles, skills);
       renderRoles();
       renderSkills();
       renderResources();
-    } catch (_offlineOrDirectFileOpen) {
-      // Khi mở trực tiếp không qua server, dữ liệu chuẩn vẫn hiển thị trọn vẹn
+
+      if (failedEndpoints.length) {
+        var resourcesUnavailable = failedEndpoints.indexOf('/api/v1/catalog/resources') !== -1;
+        setStatus(
+          resourcesUnavailable
+            ? 'Tài nguyên học tập từ máy chủ chưa khả dụng; đang hiển thị danh sách tham khảo dự phòng.'
+            : 'Một số dữ liệu khám phá chưa tải được; đang hiển thị dữ liệu tham khảo dự phòng.',
+          false
+        );
+      } else {
+        setStatus('');
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -688,6 +753,8 @@
     renderSkills();
     renderResources();
   });
+  $('resourceTypeFilter').addEventListener('change', renderResources);
+  $('resourceRoleFilter').addEventListener('change', renderResources);
   $('resourceSearch').addEventListener('input', function () {
     renderRoles();
     renderSkills();

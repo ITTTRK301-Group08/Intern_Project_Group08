@@ -1,0 +1,378 @@
+/* UI-07 — Phỏng vấn thử. Tái sử dụng biến và component từ profile.css. */
+
+.interview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  align-items: start;
+}
+
+.interview-main,
+.interview-side {
+  min-width: 0;
+}
+
+.interview-side .card {
+  position: sticky;
+  top: 18px;
+}
+
+.session-title-block {
+  min-width: 0;
+}
+
+.session-title-block h2 {
+  overflow-wrap: anywhere;
+}
+
+.progress-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-accent);
+}
+
+.progress-fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.3s ease;
+}
+
+.question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.question-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.question-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.question-order {
+  color: var(--primary-deep);
+  font-size: 0.9rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.question-text {
+  margin: 10px 0;
+  color: var(--text);
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.criteria {
+  margin-bottom: 12px;
+}
+
+.criteria ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.criteria li {
+  overflow-wrap: anywhere;
+}
+
+.answer-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.answer-label textarea {
+  min-height: 118px;
+  resize: vertical;
+}
+
+.answer-counter {
+  align-self: flex-end;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 450;
+}
+
+.answer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ai-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-deep);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.ai-loading::before {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(8, 124, 114, 0.24);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  content: "";
+  animation: interview-spin 0.8s linear infinite;
+}
+
+@keyframes interview-spin {
+  to { transform: rotate(360deg); }
+}
+
+.answer-result {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--ok-border);
+  border-radius: 12px;
+  background: var(--ok-bg);
+}
+
+.answer-result.is-error {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+
+.score-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.score-caption {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  font-weight: 550;
+}
+
+.feedback-text {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.completion-box {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid var(--ok-border);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(215, 237, 133, 0.28), transparent 48%),
+    var(--ok-bg);
+  text-align: center;
+}
+
+.completion-label {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.completion-score {
+  margin: 6px 0;
+  color: var(--primary-deep);
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 780;
+  letter-spacing: -0.04em;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 500;
+  text-align: left;
+}
+
+.history-item:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+}
+
+.history-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.history-role {
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.history-badge {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+}
+
+.history-meta {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 450;
+}
+
+.history-score {
+  display: block;
+  margin-top: 5px;
+  color: var(--primary-deep);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.history-empty {
+  margin: 0;
+  padding: 10px 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-align: center;
+}
+
+.consent-check {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+
+.consent-check span {
+  overflow-wrap: anywhere;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (max-width: 980px) {
+  .interview-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .interview-side .card {
+    position: static;
+  }
+}
+
+@media (max-width: 620px) {
+  .page-hero {
+    padding: 18px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .question-card {
+    padding: 13px;
+  }
+
+  .answer-actions,
+  .actions {
+    align-items: stretch;
+  }
+
+  .answer-actions button,
+  .actions button {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 375px) {
+  .interview-layout {
+    gap: 12px;
+  }
+
+  .card,
+  .question-card {
+    padding: 12px;
+  }
+
+  .answer-actions button {
+    width: 100%;
+  }
+
+  .score-row {
+    align-items: flex-start;
+  }
+
+  .history-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill,
+  .ai-loading::before {
+    transition: none;
+    animation: none;
+  }
+}

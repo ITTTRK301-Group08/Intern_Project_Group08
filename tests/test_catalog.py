@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from app import bootstrap_admin as bootstrap_admin_command
+from app.models.learning_resource import LearningResource
 from app.models.user import User
 from app.services.catalog_service import bootstrap_admin
 
@@ -111,13 +112,49 @@ def test_admin_can_manage_catalog_and_users_can_explore_it(client, db_session):
         },
     )
     assert resource_response.status_code == 201
+    resource_id = resource_response.json()["data"]["id"]
+    assert resource_response.json()["data"]["approval_status"] == "pending"
 
     roles = client.get("/api/v1/catalog/roles").json()["data"]
     assert roles[0]["required_skills"][0]["skill"]["name"] == "Python"
     resources = client.get(
         "/api/v1/catalog/resources", params={"skill_id": skill_id}
     ).json()["data"]
+    assert resources == []
+    assert client.get(f"/api/v1/catalog/resources/{resource_id}").status_code == 404
+
+    approval = client.patch(
+        f"/api/v1/admin/resources/{resource_id}/approval",
+        headers=headers,
+        json={"approval_status": "approved"},
+    )
+    assert approval.status_code == 200
+    assert approval.json()["data"]["approval_status"] == "approved"
+    assert approval.json()["data"]["related_roles"][0]["name"] == "Backend Developer"
+
+    resources = client.get(
+        "/api/v1/catalog/resources",
+        params={"skill_id": skill_id, "resource_type": "documentation", "role_id": role_response.json()["data"]["id"]},
+    ).json()["data"]
     assert resources[0]["title"] == "Python tutorial"
+    assert client.get(f"/api/v1/catalog/resources/{resource_id}").json()["data"]["url"] == "https://docs.python.org/3/tutorial/"
+
+    update = client.put(
+        f"/api/v1/admin/resources/{resource_id}",
+        headers=headers,
+        json={
+            "slug": "python-docs",
+            "skill_id": skill_id,
+            "title": "Python tutorial updated",
+            "provider": "Python",
+            "url": "https://docs.python.org/3/tutorial/",
+            "resource_type": "documentation",
+            "description": "Updated description",
+        },
+    )
+    assert update.status_code == 200
+    assert update.json()["data"]["approval_status"] == "pending"
+    assert client.get(f"/api/v1/catalog/resources/{resource_id}").status_code == 404
 
     hidden = client.post(
         "/api/v1/admin/resources",
@@ -140,6 +177,26 @@ def test_admin_can_manage_catalog_and_users_can_explore_it(client, db_session):
     assert admin_catalog["success"] is True
     admin_resources = admin_catalog["data"]["resources"]
     assert any(item["slug"] == "hidden-resource" for item in admin_resources)
+
+
+def test_student_cannot_review_resource(client, db_session):
+    student_token = register_and_get_token(client, email="resource-student@example.com")
+    resource = LearningResource(
+        slug="review-protected",
+        title="Review protected",
+        provider="Example",
+        url="https://example.com/resource",
+        resource_type="project",
+    )
+    db_session.add(resource)
+    db_session.commit()
+
+    response = client.patch(
+        f"/api/v1/admin/resources/{resource.id}/approval",
+        headers={"Authorization": f"Bearer {student_token}"},
+        json={"approval_status": "approved"},
+    )
+    assert response.status_code == 403
 
 
 def test_bootstrapped_admin_can_login_and_manage_catalog(client, db_session):

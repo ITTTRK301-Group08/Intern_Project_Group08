@@ -11,6 +11,7 @@ from app.schemas.catalog import (
     CategoryRead,
     CategoryWrite,
     LearningResourceRead,
+    LearningResourceReviewRequest,
     LearningResourceWrite,
     SkillRead,
     SkillWrite,
@@ -24,6 +25,9 @@ from app.services.catalog_service import (
     list_skills,
     save_career_role,
     update_item,
+    review_resource,
+    serialize_learning_resource,
+    update_learning_resource,
 )
 
 router = APIRouter(
@@ -44,8 +48,13 @@ def get_admin_catalog(db: DbSession):
             ],
             skills=[SkillRead.model_validate(item) for item in list_skills(db)],
             resources=[
-                LearningResourceRead.model_validate(item)
-                for item in list_resources(db, include_inactive=True, limit=200)
+                serialize_learning_resource(item)
+                for item in list_resources(
+                    db,
+                    include_inactive=True,
+                    include_unapproved=True,
+                    limit=200,
+                )
             ],
         ),
         message="Admin catalog retrieved",
@@ -129,13 +138,34 @@ def delete_skill(item_id: int, db: DbSession):
 )
 def create_resource(payload: LearningResourceWrite, db: DbSession):
     item = create_item(db, LearningResource, payload.model_dump())
-    return ApiResponse(data=item, message="Learning resource created")
+    return ApiResponse(
+        data=serialize_learning_resource(item), message="Learning resource created"
+    )
 
 
 @router.put("/resources/{item_id}", response_model=ApiResponse[LearningResourceRead])
 def update_resource(item_id: int, payload: LearningResourceWrite, db: DbSession):
-    item = update_item(db, LearningResource, item_id, payload.model_dump())
-    return ApiResponse(data=item, message="Learning resource updated")
+    item = update_learning_resource(
+        db, resource_id=item_id, values=payload.model_dump()
+    )
+    return ApiResponse(
+        data=serialize_learning_resource(item), message="Learning resource updated"
+    )
+
+
+@router.patch(
+    "/resources/{item_id}/approval",
+    response_model=ApiResponse[LearningResourceRead],
+)
+def update_resource_approval(
+    item_id: int, payload: LearningResourceReviewRequest, db: DbSession
+):
+    item = review_resource(
+        db, resource_id=item_id, approval_status=payload.approval_status
+    )
+    return ApiResponse(
+        data=serialize_learning_resource(item), message="Learning resource reviewed"
+    )
 
 
 @router.delete(

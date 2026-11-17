@@ -4,12 +4,12 @@ from typing import TypeVar
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.career import CareerCategory, CareerRole, Skill
 from app.models.learning_resource import LearningResource
 from app.models.profile_data import CareerRoleSkill
-from app.schemas.catalog import CareerRoleWrite
+from app.schemas.catalog import CareerRoleWrite, LearningResourceRead
 
 ModelT = TypeVar("ModelT", CareerCategory, CareerRole, Skill, LearningResource)
 
@@ -108,13 +108,32 @@ def list_resources(
     db: Session,
     *,
     skill_id: int | None = None,
+    role_id: int | None = None,
     search: str | None = None,
+    resource_type: str | None = None,
     include_inactive: bool = False,
+    include_unapproved: bool = False,
     limit: int = 100,
 ) -> Sequence[LearningResource]:
-    query = select(LearningResource).options(joinedload(LearningResource.skill))
+    query = select(LearningResource).options(
+        joinedload(LearningResource.skill)
+        .selectinload(Skill.career_roles)
+        .joinedload(CareerRoleSkill.career_role)
+    )
     if skill_id is not None:
         query = query.where(LearningResource.skill_id == skill_id)
+    if role_id is not None:
+        role_skill_ids = (
+            select(CareerRoleSkill.skill_id)
+            .join(CareerRole, CareerRole.id == CareerRoleSkill.career_role_id)
+            .where(
+                CareerRole.id == role_id,
+                CareerRole.is_active.is_(True),
+            )
+        )
+        query = query.where(LearningResource.skill_id.in_(role_skill_ids))
+    if resource_type:
+        query = query.where(LearningResource.resource_type == resource_type)
     if search:
         term = f"%{search.strip()}%"
         query = query.where(
@@ -124,9 +143,75 @@ def list_resources(
         )
     if not include_inactive:
         query = query.where(LearningResource.is_active.is_(True))
+    if not include_unapproved:
+        query = query.where(LearningResource.approval_status == "approved")
     return db.scalars(
         query.order_by(LearningResource.title).limit(limit)
     ).all()
+
+
+def serialize_learning_resource(resource: LearningResource) -> dict:
+    data = LearningResourceRead.model_validate(resource).model_dump()
+    data["related_roles"] = [
+        {"id": role.id, "name": role.name, "level": role.level}
+        for role_link in (resource.skill.career_roles if resource.skill else [])
+        if (role := role_link.career_role) is not None and role.is_active
+    ]
+    return data
+
+
+def get_approved_resource(db: Session, resource_id: int) -> LearningResource:
+    resource = db.scalar(
+        select(LearningResource)
+        .options(
+            joinedload(LearningResource.skill)
+            .selectinload(Skill.career_roles)
+            .joinedload(CareerRoleSkill.career_role)
+        )
+        .where(
+            LearningResource.id == resource_id,
+            LearningResource.is_active.is_(True),
+            LearningResource.approval_status == "approved",
+        )
+    )
+    if resource is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Learning resource not found",
+        )
+    return resource
+
+
+def review_resource(
+    db: Session, *, resource_id: int, approval_status: str
+) -> LearningResource:
+    resource = db.get(LearningResource, resource_id)
+    if resource is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Learning resource not found",
+        )
+    resource.approval_status = approval_status
+    _commit(db, "review learning resource")
+    db.refresh(resource)
+    return resource
+
+
+def update_learning_resource(
+    db: Session, *, resource_id: int, values: dict
+) -> LearningResource:
+    resource = db.get(LearningResource, resource_id)
+    if resource is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Learning resource not found",
+        )
+    for key, value in values.items():
+        setattr(resource, key, value)
+    resource.approval_status = "pending"
+    _commit(db, "update learning resource")
+    db.refresh(resource)
+    return resource
 
 
 def _commit(db: Session, operation: str) -> None:

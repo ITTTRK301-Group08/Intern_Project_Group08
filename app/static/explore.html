@@ -38,6 +38,7 @@
         <a href="/profile">Hồ sơ</a>
         <a href="/cv">CV của tôi</a>
         <a href="/analysis">Phân tích kỹ năng</a>
+        <a href="/interview">Phỏng vấn</a>
         <a href="/roadmap">Lộ trình 30 ngày</a>
         <a href="/dashboard">Dashboard</a>
       </nav>
@@ -132,6 +133,22 @@
             <option value="12">Git</option>
           </select>
         </label>
+        <label>Loại tài nguyên
+          <select id="resourceTypeFilter">
+            <option value="">Tất cả loại tài nguyên</option>
+            <option value="course">Khóa học</option>
+            <option value="article">Bài viết</option>
+            <option value="project">Dự án</option>
+            <option value="practice">Thực hành</option>
+            <option value="documentation">Tài liệu</option>
+            <option value="video">Video</option>
+          </select>
+        </label>
+        <label>Vị trí nghề nghiệp
+          <select id="resourceRoleFilter">
+            <option value="">Tất cả vị trí</option>
+          </select>
+        </label>
         <label class="search-label">Tìm kiếm
           <input id="resourceSearch" type="search" maxlength="100" placeholder="Tìm vị trí, kỹ năng, khóa học..." />
         </label>
@@ -153,9 +170,9 @@
           <h2 id="rolesHeading">Vị trí nghề nghiệp</h2>
           <p class="muted small section-sub">Chọn một vị trí để xem bảng kỹ năng chuẩn và mức thành thạo cần đạt.</p>
         </div>
-        <span id="roleCount" class="count-pill">6 vị trí</span>
+        <span id="roleCount" class="count-pill">—</span>
       </div>
-      <div id="roles" class="explore-grid">
+      <div id="roles" class="explore-grid" hidden>
         <article class="explore-card">
           <div class="role-card-header">
             <h3>Data Analyst</h3>
@@ -307,9 +324,9 @@
           <h2 id="skillsHeading">Thư viện kỹ năng</h2>
           <p class="muted small section-sub">Nhấn vào một kỹ năng để lọc nhanh tài liệu học tập và các vị trí liên quan.</p>
         </div>
-        <span id="skillCount" class="count-pill">14 kỹ năng</span>
+        <span id="skillCount" class="count-pill">—</span>
       </div>
-      <div id="skills" class="explore-grid skills-grid">
+      <div id="skills" class="explore-grid skills-grid" hidden>
         <article class="explore-card is-clickable" tabindex="0">
           <h3>Python</h3>
           <p class="resource-meta">Ngôn ngữ lập trình</p>
@@ -355,9 +372,9 @@
           <h2 id="resourcesHeading">Tài nguyên học tập</h2>
           <p class="muted small section-sub">Khóa học, tài liệu chính thống và bài thực hành được chọn lọc theo từng kỹ năng.</p>
         </div>
-        <span id="resourceCount" class="count-pill">10 tài nguyên</span>
+        <span id="resourceCount" class="count-pill">—</span>
       </div>
-      <div id="resources" class="explore-grid">
+      <div id="resources" class="explore-grid" hidden>
         <article class="explore-card">
           <span class="resource-type-tag">Tài liệu</span>
           <h3>Python Tutorial for Beginners</h3>
