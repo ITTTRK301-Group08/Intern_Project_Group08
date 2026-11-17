@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 
-from app.core.deps import DbSession, require_admin
+from app.core.deps import CurrentUser, DbSession, require_admin
 from app.models.career import CareerCategory, CareerRole, Skill
 from app.models.learning_resource import LearningResource
+from app.models.user import User
 from app.schemas.auth import ApiResponse
 from app.schemas.catalog import (
     AdminCatalogData,
@@ -15,6 +17,7 @@ from app.schemas.catalog import (
     SkillRead,
     SkillWrite,
 )
+from app.schemas.user import UserResponse, UserStatusUpdate
 from app.services.catalog_service import (
     create_item,
     delete_item,
@@ -31,6 +34,38 @@ router = APIRouter(
     tags=["admin"],
     dependencies=[Depends(require_admin)],
 )
+
+
+@router.get("/users", response_model=ApiResponse[list[UserResponse]])
+def list_users(db: DbSession):
+    users = db.scalars(select(User).order_by(User.id)).all()
+    return ApiResponse(data=users, message="Users retrieved")
+
+
+@router.put(
+    "/users/{user_id}/status", response_model=ApiResponse[UserResponse]
+)
+def update_user_status(
+    user_id: int,
+    payload: UserStatusUpdate,
+    db: DbSession,
+    current_user: CurrentUser,
+):
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+    if user.id == current_user.id and not payload.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot lock your own account",
+        )
+
+    user.is_active = payload.is_active
+    db.commit()
+    db.refresh(user)
+    return ApiResponse(data=user, message="User status updated")
 
 
 @router.get("/catalog", response_model=ApiResponse[AdminCatalogData])

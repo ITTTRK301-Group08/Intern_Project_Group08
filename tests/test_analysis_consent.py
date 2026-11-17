@@ -1,6 +1,8 @@
 import fitz
+from sqlalchemy import select
 
 from app.models.cv import CV
+from app.models.user import User
 from app.services import ai_service, analysis_service
 
 
@@ -157,8 +159,62 @@ def test_valid_consent_without_cv_returns_501(client, monkeypatch):
     headers = register_and_login(client)
     calls = _install_ai_spy(monkeypatch)
     res = client.post("/api/v1/analyses", headers=headers, json=valid_payload())
-    assert res.status_code == 501
-    assert res.json()["detail"]["data"]["code"] == "ANALYSIS_PIPELINE_NOT_IMPLEMENTED"
+    assert res.status_code == 400
+    assert res.json()["detail"]["data"]["code"] == "PROFILE_DATA_REQUIRED"
+    assert calls == []
+
+
+def test_empty_profile_rejected_when_cv_is_not_selected(client, monkeypatch):
+    headers = register_and_login(client)
+    profile = client.put(
+        "/api/v1/profile/me",
+        headers=headers,
+        json={"full_name": "Student"},
+    )
+    assert profile.status_code == 200
+    calls = _install_ai_spy(monkeypatch)
+
+    response = client.post(
+        "/api/v1/analyses", headers=headers, json=valid_payload()
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["data"]["code"] == "PROFILE_DATA_REQUIRED"
+    assert calls == []
+
+
+def test_profile_data_enables_fallback_context_and_preserves_pipeline_gate(
+    client, db_session, monkeypatch
+):
+    email = "profile_fallback@example.com"
+    headers = register_and_login(client, email)
+    profile_response = client.put(
+        "/api/v1/profile/me",
+        headers=headers,
+        json={
+            "full_name": "Student",
+            "strengths": ["Problem solving"],
+            "self_assessed_skills": [{"skill_name": "Python", "level": 4}],
+            "career_goal": "Backend developer",
+            "bio": "Interested in APIs",
+        },
+    )
+    assert profile_response.status_code == 200
+    user = db_session.scalar(select(User).where(User.email == email))
+    context = analysis_service.build_profile_analysis_context(
+        db_session, user_id=user.id
+    )
+    assert context["strengths"] == ["Problem solving"]
+    assert context["self_assessed_skills"] == [{"skill_name": "Python", "level": 4}]
+    assert context["career_goal"] == "Backend developer"
+    assert context["bio"] == "Interested in APIs"
+
+    calls = _install_ai_spy(monkeypatch)
+    response = client.post(
+        "/api/v1/analyses", headers=headers, json=valid_payload()
+    )
+    assert response.status_code == 501
+    assert response.json()["detail"]["data"]["code"] == "ANALYSIS_PIPELINE_NOT_IMPLEMENTED"
     assert calls == []
 
 

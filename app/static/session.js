@@ -53,6 +53,8 @@
     'Email already registered': 'Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.',
     'Incorrect email or password': 'Email hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.',
     'Account is inactive': 'Tài khoản của bạn hiện đang tạm khóa. Vui lòng liên hệ quản trị viên.',
+    'You cannot lock your own account': 'Bạn không thể khóa chính tài khoản đang đăng nhập.',
+    'User not found': 'Không tìm thấy người dùng yêu cầu.',
     'Token has expired': 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
     'Could not validate credentials': 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.',
     'Not authenticated': 'Bạn cần đăng nhập để thực hiện thao tác này.',
@@ -246,7 +248,7 @@
       if (token && token !== 'demo_student_token') {
         fetch('/api/v1/auth/me', { headers: { Authorization: 'Bearer ' + token } })
           .then(function (res) {
-            if (res.status === 401) {
+            if (res.status === 401 || res.status === 403) {
               clearToken();
               if (requiresAuth) {
                 window.location.replace(loginUrl());

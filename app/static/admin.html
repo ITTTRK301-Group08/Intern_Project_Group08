@@ -97,6 +97,9 @@
       <button type="button" class="admin-tab-btn" data-tab="resources">
         <span>📚</span> Tài nguyên học tập
       </button>
+      <button type="button" class="admin-tab-btn" data-tab="users">
+        <span>👥</span> Người dùng
+      </button>
     </div>
 
     <!-- TAB 1: CAREER ROLES -->
@@ -194,6 +197,26 @@
             </tr>
           </thead>
           <tbody id="resourcesTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tabContentUsers" class="admin-tab-content" style="display: none;">
+      <div class="admin-section-toolbar">
+        <input type="search" id="searchUsersInput" class="admin-search-input" placeholder="Tìm theo email hoặc vai trò..." />
+      </div>
+      <div class="admin-table-card">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Email</th>
+              <th>Vai trò</th>
+              <th>Trạng thái</th>
+              <th style="text-align: right;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody"></tbody>
         </table>
       </div>
     </div>

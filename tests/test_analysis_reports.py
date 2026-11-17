@@ -1,3 +1,5 @@
+from datetime import date
+
 from sqlalchemy import select
 
 from app.models.analysis import Analysis, AnalysisSkillGap
@@ -27,6 +29,12 @@ def make_analysis(db_session, *, user_id: int, role_id: int, status: str):
         consent_purpose_version="v1",
         status=status,
         readiness_score=85 if status == "completed" else None,
+        market_source=(
+            "Benchmark tham chiếu (danh mục kỹ năng/vị trí nội bộ)"
+            if status == "completed"
+            else None
+        ),
+        benchmark_date=date(2026, 11, 9) if status == "completed" else None,
         summary="Tổng quan kỹ năng",
     )
     db_session.add(analysis)
@@ -97,6 +105,10 @@ def test_history_report_skills_status_and_owner_filter(client, db_session):
     assert report.status_code == 200
     assert report.json()["data"]["readiness_score"] == 85
     assert report.json()["data"]["career_role_name"] == "Backend Developer"
+    assert report.json()["data"]["market_source"] == (
+        "Benchmark tham chiếu (danh mục kỹ năng/vị trí nội bộ)"
+    )
+    assert report.json()["data"]["benchmark_date"] == "2026-11-09"
 
     skills = client.get(
         f"/api/v1/analyses/{completed.id}/skills", headers=headers_a

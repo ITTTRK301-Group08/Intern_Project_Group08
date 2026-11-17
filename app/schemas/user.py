@@ -3,6 +3,10 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
