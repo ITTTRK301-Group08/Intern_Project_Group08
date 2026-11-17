@@ -3,62 +3,415 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Khám phá nghề nghiệp, kỹ năng và tài nguyên học tập miễn phí." />
-  <title>Khám phá nghề nghiệp</title>
+  <meta name="description" content="Khám phá vị trí nghề nghiệp, kỹ năng cần thiết và tài nguyên học tập phù hợp." />
+  <meta name="theme-color" content="#f2f7f5" />
+  <title>La Bàn Nghề Nghiệp — Khám phá</title>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<link rel="stylesheet" href="./profile.css">');
+      document.write('<link rel="stylesheet" href="./explore.css">');
+    }
+  </script>
   <link rel="stylesheet" href="/static/profile.css" />
   <link rel="stylesheet" href="/static/explore.css" />
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./session.js"><\/script>');
+    }
+  </script>
+  <script src="/static/session.js"></script>
 </head>
 <body>
   <main class="container">
-    <header class="header">
-      <p class="eyebrow">AI CAREER MENTOR</p>
-      <h1>Khám phá nghề nghiệp</h1>
-      <p class="muted">Tìm hiểu các vị trí, kỹ năng cần thiết và tài nguyên học tập để bắt đầu.</p>
+    <header class="topbar">
+      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+            <path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="brand-name">la bàn<span>.</span></span>
+      </a>
       <nav class="site-nav" aria-label="Điều hướng">
         <a href="/explore" aria-current="page">Khám phá</a>
         <a href="/profile">Hồ sơ</a>
-        <a href="/cv">CV</a>
-        <a href="/docs">API</a>
+        <a href="/cv">CV của tôi</a>
+        <a href="/analysis">Phân tích kỹ năng</a>
+        <a href="/roadmap">Lộ trình 30 ngày</a>
+        <a href="/dashboard">Dashboard</a>
       </nav>
     </header>
 
-    <div id="status" class="status" role="status" aria-live="polite">Đang tải dữ liệu nghề nghiệp...</div>
-    <section class="filter-bar" aria-label="Lọc dữ liệu">
-      <label>Nhóm nghề nghiệp
-        <select id="categoryFilter"><option value="">Tất cả nhóm nghề</option></select>
-      </label>
-      <label>Kỹ năng
-        <select id="skillFilter"><option value="">Tất cả kỹ năng</option></select>
-      </label>
-      <label class="search-label">Tìm tài nguyên
-        <input id="resourceSearch" type="search" maxlength="100" placeholder="Tên khóa học, kỹ năng..." />
-      </label>
+    <section class="explore-hero" aria-labelledby="pageTitle">
+      <div class="hero-copy">
+        <p class="eyebrow">Bắt đầu từ điều bạn tò mò</p>
+        <h1 id="pageTitle">Con đường nghề nghiệp của bạn bắt đầu từ đây.</h1>
+        <p class="hero-intro">Khám phá nghề, nhìn rõ kỹ năng cần có, rồi chọn bước tiếp theo phù hợp với mình.</p>
+        <div class="hero-cta-row">
+          <a class="hero-action" href="#rolesHeading">Tìm hiểu các vị trí</a>
+          <a class="hero-action hero-action-secondary" href="/analysis">Kiểm tra mức sẵn sàng →</a>
+        </div>
+        <p class="hero-note">Không cần biết sẵn đích đến. Cứ bắt đầu bằng một câu hỏi.</p>
+      </div>
+      <figure class="route-map" aria-label="Minh họa hành trình từ kỹ năng đến nghề nghiệp">
+        <svg class="route-drawing" viewBox="0 0 520 340" fill="none" aria-hidden="true">
+          <path class="map-contour" d="M-10 89c62-72 129-40 178-12s105 20 154-22S430 9 530 46M-12 126c73-66 125-24 177 2s107 19 157-18 105-48 205-17M-8 269c75 22 128-10 180-47s109-53 164-23 111 42 184-8" />
+          <path class="route-line" d="M36 252c50 0 55-86 117-86 56 0 58 67 114 67 54 0 58-112 118-112 34 0 43 33 91 33" />
+          <circle class="route-halo" cx="153" cy="166" r="13" />
+          <circle class="route-point" cx="153" cy="166" r="6" />
+          <circle class="route-halo" cx="267" cy="233" r="13" />
+          <circle class="route-point" cx="267" cy="233" r="6" />
+          <circle class="route-halo route-destination" cx="385" cy="121" r="17" />
+          <circle class="route-point route-point-destination" cx="385" cy="121" r="7" />
+          <path class="north-star" d="m456 64 6 14 14 6-14 6-6 14-6-14-14-6 14-6 6-14Z" />
+        </svg>
+        <span class="map-label map-label-start">Điều bạn biết</span>
+        <span class="map-label map-label-middle">Kỹ năng mới</span>
+        <span class="map-label map-label-end">Nghề phù hợp</span>
+        <figcaption>Mỗi lựa chọn mở ra một hướng đi.</figcaption>
+      </figure>
     </section>
 
-    <section aria-labelledby="rolesHeading">
-      <div class="section-heading">
-        <h2 id="rolesHeading">Vị trí nghề nghiệp</h2>
-        <span id="roleCount" class="muted"></span>
-      </div>
-      <div id="roles" class="explore-grid"></div>
+    <section class="journey-strip" aria-label="Quy trình định hướng">
+      <a class="journey-step" href="#rolesHeading">
+        <span class="step-num">01</span>
+        <div>
+          <strong>Chọn vị trí quan tâm</strong>
+          <span>Xem bộ kỹ năng chuẩn từ Intern đến Junior</span>
+        </div>
+      </a>
+      <a class="journey-step" href="/cv">
+        <span class="step-num">02</span>
+        <div>
+          <strong>Cập nhật Hồ sơ &amp; CV</strong>
+          <span>Tải lên CV PDF hoặc tự đánh giá kỹ năng</span>
+        </div>
+      </a>
+      <a class="journey-step" href="/analysis">
+        <span class="step-num">03</span>
+        <div>
+          <strong>Đánh giá khoảng cách</strong>
+          <span>Nhận gợi ý tài nguyên học tập phù hợp</span>
+        </div>
+      </a>
     </section>
 
-    <section aria-labelledby="skillsHeading">
-      <div class="section-heading">
-        <h2 id="skillsHeading">Thư viện kỹ năng</h2>
-        <span id="skillCount" class="muted"></span>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="loading" class="loading">Đang tải danh mục nghề nghiệp...</div>
+
+    <section class="filter-panel" aria-label="Lọc và tìm kiếm">
+      <div class="filter-bar">
+        <label>Nhóm nghề nghiệp
+          <select id="categoryFilter">
+            <option value="">Tất cả nhóm nghề</option>
+            <option value="1">Data &amp; AI</option>
+            <option value="2">Software Development</option>
+            <option value="3">Cloud &amp; DevOps</option>
+            <option value="4">Product &amp; Design</option>
+          </select>
+        </label>
+        <label>Cấp độ
+          <select id="levelFilter">
+            <option value="">Tất cả cấp độ</option>
+            <option value="Intern">Intern</option>
+            <option value="Fresher">Fresher</option>
+            <option value="Junior">Junior</option>
+          </select>
+        </label>
+        <label>Kỹ năng
+          <select id="skillFilter">
+            <option value="">Tất cả kỹ năng</option>
+            <option value="1">Python</option>
+            <option value="2">SQL</option>
+            <option value="3">JavaScript</option>
+            <option value="4">React</option>
+            <option value="5">FastAPI</option>
+            <option value="8">Data Visualization</option>
+            <option value="9">Docker</option>
+            <option value="12">Git</option>
+          </select>
+        </label>
+        <label class="search-label">Tìm kiếm
+          <input id="resourceSearch" type="search" maxlength="100" placeholder="Tìm vị trí, kỹ năng, khóa học..." />
+        </label>
       </div>
-      <div id="skills" class="explore-grid"></div>
+      <div class="filter-meta-row">
+        <div class="view-tabs" role="tablist" aria-label="Chọn khu vực hiển thị">
+          <button type="button" class="view-tab is-active" data-view="all" role="tab" aria-selected="true">Tất cả</button>
+          <button type="button" class="view-tab" data-view="roles" role="tab" aria-selected="false">Vị trí nghề nghiệp</button>
+          <button type="button" class="view-tab" data-view="skills" role="tab" aria-selected="false">Thư viện kỹ năng</button>
+          <button type="button" class="view-tab" data-view="resources" role="tab" aria-selected="false">Tài nguyên học tập</button>
+        </div>
+        <button id="resetFilters" type="button" class="ghost small hidden">Xóa bộ lọc</button>
+      </div>
     </section>
 
-    <section aria-labelledby="resourcesHeading">
+    <section id="rolesSection" aria-labelledby="rolesHeading">
       <div class="section-heading">
-        <h2 id="resourcesHeading">Tài nguyên học tập</h2>
-        <span id="resourceCount" class="muted"></span>
+        <div>
+          <h2 id="rolesHeading">Vị trí nghề nghiệp</h2>
+          <p class="muted small section-sub">Chọn một vị trí để xem bảng kỹ năng chuẩn và mức thành thạo cần đạt.</p>
+        </div>
+        <span id="roleCount" class="count-pill">6 vị trí</span>
       </div>
-      <div id="resources" class="explore-grid"></div>
+      <div id="roles" class="explore-grid">
+        <article class="explore-card">
+          <div class="role-card-header">
+            <h3>Data Analyst</h3>
+            <span class="level-badge level-intern">Intern</span>
+          </div>
+          <p class="resource-meta">Data &amp; AI</p>
+          <p>Thu thập, làm sạch và phân tích dữ liệu; trực quan hóa thông tin chi tiết bằng biểu đồ và dashboard.</p>
+          <ul class="pill-list">
+            <li class="pill">Python · 3/5</li>
+            <li class="pill">SQL · 4/5</li>
+            <li class="pill">Data Visualization · 3/5</li>
+            <li class="pill">Git · 3/5</li>
+          </ul>
+          <div class="card-actions-row">
+            <button type="button" class="secondary small" onclick="window.location.href='#roleDetailSection'">Xem chuẩn kỹ năng</button>
+            <a class="btn-link small" href="/analysis?career_role_id=1">Phân tích →</a>
+          </div>
+        </article>
+
+        <article class="explore-card">
+          <div class="role-card-header">
+            <h3>Frontend Developer</h3>
+            <span class="level-badge level-fresher">Fresher</span>
+          </div>
+          <p class="resource-meta">Software Development</p>
+          <p>Phát triển giao diện web hiện đại, tối ưu trải nghiệm người dùng và tương thích thiết bị.</p>
+          <ul class="pill-list">
+            <li class="pill">JavaScript · 4/5</li>
+            <li class="pill">React · 3/5</li>
+            <li class="pill">HTML/CSS · 4/5</li>
+          </ul>
+          <div class="card-actions-row">
+            <button type="button" class="secondary small" onclick="window.location.href='#roleDetailSection'">Xem chuẩn kỹ năng</button>
+            <a class="btn-link small" href="/analysis?career_role_id=2">Phân tích →</a>
+          </div>
+        </article>
+
+        <article class="explore-card">
+          <div class="role-card-header">
+            <h3>Backend Developer</h3>
+            <span class="level-badge level-fresher">Fresher</span>
+          </div>
+          <p class="resource-meta">Software Development</p>
+          <p>Thiết kế cơ sở dữ liệu, xây dựng RESTful API và xử lý nghiệp vụ bảo mật hệ thống.</p>
+          <ul class="pill-list">
+            <li class="pill">Python · 4/5</li>
+            <li class="pill">FastAPI · 3/5</li>
+            <li class="pill">SQL · 4/5</li>
+          </ul>
+          <div class="card-actions-row">
+            <button type="button" class="secondary small" onclick="window.location.href='#roleDetailSection'">Xem chuẩn kỹ năng</button>
+            <a class="btn-link small" href="/analysis?career_role_id=3">Phân tích →</a>
+          </div>
+        </article>
+
+        <article class="explore-card">
+          <div class="role-card-header">
+            <h3>AI / Machine Learning Engineer</h3>
+            <span class="level-badge level-intern">Intern</span>
+          </div>
+          <p class="resource-meta">Data &amp; AI</p>
+          <p>Nghiên cứu và huấn luyện các mô hình học máy, tiền xử lý dữ liệu và tích hợp API mô hình.</p>
+          <ul class="pill-list">
+            <li class="pill">Python · 4/5</li>
+            <li class="pill">Machine Learning Basics · 3/5</li>
+          </ul>
+          <div class="card-actions-row">
+            <button type="button" class="secondary small" onclick="window.location.href='#roleDetailSection'">Xem chuẩn kỹ năng</button>
+            <a class="btn-link small" href="/analysis?career_role_id=4">Phân tích →</a>
+          </div>
+        </article>
+
+        <article class="explore-card">
+          <div class="role-card-header">
+            <h3>DevOps Engineer</h3>
+            <span class="level-badge level-fresher">Fresher</span>
+          </div>
+          <p class="resource-meta">Cloud &amp; DevOps</p>
+          <p>Tự động hóa triển khai, quản lý container Docker và thiết lập đường ống CI/CD ổn định.</p>
+          <ul class="pill-list">
+            <li class="pill">Docker · 3/5</li>
+            <li class="pill">Linux Basics · 4/5</li>
+            <li class="pill">Git · 3/5</li>
+          </ul>
+          <div class="card-actions-row">
+            <button type="button" class="secondary small" onclick="window.location.href='#roleDetailSection'">Xem chuẩn kỹ năng</button>
+            <a class="btn-link small" href="/analysis?career_role_id=5">Phân tích →</a>
+          </div>
+        </article>
+
+        <article class="explore-card">
+          <div class="role-card-header">
+            <h3>Product Owner</h3>
+            <span class="level-badge level-intern">Intern</span>
+          </div>
+          <p class="resource-meta">Product &amp; Design</p>
+          <p>Làm việc với các bên liên quan, quản lý backlog sản phẩm và định hình trải nghiệm người dùng.</p>
+          <ul class="pill-list">
+            <li class="pill">Agile / Scrum · 3/5</li>
+            <li class="pill">Giao tiếp &amp; Thuyết trình · 4/5</li>
+          </ul>
+          <div class="card-actions-row">
+            <button type="button" class="secondary small" onclick="window.location.href='#roleDetailSection'">Xem chuẩn kỹ năng</button>
+            <a class="btn-link small" href="/analysis?career_role_id=6">Phân tích →</a>
+          </div>
+        </article>
+      </div>
     </section>
+
+    <section id="roleDetailSection" class="card role-detail-panel hidden" aria-labelledby="roleDetailTitle">
+      <div class="role-detail-header">
+        <div>
+          <div class="role-detail-badges">
+            <span id="roleDetailLevel" class="level-badge"></span>
+            <span id="roleDetailCategory" class="badge badge-info"></span>
+          </div>
+          <h2 id="roleDetailTitle">Chi tiết vị trí nghề nghiệp</h2>
+          <p id="roleDetailDesc" class="muted"></p>
+        </div>
+        <button id="closeRoleDetail" type="button" class="ghost small">Đóng</button>
+      </div>
+      <div id="roleDetailStatus" class="muted small"></div>
+      <div class="table-wrap">
+        <table class="data-table skills-detail-table">
+          <thead>
+            <tr>
+              <th>Kỹ năng yêu cầu</th>
+              <th>Phân loại</th>
+              <th>Mức cần đạt (0–5)</th>
+              <th>Độ ưu tiên</th>
+            </tr>
+          </thead>
+          <tbody id="roleDetailSkillsBody"></tbody>
+        </table>
+      </div>
+      <div id="roleDetailResources" class="detail-resources hidden">
+        <h3>Tài nguyên gợi ý cho vị trí này</h3>
+        <div id="roleDetailResourcesList" class="detail-resource-chips"></div>
+      </div>
+      <div class="role-actions">
+        <a id="roleAnalyzeLink" class="btn-link" href="/analysis">Phân tích kỹ năng theo vị trí này →</a>
+        <a class="btn-link secondary-link" href="/profile">Cập nhật hồ sơ cá nhân</a>
+      </div>
+    </section>
+
+    <section id="skillsSection" aria-labelledby="skillsHeading">
+      <div class="section-heading">
+        <div>
+          <h2 id="skillsHeading">Thư viện kỹ năng</h2>
+          <p class="muted small section-sub">Nhấn vào một kỹ năng để lọc nhanh tài liệu học tập và các vị trí liên quan.</p>
+        </div>
+        <span id="skillCount" class="count-pill">14 kỹ năng</span>
+      </div>
+      <div id="skills" class="explore-grid skills-grid">
+        <article class="explore-card is-clickable" tabindex="0">
+          <h3>Python</h3>
+          <p class="resource-meta">Ngôn ngữ lập trình</p>
+          <p>Cú pháp trong sáng, thư viện phong phú cho phân tích dữ liệu, tự động hóa và phát triển web.</p>
+          <span class="card-count-badge">2 tài nguyên</span>
+        </article>
+        <article class="explore-card is-clickable" tabindex="0">
+          <h3>SQL</h3>
+          <p class="resource-meta">Cơ sở dữ liệu</p>
+          <p>Truy vấn và quản trị dữ liệu quan hệ, tổng hợp chỉ số báo cáo và phân tích hành vi người dùng.</p>
+          <span class="card-count-badge">2 tài nguyên</span>
+        </article>
+        <article class="explore-card is-clickable" tabindex="0">
+          <h3>JavaScript</h3>
+          <p class="resource-meta">Ngôn ngữ lập trình</p>
+          <p>Ngôn ngữ cốt lõi xây dựng trải nghiệm tương tác động trên trình duyệt web và full-stack với Node.js.</p>
+          <span class="card-count-badge">1 tài nguyên</span>
+        </article>
+        <article class="explore-card is-clickable" tabindex="0">
+          <h3>React</h3>
+          <p class="resource-meta">Frontend Framework</p>
+          <p>Thư viện UI phổ biến dạng component-based, quản lý state và xây dựng ứng dụng Single Page App.</p>
+          <span class="card-count-badge">1 tài nguyên</span>
+        </article>
+        <article class="explore-card is-clickable" tabindex="0">
+          <h3>FastAPI</h3>
+          <p class="resource-meta">Backend Framework</p>
+          <p>Framework web Python hiện đại, hiệu năng cao, tự động sinh tài liệu chuẩn API.</p>
+          <span class="card-count-badge">1 tài nguyên</span>
+        </article>
+        <article class="explore-card is-clickable" tabindex="0">
+          <h3>Data Visualization</h3>
+          <p class="resource-meta">Phân tích &amp; Thống kê</p>
+          <p>Trực quan hóa dữ liệu bằng Matplotlib, Seaborn, Power BI để kể câu chuyện từ dữ liệu.</p>
+          <span class="card-count-badge">1 tài nguyên</span>
+        </article>
+      </div>
+    </section>
+
+    <section id="resourcesSection" aria-labelledby="resourcesHeading">
+      <div class="section-heading">
+        <div>
+          <h2 id="resourcesHeading">Tài nguyên học tập</h2>
+          <p class="muted small section-sub">Khóa học, tài liệu chính thống và bài thực hành được chọn lọc theo từng kỹ năng.</p>
+        </div>
+        <span id="resourceCount" class="count-pill">10 tài nguyên</span>
+      </div>
+      <div id="resources" class="explore-grid">
+        <article class="explore-card">
+          <span class="resource-type-tag">Tài liệu</span>
+          <h3>Python Tutorial for Beginners</h3>
+          <p class="resource-meta">Python · Cơ bản</p>
+          <p>Hướng dẫn chính thức từ Python Software Foundation, bao gồm cấu trúc dữ liệu và hướng đối tượng.</p>
+          <div class="card-actions-row">
+            <a class="resource-link-btn" href="https://docs.python.org/3/tutorial/" target="_blank" rel="noopener noreferrer">Mở tài liệu ↗</a>
+          </div>
+        </article>
+        <article class="explore-card">
+          <span class="resource-type-tag">Thực hành</span>
+          <h3>SQLBolt — Interactive SQL Lessons</h3>
+          <p class="resource-meta">SQL · Tương tác</p>
+          <p>Học SQL qua các bài tập tương tác chạy trực tiếp trên trình duyệt từ SELECT đơn giản đến JOIN phức tạp.</p>
+          <div class="card-actions-row">
+            <a class="resource-link-btn" href="https://sqlbolt.com/" target="_blank" rel="noopener noreferrer">Mở bài tập ↗</a>
+          </div>
+        </article>
+        <article class="explore-card">
+          <span class="resource-type-tag">Tài liệu</span>
+          <h3>FastAPI Tutorial — User Guide</h3>
+          <p class="resource-meta">FastAPI · Chính thức</p>
+          <p>Tài liệu hướng dẫn từng bước xây dựng API hiện đại với type hints, dependency injection và Pydantic.</p>
+          <div class="card-actions-row">
+            <a class="resource-link-btn" href="https://fastapi.tiangolo.com/tutorial/" target="_blank" rel="noopener noreferrer">Mở tài liệu ↗</a>
+          </div>
+        </article>
+        <article class="explore-card">
+          <span class="resource-type-tag">Khóa học</span>
+          <h3>React Official Docs: Quick Start</h3>
+          <p class="resource-meta">React · Cơ bản</p>
+          <p>Tài liệu chính thức mới nhất về tư duy React, hooks, component props và rendering lifecycle.</p>
+          <div class="card-actions-row">
+            <a class="resource-link-btn" href="https://react.dev/learn" target="_blank" rel="noopener noreferrer">Mở tài liệu ↗</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <span>la bàn. — Định hướng kỹ năng nghề nghiệp dành cho sinh viên</span>
+      <div class="footer-links">
+        <a href="/explore">Khám phá</a>
+        <a href="/profile">Hồ sơ</a>
+        <a href="/cv">CV của tôi</a>
+        <a href="/analysis">Phân tích kỹ năng</a>
+      </div>
+    </footer>
   </main>
+  <script>
+    if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
+      document.write('<script src="./explore.js"><\/script>');
+    }
+  </script>
   <script src="/static/explore.js"></script>
 </body>
 </html>
