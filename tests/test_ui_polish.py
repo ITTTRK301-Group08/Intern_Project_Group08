@@ -43,4 +43,14 @@ def test_profile_cv_analysis_expose_user_friendly_controls(client):
     assert 'id="sourceCvBtn"' in analysis_html
     assert 'id="sourceProfileBtn"' in analysis_html
     assert 'id="consentModal"' in analysis_html
+    assert 'id="cv_id"' in analysis_html
+    assert 'id="career_role_id"' in analysis_html
     assert "pipeline" not in analysis_html.lower()
+
+
+def test_analysis_assets_have_no_unresolved_merge_markers(client):
+    for path in ("/analysis", "/static/analysis.js"):
+        content = client.get(path).text
+        assert "Temporary merge branch" not in content
+        assert "<<<<<<<" not in content
+        assert ">>>>>>>" not in content

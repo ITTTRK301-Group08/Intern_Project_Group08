@@ -11,17 +11,20 @@
                      window.location.pathname.indexOf('/app/static/') !== -1 ||
                      window.location.pathname.endsWith('.html') ||
                      !window.location.host;
+  var originalFetch = window.fetch.bind(window);
+  var refreshInFlight = null;
 
-  function readToken() {
+  function readToken(key) {
+    var storageKey = key || TOKEN_KEY;
     try {
-      var stored = localStorage.getItem(TOKEN_KEY) || '';
-      if (!stored && isDirectMode) {
+      var stored = localStorage.getItem(storageKey) || '';
+      if (!stored && storageKey === TOKEN_KEY && isDirectMode) {
         stored = 'demo_student_token';
-        try { localStorage.setItem(TOKEN_KEY, stored); } catch (_) {}
+        try { localStorage.setItem(storageKey, stored); } catch (_) {}
       }
       return stored;
     } catch (_) {
-      return isDirectMode ? 'demo_student_token' : '';
+      return storageKey === TOKEN_KEY && isDirectMode ? 'demo_student_token' : '';
     }
   }
 
@@ -31,6 +34,18 @@
       localStorage.removeItem(REFRESH_TOKEN_KEY);
     } catch (error) {
       console.error('Unable to clear session tokens:', error);
+    }
+  }
+
+  function saveTokens(tokens) {
+    try {
+      localStorage.setItem(TOKEN_KEY, tokens.access_token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+      return true;
+    } catch (error) {
+      console.error('Unable to save session tokens:', error);
+      clearTokens();
+      return false;
     }
   }
 
@@ -47,7 +62,7 @@
 
   function refreshAccessToken() {
     if (refreshInFlight) return refreshInFlight;
-    var refreshToken = readStoredToken(REFRESH_TOKEN_KEY);
+    var refreshToken = readToken(REFRESH_TOKEN_KEY);
     if (!refreshToken) return Promise.resolve(null);
 
     refreshInFlight = originalFetch('/api/v1/auth/refresh', {
@@ -92,7 +107,7 @@
     return originalFetch(request.clone()).then(function (response) {
       if (!refreshable || response.status !== 401) return response;
 
-      var latestToken = readStoredToken(TOKEN_KEY);
+      var latestToken = readToken(TOKEN_KEY);
       var sentToken = authorization.substring(7);
       if (latestToken && latestToken !== sentToken) {
         return retryWithToken(request, latestToken);
@@ -182,7 +197,7 @@
 
   window.LaBanApp = {
     TOKEN_KEY: TOKEN_KEY,
-    getToken: function () { return readStoredToken(TOKEN_KEY); },
+    getToken: function () { return readToken(TOKEN_KEY); },
     clearToken: clearTokens,
     redirectToLogin: redirectToLogin,
     translateText: translateText,
@@ -191,7 +206,7 @@
     formatDate: formatDate
   };
 
-  token = readStoredToken(TOKEN_KEY);
+  var token = readToken(TOKEN_KEY);
   if (requiresAuth && !token) {
     window.location.replace(loginUrl());
     return;
@@ -215,7 +230,7 @@
     logout.className = 'nav-action';
     logout.textContent = 'Đăng xuất';
     logout.addEventListener('click', function () {
-      var refreshToken = readStoredToken(REFRESH_TOKEN_KEY);
+      var refreshToken = readToken(REFRESH_TOKEN_KEY);
       logout.disabled = true;
       var revoke = refreshToken
         ? originalFetch('/api/v1/auth/logout', {

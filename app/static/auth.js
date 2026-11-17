@@ -10,6 +10,7 @@
   window.__LaBanAuthLoaded__ = true;
 
   var TOKEN_KEY = 'acm_access_token';
+  var REFRESH_TOKEN_KEY = 'acm_refresh_token';
   var isDirectMode = window.location.protocol === 'file:' ||
                      window.location.pathname.indexOf('/app/static/') !== -1 ||
                      window.location.pathname.endsWith('.html') ||

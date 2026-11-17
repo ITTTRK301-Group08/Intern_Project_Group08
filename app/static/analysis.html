@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-<<<<<<<<< Temporary merge branch 1
   <title>La Bàn — Phân tích kỹ năng</title>
   <script>
     if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
@@ -53,8 +52,9 @@
     <div id="status" class="status" role="status" aria-live="polite"></div>
     <div id="loading" class="loading hidden">Đang kiểm tra và xử lý yêu cầu...</div>
 
-<<<<<<<<< Temporary merge branch 1
     <form id="analysisForm" class="card" novalidate>
+      <input id="cv_id" name="cv_id" type="hidden" />
+      <input id="career_role_id" name="career_role_id" type="hidden" />
       <div class="card-head">
         <div>
           <h2>Bước 1: Chọn nguồn dữ liệu của bạn</h2>
@@ -89,16 +89,6 @@
 
       <div id="profileSourceHint" class="info-banner hidden">
         Hệ thống sẽ sử dụng thông tin học vấn, điểm mạnh, kỹ năng tự đánh giá và giới thiệu bản thân từ <a href="/profile">Hồ sơ cá nhân</a> của bạn.
-      </div>
-
-      <div id="scannedCvWarning" class="warning-box hidden" role="alert">
-        <h3>CV đã chọn chưa có lớp văn bản để đọc tự động</h3>
-        <p><strong>Nguyên nhân:</strong> Tệp CV này có thể là PDF ảnh quét nên hệ thống không đọc được nội dung chữ.</p>
-        <p><strong>Gợi ý:</strong> Hãy chuyển sang phân tích bằng dữ liệu <strong>Hồ sơ cá nhân</strong> hoặc tải lên một tệp CV PDF có lớp văn bản.</p>
-        <div class="warning-actions">
-          <button id="switchToProfileBtn" type="button" class="small">Chuyển sang dùng Hồ sơ cá nhân</button>
-          <a class="btn-link secondary-link small" href="/profile">Cập nhật Hồ sơ cá nhân</a>
-        </div>
       </div>
 
       <div class="subsection">
@@ -138,7 +128,16 @@
         </div>
         <span id="resultBadge" class="badge badge-info"></span>
       </div>
-=========
+      <div id="resultSummary" class="detail-grid"></div>
+      <div id="resultBodyText" class="info-banner" style="margin-top:0"></div>
+      <div class="actions">
+        <a id="roadmapLinkBtn" class="btn-link small" href="/roadmap">Lộ trình học tập 30 ngày →</a>
+        <a id="dashboardLinkBtn" class="btn-link small" href="/dashboard">Xem Dashboard &amp; Radar →</a>
+        <a class="btn-link secondary-link small" href="/explore">Xem yêu cầu kỹ năng trên Khám phá</a>
+        <a class="btn-link secondary-link small" href="/profile">Cập nhật Hồ sơ</a>
+      </div>
+    </section>
+
     <section class="card" aria-labelledby="historyTitle">
       <h2 id="historyTitle">Lịch sử phân tích</h2>
       <div id="historyList" class="history-list" aria-live="polite"></div>
@@ -175,37 +174,6 @@
             <tbody id="skillsBody"></tbody>
           </table>
         </div>
-      </div>
-    </section>
-
-    <form id="analysisForm" class="card">
-      <h2>Yêu cầu phân tích mới</h2>
-      <label>CV đã tải lên (cv_id, tùy chọn nếu luồng cho phép)
-        <input id="cv_id" name="cv_id" type="number" min="1" placeholder="Nhập ID CV (ví dụ: 1)" />
-      </label>
-      <label>Vị trí nghề nghiệp mục tiêu (career_role_id, nếu luồng yêu cầu)
-        <input id="career_role_id" name="career_role_id" type="number" min="1" placeholder="Nhập ID vị trí (M3 chưa triển khai)" />
-      </label>
-      <p class="muted small">Yêu cầu hiện chỉ xác thực consent và quyền sở hữu CV. Pipeline AI tạo báo cáo chưa được triển khai.</p>
-      <div class="actions"><button type="submit">Bắt đầu phân tích</button></div>
->>>>>>>>> Temporary merge branch 2
-    </form>
-
-    <section id="resultCard" class="card hidden" aria-live="polite">
-      <div class="card-head">
-        <div>
-          <h2 id="resultTitle">Trạng thái yêu cầu phân tích</h2>
-          <p id="resultSubtitle" class="muted small" style="margin:4px 0 0"></p>
-        </div>
-        <span id="resultBadge" class="badge badge-info"></span>
-      </div>
-      <div id="resultSummary" class="detail-grid"></div>
-      <div id="resultBodyText" class="info-banner" style="margin-top:0"></div>
-      <div class="actions">
-        <a id="roadmapLinkBtn" class="btn-link small" href="/roadmap">Lộ trình học tập 30 ngày →</a>
-        <a id="dashboardLinkBtn" class="btn-link small" href="/dashboard">Xem Dashboard &amp; Radar →</a>
-        <a class="btn-link secondary-link small" href="/explore">Xem yêu cầu kỹ năng trên Khám phá</a>
-        <a class="btn-link secondary-link small" href="/profile">Cập nhật Hồ sơ</a>
       </div>
     </section>
 

@@ -102,19 +102,10 @@
   var roleMap = {};
   var sourceMode = 'cv';
   var pendingPayload = null;
-=========
-  const TOKEN_KEY = 'acm_access_token';
-  const PURPOSE_VERSION = 'v1';
-  const POLL_INTERVAL_MS = 2500;
-  const $ = (id) => document.getElementById(id);
-  const statusEl = $('status');
-  const loadingEl = $('loading');
-  const modal = $('consentModal');
-  let historyPage = 1;
-  let historyPages = 0;
-  let selectedAnalysisId = null;
-  let pollTimer = null;
->>>>>>>>> Temporary merge branch 2
+  var historyPage = 1;
+  var historyPages = 0;
+  var selectedAnalysisId = null;
+  var pollTimer = null;
 
   function setStatus(message, type) {
     if (!statusEl) return;
@@ -141,6 +132,10 @@
     if (show && $('consentAccept')) {
       $('consentAccept').focus();
     }
+  }
+
+  function getToken() {
+    return app ? app.getToken() : (localStorage.getItem('acm_access_token') || '');
   }
 
   function setSourceMode(mode) {
@@ -420,10 +415,13 @@
       return;
     }
 
-=========
-  function setLoading(on) { loadingEl.classList.toggle('hidden', !on); }
-  function getToken() { return localStorage.getItem(TOKEN_KEY) || $('token').value.trim(); }
-  function showModal(show) { modal.classList.toggle('hidden', !show); }
+    pendingPayload = {
+      cv_id: cvRaw ? Number(cvRaw) : null,
+      career_role_id: Number(careerRaw)
+    };
+    openConsentModal();
+  });
+
   function statusLabel(status) {
     return {
       pending: 'Đang chờ',
@@ -437,7 +435,7 @@
   }
   async function api(path, options) {
     const token = getToken();
-    if (!token) throw new Error('Vui lòng nhập và lưu JWT access token.');
+    if (!token) throw new Error('Vui lòng đăng nhập để xem lịch sử phân tích.');
     const response = await fetch(path, Object.assign({}, options || {}, {
       headers: Object.assign({}, options && options.headers, {
         Authorization: 'Bearer ' + token
@@ -445,8 +443,9 @@
     }));
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const detail = body.detail;
-      throw new Error((detail && (detail.message || detail)) || body.message || 'Yêu cầu thất bại.');
+      throw new Error(app
+        ? app.extractApiError(body, 'Yêu cầu chưa thể thực hiện.')
+        : 'Yêu cầu chưa thể thực hiện.');
     }
     return body.data;
   }
@@ -455,16 +454,6 @@
     cell.textContent = text == null ? '—' : String(text);
     return cell;
   }
-
-  const saved = localStorage.getItem(TOKEN_KEY);
-  if (saved) $('token').value = saved;
-
-  $('saveToken').onclick = async () => {
-    const token = $('token').value.trim();
-    localStorage.setItem(TOKEN_KEY, token);
-    setStatus('Đã lưu token trong trình duyệt.', 'ok');
-    await loadHistory(1);
-  };
 
   async function loadHistory(page) {
     historyPage = page;
@@ -609,22 +598,6 @@
   $('nextPage').onclick = () => { if (historyPage < historyPages) loadHistory(historyPage + 1); };
   loadHistory(1);
 
-  let pendingPayload = null;
-  $('analysisForm').onsubmit = (e) => {
-    e.preventDefault();
-    setStatus('', '');
-    $('resultCard').classList.add('hidden');
-    if (!getToken()) { setStatus('Vui lòng nhập JWT access token.', 'error'); return; }
-    const cvRaw = $('cv_id').value.trim();
-    const careerRaw = $('career_role_id').value.trim();
->>>>>>>>> Temporary merge branch 2
-    pendingPayload = {
-      cv_id: cvRaw ? Number(cvRaw) : null,
-      career_role_id: careerRaw ? Number(careerRaw) : null
-    };
-    showModal(true);
-  });
-
   function cancelConsent() {
     pendingPayload = null;
     showModal(false);
@@ -645,8 +618,6 @@
       return;
     }
     showModal(false);
-<<<<<<<<< Temporary merge branch 1
-
     var token = getToken();
     if (!token) {
       if (app) app.redirectToLogin();
@@ -655,9 +626,6 @@
 
     var submittedPayload = Object.assign({}, pendingPayload);
     var body = Object.assign({}, submittedPayload, {
-=========
-    const body = Object.assign({}, pendingPayload, {
->>>>>>>>> Temporary merge branch 2
       ai_consent: { accepted: true, purpose_version: PURPOSE_VERSION }
     });
     pendingPayload = null;
@@ -669,7 +637,6 @@
 
     setLoading(true);
     try {
-<<<<<<<<< Temporary merge branch 1
       var res = await fetch('/api/v1/analyses', {
         method: 'POST',
         headers: {
@@ -685,25 +652,6 @@
       }
 
       var data = await res.json().catch(function () { return {}; });
-      var code = (data.data && data.data.code) || (data.detail && data.detail.data && data.detail.data.code) || '';
-
-      if (res.status === 501 && code === 'ANALYSIS_PIPELINE_NOT_IMPLEMENTED') {
-        setStatus('Thông tin đầu vào và quyền sử dụng dữ liệu của bạn đã được xác nhận hợp lệ.', 'ok');
-        renderResultCard({
-          title: 'Dữ liệu đã sẵn sàng cho phân tích AI',
-          subtitle: 'Quyền truy cập CV/hồ sơ và xác nhận đồng ý của bạn đã được kiểm tra thành công.',
-          badgeText: 'Sẵn sàng',
-          badgeClass: 'badge-ok',
-          items: [
-            { label: 'Nguồn dữ liệu', value: sourceSummary },
-            { label: 'Vị trí mục tiêu', value: roleSummary },
-            { label: 'Quyền riêng tư', value: 'Đã xác nhận đồng ý' }
-          ],
-          bodyText:
-            'Tính năng sinh báo cáo đánh giá mức độ sẵn sàng và biểu đồ khoảng cách kỹ năng bằng AI đang được hoàn thiện. Trong lúc chờ bản cập nhật, bạn có thể hoàn thiện thêm kỹ năng trong Hồ sơ hoặc tham khảo bảng kỹ năng chuẩn tại trang Khám phá.'
-        });
-        return;
-      }
 
       if (!res.ok) {
         var msg = app ? app.extractApiError(data, 'Không thể bắt đầu phân tích lúc này.') : 'Yêu cầu thất bại.';
@@ -724,63 +672,20 @@
         ],
         bodyText: 'Yêu cầu phân tích của bạn đã được ghi nhận thành công.'
       });
-    } catch (_err) {
-      setStatus('Đã ghi nhận yêu cầu phân tích thành công (Chế độ xem trước).', 'ok');
-      renderResultCard({
-        title: 'Báo cáo sơ bộ mức độ sẵn sàng nghề nghiệp',
-        subtitle: 'Đối chiếu dữ liệu hồ sơ cá nhân với tiêu chuẩn vị trí ' + roleSummary,
-        badgeText: 'Mức độ sẵn sàng: 82%',
-        badgeClass: 'badge-ok',
-        items: [
-          { label: 'Nguồn dữ liệu', value: sourceSummary },
-          { label: 'Vị trí mục tiêu', value: roleSummary },
-          { label: 'Kỹ năng đạt chuẩn', value: '4 / 5 kỹ năng chính' }
-        ],
-        bodyText: 'Bạn đã đáp ứng tốt các yêu cầu nền tảng của vị trí này (SQL, Python, Tư duy logic). Để gia tăng lợi thế cạnh tranh khi ứng tuyển, bạn nên hoàn thiện thêm kỹ năng Data Visualization và quy trình Git theo lộ trình gợi ý tại trang Khám phá.'
-      });
-    } finally {
-      setLoading(false);
-    }
-  });
-
-  // Giữ modal mở khi click ra ngoài để tránh vô tình đồng ý hoặc bỏ qua xác nhận.
-  modal.addEventListener('click', function (e) {
-    if (e.target === modal) {
-      /* giữ nguyên */
-    }
-  });
-
-  loadCareerRoles();
-  loadUserCvs();
-=========
-      const response = await fetch('/api/v1/analyses', {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const data = await response.json().catch(() => ({}));
-      $('resultCard').classList.remove('hidden');
-      $('resultJson').textContent = JSON.stringify(data, null, 2);
-      if (response.status === 501 && data.detail && data.detail.data
-          && data.detail.data.code === 'ANALYSIS_PIPELINE_NOT_IMPLEMENTED') {
-        setStatus(data.detail.message || 'Consent hợp lệ; pipeline AI chưa triển khai.', 'ok');
-      } else if (!response.ok) {
-        const detail = data.detail;
-        const message = (detail && (detail.message || detail)) || data.message || 'Yêu cầu thất bại.';
-        setStatus(typeof message === 'string' ? message : JSON.stringify(message), 'error');
-      } else {
-        setStatus(data.message || 'Yêu cầu đã được xử lý.', 'ok');
-        await loadHistory(1);
-      }
+      await loadHistory(1);
+      var accepted = data && data.data;
+      if (accepted && accepted.id) await openReport(accepted.id);
     } catch (error) {
       setStatus(error.message || 'Không thể kết nối máy chủ.', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  });
 
-  modal.addEventListener('click', (event) => {
+  modal.addEventListener('click', function (event) {
     if (event.target === modal) event.preventDefault();
   });
->>>>>>>>> Temporary merge branch 2
+
+  loadCareerRoles();
+  loadUserCvs();
 })();

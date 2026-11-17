@@ -167,6 +167,16 @@
     return body.data || [];
   }
 
+  async function getDataOrFallback(path, fallback, failedEndpoints) {
+    try {
+      return await getData(path);
+    } catch (error) {
+      failedEndpoints.push(path);
+      console.error('Unable to load explore data from ' + path + ':', error);
+      return fallback.slice();
+    }
+  }
+
   function addEmptyState(container, message) {
     var empty = document.createElement('p');
     empty.className = 'empty-state';
@@ -697,12 +707,13 @@
     renderRoles();
     renderSkills();
     renderResources();
+    var failedEndpoints = [];
     try {
       var results = await Promise.all([
-        getData('/api/v1/catalog/categories'),
-        getData('/api/v1/careers'),
-        getData('/api/v1/catalog/skills'),
-        getData('/api/v1/catalog/resources')
+        getDataOrFallback('/api/v1/catalog/categories', DEFAULT_CATEGORIES, failedEndpoints),
+        getDataOrFallback('/api/v1/careers', DEFAULT_ROLES, failedEndpoints),
+        getDataOrFallback('/api/v1/catalog/skills', DEFAULT_SKILLS, failedEndpoints),
+        getDataOrFallback('/api/v1/catalog/resources', DEFAULT_RESOURCES, failedEndpoints)
       ]);
       roles = Array.isArray(results[1]) ? results[1] : [];
       skills = Array.isArray(results[2]) ? results[2] : [];
@@ -711,8 +722,18 @@
       renderRoles();
       renderSkills();
       renderResources();
-    } catch (error) {
-      setStatus(error.message || 'Không thể tải danh mục từ máy chủ.', true);
+
+      if (failedEndpoints.length) {
+        var resourcesUnavailable = failedEndpoints.indexOf('/api/v1/catalog/resources') !== -1;
+        setStatus(
+          resourcesUnavailable
+            ? 'Tài nguyên học tập từ máy chủ chưa khả dụng; đang hiển thị danh sách tham khảo dự phòng.'
+            : 'Một số dữ liệu khám phá chưa tải được; đang hiển thị dữ liệu tham khảo dự phòng.',
+          false
+        );
+      } else {
+        setStatus('');
+      }
     } finally {
       setLoading(false);
     }
