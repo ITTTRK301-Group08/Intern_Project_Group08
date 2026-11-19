@@ -4,6 +4,7 @@ Toàn bộ test dùng SQLite in-memory và provider AI giả; không gọi Gemin
 """
 
 import json
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.models.career import CareerRole, Skill
 from app.models.interview import InterviewQuestion, InterviewSession
 from app.models.profile_data import CareerRoleSkill
+from app.models.user import User
 from app.schemas.interview.ai_response import InterviewGenerationAIResponse
 from app.services import interview_service
 from app.services.ai import (
@@ -397,6 +399,119 @@ def test_create_interview_success(client, db_session, monkeypatch):
     assert provider.calls == 1
     assert provider.last_response_schema is InterviewGenerationAIResponse
     assert provider.last_system_instruction is not None
+
+
+def test_new_interview_abandons_existing_open_sessions(client, db_session, monkeypatch):
+    headers, user_id = register_and_login(client)
+    role_id = seed_career_role(db_session)
+    open_sessions = [
+        InterviewSession(user_id=user_id, status="ready"),
+        InterviewSession(user_id=user_id, status="in_progress"),
+    ]
+    terminal_sessions = [
+        InterviewSession(user_id=user_id, status="completed"),
+        InterviewSession(user_id=user_id, status="failed"),
+    ]
+    db_session.add_all(open_sessions + terminal_sessions)
+    db_session.commit()
+    install_fake_ai(monkeypatch, questions_json())
+
+    response = client.post(
+        "/api/v1/interviews",
+        headers=headers,
+        json=interview_payload(role_id),
+    )
+
+    assert response.status_code == 201
+    assert [session.status for session in open_sessions] == [
+        "abandoned",
+        "abandoned",
+    ]
+    assert [session.status for session in terminal_sessions] == [
+        "completed",
+        "failed",
+    ]
+    assert response.json()["data"]["status"] == "ready"
+
+
+def test_interview_history_abandons_only_sessions_idle_over_24_hours(
+    client, db_session
+):
+    headers, user_id = register_and_login(client)
+    other_headers, other_user_id = register_and_login(
+        client, "other-interview@example.com"
+    )
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    stale = InterviewSession(
+        user_id=user_id,
+        status="in_progress",
+        updated_at=now - timedelta(hours=25),
+    )
+    recent = InterviewSession(
+        user_id=user_id,
+        status="ready",
+        updated_at=now - timedelta(hours=23),
+    )
+    other_user_stale = InterviewSession(
+        user_id=other_user_id,
+        status="ready",
+        updated_at=now - timedelta(hours=25),
+    )
+    db_session.add_all([stale, recent, other_user_stale])
+    db_session.commit()
+
+    response = client.get(
+        "/api/v1/dashboard/interview-history", headers=headers
+    )
+    assert response.status_code == 200
+    assert stale.status == "abandoned"
+    assert recent.status == "ready"
+    assert other_user_stale.status == "ready"
+
+    other_response = client.get(
+        "/api/v1/dashboard/interview-history", headers=other_headers
+    )
+    assert other_response.status_code == 200
+    assert other_user_stale.status == "abandoned"
+
+
+def test_stale_interview_cutoff_handles_timezone_offsets_and_exact_boundary(
+    db_session,
+):
+    user = User(email="timezone-interview@example.com", password_hash="test")
+    db_session.add(user)
+    db_session.flush()
+    user_id = user.id
+    now = datetime(2026, 11, 18, 12, 0, tzinfo=timezone(timedelta(hours=5)))
+    cutoff_utc = now.astimezone(timezone.utc).replace(tzinfo=None) - timedelta(
+        hours=24
+    )
+    stale = InterviewSession(
+        user_id=user_id,
+        status="ready",
+        updated_at=cutoff_utc - timedelta(microseconds=1),
+    )
+    at_cutoff = InterviewSession(
+        user_id=user_id,
+        status="in_progress",
+        updated_at=cutoff_utc,
+    )
+    newer = InterviewSession(
+        user_id=user_id,
+        status="ready",
+        updated_at=cutoff_utc + timedelta(microseconds=1),
+    )
+    db_session.add_all([stale, at_cutoff, newer])
+    db_session.commit()
+
+    affected = interview_service.abandon_stale_interview_sessions(
+        db_session, user_id=user_id, now=now
+    )
+
+    assert affected == 1
+    assert stale.status == "abandoned"
+    assert at_cutoff.status == "in_progress"
+    assert newer.status == "ready"
 
 
 def test_prompt_contains_only_public_catalog_data(client, db_session, monkeypatch):

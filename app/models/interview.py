@@ -59,10 +59,16 @@ class InterviewSession(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('ready', 'in_progress', 'completed', 'failed')",
+            "status IN ('ready', 'in_progress', 'completed', 'failed', 'abandoned')",
             name="ck_interview_sessions_status",
         ),
         Index("ix_interview_sessions_user_created", "user_id", "created_at"),
+        Index(
+            "ix_interview_sessions_user_status_updated",
+            "user_id",
+            "status",
+            "updated_at",
+        ),
         Index("ix_interview_sessions_career_role_id", "career_role_id"),
         {
             "mysql_engine": "InnoDB",

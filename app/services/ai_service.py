@@ -6,6 +6,9 @@ toàn bộ thành phần của package `app.services.ai` và giữ nguyên đi�
 task sau và phải gọi `AIService` thay vì gọi SDK trực tiếp.
 """
 
+from datetime import datetime
+from typing import TypedDict
+
 from app.services.ai import (
     AIAuthenticationError,
     AIConfigurationError,
@@ -24,6 +27,17 @@ from app.services.ai import (
     get_ai_service,
 )
 
+
+class ProfileAnalysisContext(TypedDict):
+    """Du lieu ho so hoc sinh da xac thuc cho pipeline phan tich AI."""
+
+    strengths: list[str]
+    self_assessed_skills: list[dict[str, str | int]]
+    career_goal: str | None
+    bio: str | None
+    profile_updated_at: datetime
+
+
 __all__ = [
     "AIAuthenticationError",
     "AIConfigurationError",
@@ -40,6 +54,7 @@ __all__ = [
     "create_ai_provider",
     "create_ai_service",
     "get_ai_service",
+    "ProfileAnalysisContext",
     "request_skill_gap_analysis",
 ]
 
