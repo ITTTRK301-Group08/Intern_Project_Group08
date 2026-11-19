@@ -225,3 +225,28 @@ def test_create_plan_success_and_br06_enforcement(client, db_session):
     assert res_new.status_code == 201
     assert res_new.json()["data"]["id"] != plan_id
 
+
+def test_new_plan_excludes_hidden_skills_and_their_resources(client, db_session):
+    headers, user_id = register_user(client, "hidden_skill_plan@example.com")
+    analysis = setup_catalog_and_analysis(db_session, user_id=user_id)
+    hidden_skill = db_session.scalar(select(Skill).where(Skill.name == "Python"))
+    assert hidden_skill is not None
+    hidden_skill.is_active = False
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/learning-plans",
+        json={"analysis_id": analysis.id},
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    items = response.json()["data"]["items"]
+    assert items
+    assert all(item["skill_id"] != hidden_skill.id for item in items)
+    assert all(
+        item["resource"] is None
+        or item["resource"]["title"] != "Tài liệu Python cơ bản"
+        for item in items
+    )
+

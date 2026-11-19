@@ -3,6 +3,10 @@ from types import SimpleNamespace
 import pytest
 
 from app import bootstrap_admin as bootstrap_admin_command
+from app.models.analysis import Analysis
+from app.models.interview import InterviewSession
+from app.models.career import CareerRole, Skill
+from app.models.learning_resource import LearningResource
 from app.models.user import User
 from app.services.catalog_service import bootstrap_admin
 
@@ -173,6 +177,141 @@ def test_bootstrapped_admin_can_login_and_manage_catalog(client, db_session):
     assert deleted.status_code == 200
     assert deleted.json()["success"] is True
     assert deleted.json()["data"] == {"deleted": True}
+    retained_skill = db_session.get(Skill, skill_id)
+    assert retained_skill is not None
+    assert retained_skill.is_active is False
+    assert client.get("/api/v1/catalog/skills").json()["data"] == []
+
+
+def test_admin_system_stats_count_users_analyses_and_interviews(client, db_session):
+    token = register_and_get_token(client, email="stats-admin@example.com")
+    admin = db_session.query(User).filter_by(email="stats-admin@example.com").one()
+    admin.role = "admin"
+    student_response = client.post(
+        "/api/v1/auth/register",
+        json={"email": "stats-student@example.com", "password": "StrongPass123"},
+    )
+    assert student_response.status_code == 201
+    db_session.add(
+        Analysis(
+            user_id=admin.id,
+            consent_accepted=True,
+            consent_purpose_version="v1",
+            status="pending",
+        )
+    )
+    db_session.add(InterviewSession(user_id=admin.id, status="ready"))
+    db_session.commit()
+
+    response = client.get(
+        "/api/v1/admin/stats",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"] == {
+        "total_users": 2,
+        "total_analyses": 1,
+        "total_interviews": 1,
+    }
+
+
+def test_admin_can_hide_and_restore_roles_skills_and_resources(client, db_session):
+    token = register_and_get_token(client, email="status-admin@example.com")
+    admin = db_session.query(User).filter_by(email="status-admin@example.com").one()
+    admin.role = "admin"
+    db_session.commit()
+    headers = {"Authorization": f"Bearer {token}"}
+
+    skill = client.post(
+        "/api/v1/admin/skills",
+        headers=headers,
+        json={"name": "Status test skill"},
+    ).json()["data"]
+    role = client.post(
+        "/api/v1/admin/career-roles",
+        headers=headers,
+        json={
+            "name": "Status test role",
+            "slug": "status-test-role",
+            "required_skills": [
+                {"skill_id": skill["id"], "required_level": 3}
+            ],
+        },
+    ).json()["data"]
+    resource = client.post(
+        "/api/v1/admin/resources",
+        headers=headers,
+        json={
+            "slug": "status-test-resource",
+            "skill_id": skill["id"],
+            "title": "Status test resource",
+            "provider": "Example",
+            "url": "https://example.com/status-test",
+            "resource_type": "article",
+        },
+    ).json()["data"]
+
+    for collection, item in (
+        ("career-roles", role),
+        ("skills", skill),
+        ("resources", resource),
+    ):
+        response = client.patch(
+            f"/api/v1/admin/{collection}/{item['id']}/status",
+            headers=headers,
+            json={"is_active": False},
+        )
+        assert response.status_code == 200
+        assert response.json()["data"]["is_active"] is False
+
+    assert client.get("/api/v1/catalog/roles").json()["data"] == []
+    assert client.get("/api/v1/catalog/skills").json()["data"] == []
+    assert client.get("/api/v1/catalog/resources").json()["data"] == []
+
+    admin_catalog = client.get("/api/v1/admin/catalog", headers=headers).json()["data"]
+    assert any(not item["is_active"] for item in admin_catalog["roles"])
+    assert any(not item["is_active"] for item in admin_catalog["skills"])
+    assert any(not item["is_active"] for item in admin_catalog["resources"])
+    assert db_session.get(CareerRole, role["id"]) is not None
+    assert db_session.get(Skill, skill["id"]) is not None
+    assert db_session.get(LearningResource, resource["id"]) is not None
+
+    role_status = client.patch(
+        f"/api/v1/admin/career-roles/{role['id']}/status",
+        headers=headers,
+        json={"is_active": True},
+    )
+    assert role_status.status_code == 200
+    resource_status = client.patch(
+        f"/api/v1/admin/resources/{resource['id']}/status",
+        headers=headers,
+        json={"is_active": True},
+    )
+    assert resource_status.status_code == 200
+    active_role = client.get("/api/v1/catalog/roles").json()["data"][0]
+    assert active_role["required_skills"] == []
+    assert client.get(
+        f"/api/v1/catalog/roles/{role['id']}/skills"
+    ).json()["data"] == []
+    assert client.get("/api/v1/catalog/resources").json()["data"] == []
+
+    for collection, item in (
+        ("career-roles", role),
+        ("skills", skill),
+        ("resources", resource),
+    ):
+        response = client.patch(
+            f"/api/v1/admin/{collection}/{item['id']}/status",
+            headers=headers,
+            json={"is_active": True},
+        )
+        assert response.status_code == 200
+        assert response.json()["data"]["is_active"] is True
+
+    assert len(client.get("/api/v1/catalog/roles").json()["data"]) == 1
+    assert len(client.get("/api/v1/catalog/skills").json()["data"]) == 1
+    assert len(client.get("/api/v1/catalog/resources").json()["data"]) == 1
 
 
 def test_student_and_invalid_token_cannot_manage_catalog(client):

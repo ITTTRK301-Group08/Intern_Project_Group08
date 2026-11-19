@@ -44,9 +44,22 @@ class SkillRead(BaseModel):
     id: int
     name: str
     description: str | None
+    is_active: bool
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CatalogStatusUpdate(BaseModel):
+    is_active: bool
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class AdminSystemStats(BaseModel):
+    total_users: int
+    total_analyses: int
+    total_interviews: int
 
 
 class CareerRoleWrite(BaseModel):

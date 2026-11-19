@@ -121,7 +121,7 @@
         '<td><span class="badge ' + (role.is_active !== false ? 'badge-ok' : 'badge-muted') + '">' + (role.is_active !== false ? 'Hoạt động' : 'Tạm ẩn') + '</span></td>' +
         '<td style="text-align: right;">' +
           '<button type="button" class="admin-action-btn admin-btn-edit" data-edit-role="' + role.id + '">Sửa</button>' +
-          '<button type="button" class="admin-action-btn admin-btn-delete" data-del-role="' + role.id + '">Xóa</button>' +
+          '<button type="button" class="admin-action-btn admin-btn-toggle" data-toggle-role="' + role.id + '">' + (role.is_active !== false ? 'Ẩn' : 'Hiện') + '</button>' +
         '</td>';
       tbody.appendChild(tr);
     });
@@ -133,10 +133,11 @@
         openRoleModal(id);
       };
     });
-    Array.prototype.forEach.call(tbody.querySelectorAll('[data-del-role]'), function (btn) {
+    Array.prototype.forEach.call(tbody.querySelectorAll('[data-toggle-role]'), function (btn) {
       btn.onclick = function () {
-        var id = Number(btn.getAttribute('data-del-role'));
-        deleteRole(id);
+        var id = Number(btn.getAttribute('data-toggle-role'));
+        var role = catalogData.roles.find(function (item) { return item.id === id; });
+        if (role) setItemStatus('roles', role, role.is_active === false);
       };
     });
   }
@@ -170,14 +171,6 @@
       $('roleFormDesc').value = '';
     }
     $('roleModal').style.display = 'flex';
-  }
-
-  function deleteRole(roleId) {
-    if (!confirm('Bạn có chắc chắn muốn xóa vị trí nghề nghiệp #' + roleId + ' không?')) return;
-    catalogData.roles = catalogData.roles.filter(function (r) { return r.id !== roleId; });
-    renderRolesTable($('searchRolesInput').value);
-    updateStats();
-    showFeedback('Đã xóa vị trí nghề nghiệp thành công.', false);
   }
 
   /* ── Tab 2: Categories ───────────────────────────────────── */
@@ -261,9 +254,10 @@
       tr.innerHTML = '<td>#' + skill.id + '</td>' +
         '<td><strong>' + skill.name + '</strong></td>' +
         '<td>' + (skill.description || 'Chưa có mô tả') + '</td>' +
+        '<td><span class="badge ' + (skill.is_active !== false ? 'badge-ok' : 'badge-muted') + '">' + (skill.is_active !== false ? 'Hoạt động' : 'Tạm ẩn') + '</span></td>' +
         '<td style="text-align: right;">' +
           '<button type="button" class="admin-action-btn admin-btn-edit" data-edit-sk="' + skill.id + '">Sửa</button>' +
-          '<button type="button" class="admin-action-btn admin-btn-delete" data-del-sk="' + skill.id + '">Xóa</button>' +
+          '<button type="button" class="admin-action-btn admin-btn-toggle" data-toggle-skill="' + skill.id + '">' + (skill.is_active !== false ? 'Ẩn' : 'Hiện') + '</button>' +
         '</td>';
       tbody.appendChild(tr);
     });
@@ -274,10 +268,11 @@
         openSkillModal(id);
       };
     });
-    Array.prototype.forEach.call(tbody.querySelectorAll('[data-del-sk]'), function (btn) {
+    Array.prototype.forEach.call(tbody.querySelectorAll('[data-toggle-skill]'), function (btn) {
       btn.onclick = function () {
-        var id = Number(btn.getAttribute('data-del-sk'));
-        deleteSkill(id);
+        var id = Number(btn.getAttribute('data-toggle-skill'));
+        var skill = catalogData.skills.find(function (item) { return item.id === id; });
+        if (skill) setItemStatus('skills', skill, skill.is_active === false);
       };
     });
   }
@@ -297,14 +292,6 @@
       $('skillFormDesc').value = '';
     }
     $('skillModal').style.display = 'flex';
-  }
-
-  function deleteSkill(skillId) {
-    if (!confirm('Bạn có chắc chắn muốn xóa kỹ năng #' + skillId + ' không?')) return;
-    catalogData.skills = catalogData.skills.filter(function (s) { return s.id !== skillId; });
-    renderSkillsTable($('searchSkillsInput').value);
-    updateStats();
-    showFeedback('Đã xóa kỹ năng thành công.', false);
   }
 
   /* ── Tab 4: Resources ────────────────────────────────────── */
@@ -329,9 +316,10 @@
         '<td><span class="skill-tag">' + skillName + '</span></td>' +
         '<td>' + (res.resource_type || 'Tài liệu') + '</td>' +
         '<td>' + (res.is_free !== false ? '<span style="color:var(--ok);font-weight:600;">Miễn phí</span>' : 'Có phí') + '</td>' +
+        '<td><span class="badge ' + (res.is_active !== false ? 'badge-ok' : 'badge-muted') + '">' + (res.is_active !== false ? 'Hoạt động' : 'Tạm ẩn') + '</span></td>' +
         '<td style="text-align: right;">' +
           '<button type="button" class="admin-action-btn admin-btn-edit" data-edit-res="' + res.id + '">Sửa</button>' +
-          '<button type="button" class="admin-action-btn admin-btn-delete" data-del-res="' + res.id + '">Xóa</button>' +
+          '<button type="button" class="admin-action-btn admin-btn-toggle" data-toggle-resource="' + res.id + '">' + (res.is_active !== false ? 'Ẩn' : 'Hiện') + '</button>' +
         '</td>';
       tbody.appendChild(tr);
     });
@@ -342,10 +330,11 @@
         openResourceModal(id);
       };
     });
-    Array.prototype.forEach.call(tbody.querySelectorAll('[data-del-res]'), function (btn) {
+    Array.prototype.forEach.call(tbody.querySelectorAll('[data-toggle-resource]'), function (btn) {
       btn.onclick = function () {
-        var id = Number(btn.getAttribute('data-del-res'));
-        deleteResource(id);
+        var id = Number(btn.getAttribute('data-toggle-resource'));
+        var resource = catalogData.resources.find(function (item) { return item.id === id; });
+        if (resource) setItemStatus('resources', resource, resource.is_active === false);
       };
     });
   }
@@ -384,12 +373,57 @@
     $('resourceModal').style.display = 'flex';
   }
 
-  function deleteResource(resId) {
-    if (!confirm('Bạn có chắc chắn muốn xóa tài nguyên #' + resId + ' không?')) return;
-    catalogData.resources = catalogData.resources.filter(function (r) { return r.id !== resId; });
-    renderResourcesTable($('searchResourcesInput').value);
+  function renderCatalogTable(type) {
+    if (type === 'roles') renderRolesTable($('searchRolesInput').value);
+    if (type === 'skills') renderSkillsTable($('searchSkillsInput').value);
+    if (type === 'resources') renderResourcesTable($('searchResourcesInput').value);
     updateStats();
-    showFeedback('Đã xóa tài nguyên học tập thành công.', false);
+  }
+
+  function setItemStatus(type, item, isActive) {
+    if (isDirectMode) {
+      item.is_active = isActive;
+      renderCatalogTable(type);
+      showFeedback(isActive ? 'Đã hiện lại mục danh mục.' : 'Đã ẩn mục danh mục.', false);
+      return;
+    }
+
+    var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
+    if (!token || token === 'demo_student_token') {
+      showFeedback('Vui lòng đăng nhập bằng tài khoản quản trị để đổi trạng thái.', true);
+      return;
+    }
+
+    var endpoint = {
+      roles: 'career-roles',
+      skills: 'skills',
+      resources: 'resources'
+    }[type];
+    fetch('/api/v1/admin/' + endpoint + '/' + item.id + '/status', {
+      method: 'PATCH',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ is_active: isActive })
+    })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().then(function (body) {
+            throw new Error(body.message || 'Không thể cập nhật trạng thái danh mục.');
+          });
+        }
+        return res.json();
+      })
+      .then(function (body) {
+        if (!body || !body.data) throw new Error('Phản hồi cập nhật trạng thái không hợp lệ.');
+        item.is_active = body.data.is_active;
+        renderCatalogTable(type);
+        showFeedback(item.is_active ? 'Đã hiện lại mục danh mục.' : 'Đã ẩn mục danh mục.', false);
+      })
+      .catch(function (error) {
+        showFeedback(error.message || 'Không thể cập nhật trạng thái danh mục.', true);
+      });
   }
 
   /* ── Tab Controller ──────────────────────────────────────── */
@@ -588,7 +622,11 @@
         }
       })
       .catch(function () {
-        // Fallback demo data
+        catalogData.categories = [];
+        catalogData.roles = [];
+        catalogData.skills = [];
+        catalogData.resources = [];
+        showFeedback('Không thể tải dữ liệu danh mục quản trị.', true);
       })
       .finally(function () {
         renderRolesTable('');
@@ -599,9 +637,32 @@
       });
   }
 
+  function loadSystemStats() {
+    var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
+    if (isDirectMode || !token || token === 'demo_student_token') return;
+
+    fetch('/api/v1/admin/stats', {
+      headers: { Authorization: 'Bearer ' + token }
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Không thể tải thống kê hệ thống.');
+        return res.json();
+      })
+      .then(function (body) {
+        if (!body || !body.data) throw new Error('Phản hồi thống kê hệ thống không hợp lệ.');
+        $('statTotalUsers').textContent = body.data.total_users.toLocaleString('vi-VN');
+        $('statTotalAnalyses').textContent = body.data.total_analyses.toLocaleString('vi-VN');
+        $('statTotalInterviews').textContent = body.data.total_interviews.toLocaleString('vi-VN');
+      })
+      .catch(function (error) {
+        showFeedback(error.message || 'Không thể tải thống kê hệ thống.', true);
+      });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     setupTabs();
     setupForms();
     loadInitialData();
+    loadSystemStats();
   });
 })();
