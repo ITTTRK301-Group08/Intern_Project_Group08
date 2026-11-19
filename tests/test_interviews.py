@@ -282,6 +282,26 @@ def test_career_role_without_skills_rejected(client, db_session, monkeypatch):
     assert_no_interview_saved(db_session)
 
 
+def test_career_role_with_only_hidden_skills_rejected(client, db_session, monkeypatch):
+    provider = install_fake_ai(monkeypatch, questions_json())
+    headers, _ = register_and_login(client)
+    role_id = seed_career_role(db_session)
+    skill = db_session.query(Skill).one()
+    skill.is_active = False
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/interviews",
+        headers=headers,
+        json=interview_payload(role_id),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["data"]["code"] == "INTERVIEW_ROLE_SKILLS_REQUIRED"
+    assert provider.calls == 0
+    assert_no_interview_saved(db_session)
+
+
 def test_missing_ai_consent_rejected(client, db_session, monkeypatch):
     provider = install_fake_ai(monkeypatch, questions_json())
     headers, _ = register_and_login(client)

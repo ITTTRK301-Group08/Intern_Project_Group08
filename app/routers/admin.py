@@ -6,6 +6,8 @@ from app.models.learning_resource import LearningResource
 from app.schemas.auth import ApiResponse
 from app.schemas.catalog import (
     AdminCatalogData,
+    AdminSystemStats,
+    CatalogStatusUpdate,
     CareerRoleRead,
     CareerRoleWrite,
     CategoryRead,
@@ -23,8 +25,10 @@ from app.services.catalog_service import (
     list_roles,
     list_skills,
     save_career_role,
+    set_item_active,
     update_item,
 )
+from app.services.dashboard_service import get_admin_system_stats
 
 router = APIRouter(
     prefix="/api/v1/admin",
@@ -42,7 +46,10 @@ def get_admin_catalog(db: DbSession):
                 CareerRoleRead.model_validate(item)
                 for item in list_roles(db, include_inactive=True)
             ],
-            skills=[SkillRead.model_validate(item) for item in list_skills(db)],
+            skills=[
+                SkillRead.model_validate(item)
+                for item in list_skills(db, include_inactive=True)
+            ],
             resources=[
                 LearningResourceRead.model_validate(item)
                 for item in list_resources(db, include_inactive=True, limit=200)
@@ -50,6 +57,11 @@ def get_admin_catalog(db: DbSession):
         ),
         message="Admin catalog retrieved",
     )
+
+
+@router.get("/stats", response_model=ApiResponse[AdminSystemStats])
+def get_admin_stats(db: DbSession):
+    return ApiResponse(data=get_admin_system_stats(db), message="Admin stats retrieved")
 
 
 @router.post(
@@ -96,8 +108,16 @@ def update_role(item_id: int, payload: CareerRoleWrite, db: DbSession):
 
 @router.delete("/career-roles/{item_id}", response_model=ApiResponse[dict[str, bool]])
 def delete_role(item_id: int, db: DbSession):
-    delete_item(db, CareerRole, item_id)
+    set_item_active(db, CareerRole, item_id, is_active=False)
     return ApiResponse(data={"deleted": True}, message="Career role deleted")
+
+
+@router.patch(
+    "/career-roles/{item_id}/status", response_model=ApiResponse[CareerRoleRead]
+)
+def set_role_status(item_id: int, payload: CatalogStatusUpdate, db: DbSession):
+    item = set_item_active(db, CareerRole, item_id, is_active=payload.is_active)
+    return ApiResponse(data=item, message="Career role status updated")
 
 
 @router.post(
@@ -118,8 +138,14 @@ def update_skill(item_id: int, payload: SkillWrite, db: DbSession):
 
 @router.delete("/skills/{item_id}", response_model=ApiResponse[dict[str, bool]])
 def delete_skill(item_id: int, db: DbSession):
-    delete_item(db, Skill, item_id)
+    set_item_active(db, Skill, item_id, is_active=False)
     return ApiResponse(data={"deleted": True}, message="Skill deleted")
+
+
+@router.patch("/skills/{item_id}/status", response_model=ApiResponse[SkillRead])
+def set_skill_status(item_id: int, payload: CatalogStatusUpdate, db: DbSession):
+    item = set_item_active(db, Skill, item_id, is_active=payload.is_active)
+    return ApiResponse(data=item, message="Skill status updated")
 
 
 @router.post(
@@ -142,5 +168,16 @@ def update_resource(item_id: int, payload: LearningResourceWrite, db: DbSession)
     "/resources/{item_id}", response_model=ApiResponse[dict[str, bool]]
 )
 def delete_resource(item_id: int, db: DbSession):
-    delete_item(db, LearningResource, item_id)
+    set_item_active(db, LearningResource, item_id, is_active=False)
     return ApiResponse(data={"deleted": True}, message="Learning resource deleted")
+
+
+@router.patch(
+    "/resources/{item_id}/status",
+    response_model=ApiResponse[LearningResourceRead],
+)
+def set_resource_status(
+    item_id: int, payload: CatalogStatusUpdate, db: DbSession
+):
+    item = set_item_active(db, LearningResource, item_id, is_active=payload.is_active)
+    return ApiResponse(data=item, message="Learning resource status updated")

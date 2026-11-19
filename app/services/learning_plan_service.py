@@ -168,14 +168,23 @@ def create_plan_from_analysis(
 
     # Sắp xếp kỹ năng theo độ hụt lớn nhất trước
     gap_items.sort(key=lambda x: x["gap_size"], reverse=True)
+    gap_items = [
+        item
+        for item in gap_items
+        if item["skill"] is not None and item["skill"].is_active
+    ]
 
     # Nếu không có kỹ năng nào bị hụt hoặc danh sách rỗng, lấy kỹ năng của role
     if not gap_items:
         if analysis.career_role_id:
             role_skills = db.scalars(
                 select(CareerRoleSkill)
+                .join(CareerRoleSkill.skill)
                 .options(joinedload(CareerRoleSkill.skill))
-                .where(CareerRoleSkill.career_role_id == analysis.career_role_id)
+                .where(
+                    CareerRoleSkill.career_role_id == analysis.career_role_id,
+                    Skill.is_active.is_(True),
+                )
             ).all()
             gap_items = [
                 {"skill": rs.skill, "gap_size": 1, "current_level": 2, "target_level": rs.required_level}
@@ -183,7 +192,9 @@ def create_plan_from_analysis(
             ]
         if not gap_items:
             # Fallback lấy các kỹ năng phổ biến trong hệ thống
-            fallback_skills = db.scalars(select(Skill).limit(3)).all()
+            fallback_skills = db.scalars(
+                select(Skill).where(Skill.is_active.is_(True)).limit(3)
+            ).all()
             gap_items = [
                 {"skill": s, "gap_size": 1, "current_level": 2, "target_level": 4}
                 for s in fallback_skills
@@ -195,6 +206,7 @@ def create_plan_from_analysis(
         select(LearningResource).where(
             LearningResource.skill_id.in_(skill_ids),
             LearningResource.is_active == True,  # noqa: E712
+            LearningResource.skill.has(Skill.is_active.is_(True)),
         )
     ).all()
     resource_map: dict[int, list[LearningResource]] = {}
