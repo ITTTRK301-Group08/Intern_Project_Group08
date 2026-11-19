@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -37,6 +38,8 @@ logger = logging.getLogger(__name__)
 
 # Nghiệp vụ Mock Interview yêu cầu đúng 3 câu hỏi cho mỗi phiên.
 REQUIRED_QUESTION_COUNT = 3
+OPEN_INTERVIEW_STATUSES = ("ready", "in_progress")
+INTERVIEW_IDLE_TIMEOUT = timedelta(hours=24)
 
 CAREER_ROLE_NOT_FOUND = "INTERVIEW_CAREER_ROLE_NOT_FOUND"
 CAREER_ROLE_INACTIVE = "INTERVIEW_CAREER_ROLE_INACTIVE"
@@ -49,6 +52,42 @@ AI_UNAVAILABLE = "INTERVIEW_AI_UNAVAILABLE"
 AI_INVALID_RESPONSE = "INTERVIEW_AI_INVALID_RESPONSE"
 AI_DUPLICATE_QUESTIONS = "INTERVIEW_AI_DUPLICATE_QUESTIONS"
 DATABASE_ERROR = "INTERVIEW_DATABASE_ERROR"
+
+
+def abandon_stale_interview_sessions(
+    db: Session,
+    *,
+    user_id: int,
+    now: datetime | None = None,
+) -> int:
+    """Mark open interview sessions idle for more than 24 hours as abandoned."""
+    current_time = now or datetime.now(timezone.utc)
+    if current_time.tzinfo is not None:
+        current_time = current_time.astimezone(timezone.utc).replace(tzinfo=None)
+    cutoff = current_time - INTERVIEW_IDLE_TIMEOUT
+
+    try:
+        result = db.execute(
+            update(InterviewSession)
+            .where(
+                InterviewSession.user_id == user_id,
+                InterviewSession.status.in_(OPEN_INTERVIEW_STATUSES),
+                InterviewSession.updated_at < cutoff,
+            )
+            .values(status="abandoned")
+        )
+        affected = result.rowcount or 0
+        if affected:
+            db.commit()
+        return affected
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.exception("Không thể tự động đóng phiên phỏng vấn bị bỏ dở.")
+        raise _error(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            DATABASE_ERROR,
+            "Không thể cập nhật trạng thái phiên phỏng vấn.",
+        ) from exc
 
 
 def _error(status_code: int, code: str, message: str) -> HTTPException:
@@ -211,6 +250,14 @@ def _persist_session(
     )
 
     try:
+        db.execute(
+            update(InterviewSession)
+            .where(
+                InterviewSession.user_id == user_id,
+                InterviewSession.status.in_(OPEN_INTERVIEW_STATUSES),
+            )
+            .values(status="abandoned")
+        )
         db.add(session)
         db.flush()
 
