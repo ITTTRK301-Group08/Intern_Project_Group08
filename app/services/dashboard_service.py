@@ -11,6 +11,7 @@ from app.models.interview import InterviewQuestion, InterviewSession
 from app.models.learning_plan import LearningPlan, LearningPlanItem
 from app.models.profile_data import CareerRoleSkill
 from app.models.student_profile import StudentProfile
+from app.services.interview_service import abandon_stale_interview_sessions
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +122,7 @@ def get_dashboard_summary(db: Session, *, user_id: int) -> dict:
     ) or 0
 
     # Tổng số phỏng vấn
+    abandon_stale_interview_sessions(db, user_id=user_id)
     total_interviews = db.scalar(
         select(func.count(InterviewSession.id)).where(InterviewSession.user_id == user_id)
     ) or 0
@@ -396,6 +398,7 @@ def get_interview_history(
     page: int = 1,
     page_size: int = 10,
 ) -> dict:
+    abandon_stale_interview_sessions(db, user_id=user_id)
     offset = max(0, (page - 1) * page_size)
 
     total = db.scalar(

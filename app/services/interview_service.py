@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
-from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import HTTPException, status
-from sqlalchemy import desc, func, select, update
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.career import CareerRole
@@ -51,11 +49,6 @@ logger = logging.getLogger(__name__)
 
 # Nghiệp vụ Mock Interview yêu cầu đúng 3 câu hỏi cho mỗi phiên.
 REQUIRED_QUESTION_COUNT = 3
-# NFR-PER-03: toàn bộ thao tác chấm một câu trả lời không vượt quá 30 giây.
-SCORING_TIMEOUT_SECONDS = 30.0
-# Điểm lưu ở Numeric(5,2), làm tròn nhất quán bằng Decimal.
-SCORE_QUANTUM = Decimal("0.01")
-ACTIVE_SESSION_STATUSES = ("ready", "in_progress")
 
 CAREER_ROLE_NOT_FOUND = "INTERVIEW_CAREER_ROLE_NOT_FOUND"
 CAREER_ROLE_INACTIVE = "INTERVIEW_CAREER_ROLE_INACTIVE"
@@ -85,6 +78,42 @@ DEFAULT_INVALID_RESPONSE_MESSAGE = (
 SCORING_INVALID_RESPONSE_MESSAGE = (
     "Dịch vụ AI trả về điểm hoặc nhận xét không hợp lệ."
 )
+
+
+def abandon_stale_interview_sessions(
+    db: Session,
+    *,
+    user_id: int,
+    now: datetime | None = None,
+) -> int:
+    """Mark open interview sessions idle for more than 24 hours as abandoned."""
+    current_time = now or datetime.now(timezone.utc)
+    if current_time.tzinfo is not None:
+        current_time = current_time.astimezone(timezone.utc).replace(tzinfo=None)
+    cutoff = current_time - INTERVIEW_IDLE_TIMEOUT
+
+    try:
+        result = db.execute(
+            update(InterviewSession)
+            .where(
+                InterviewSession.user_id == user_id,
+                InterviewSession.status.in_(OPEN_INTERVIEW_STATUSES),
+                InterviewSession.updated_at < cutoff,
+            )
+            .values(status="abandoned")
+        )
+        affected = result.rowcount or 0
+        if affected:
+            db.commit()
+        return affected
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.exception("Không thể tự động đóng phiên phỏng vấn bị bỏ dở.")
+        raise _error(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            DATABASE_ERROR,
+            "Không thể cập nhật trạng thái phiên phỏng vấn.",
+        ) from exc
 
 
 def _error(status_code: int, code: str, message: str) -> HTTPException:
@@ -274,12 +303,6 @@ def _persist_session(
     )
 
     try:
-        # D1: phiên in_progress cũ cùng vị trí chuyển sang abandoned.
-        _abandon_previous_sessions(
-            db,
-            user_id=user_id,
-            career_role_id=career_role_id,
-        )
         db.add(session)
         db.flush()
 
