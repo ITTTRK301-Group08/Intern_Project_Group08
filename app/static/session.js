@@ -253,6 +253,28 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (isDirectMode) {
+      var directRoutes = {
+        '/login': './login.html',
+        '/register': './register.html',
+        '/explore': './explore.html',
+        '/profile': './profile.html',
+        '/cv': './cv.html',
+        '/analysis': './analysis.html',
+        '/interview': './interview.html',
+        '/roadmap': './roadmap.html',
+        '/dashboard': './dashboard.html',
+        '/admin': './admin.html'
+      };
+      document.querySelectorAll('a[href^="/"]').forEach(function (link) {
+        var target = new URL(link.getAttribute('href'), window.location.href);
+        var directTarget = directRoutes[target.pathname];
+        if (directTarget) {
+          link.href = directTarget + target.search + target.hash;
+        }
+      });
+    }
+
     var nav = document.querySelector('.site-nav');
     if (nav) {
       if (!token) {

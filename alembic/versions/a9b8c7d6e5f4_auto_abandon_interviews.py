@@ -1,7 +1,7 @@
 """auto-abandon inactive interview sessions
 
 Revision ID: a9b8c7d6e5f4
-Revises: 4f2fe7519541, e71b3c9d4a20
+Revises: 2c333ed80045, d5c7e9a1b3f0
 Create Date: 2026-11-18 01:10:00.000000
 """
 
@@ -11,7 +11,10 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "a9b8c7d6e5f4"
-down_revision: str | Sequence[str] | None = ("4f2fe7519541", "e71b3c9d4a20")
+down_revision: str | Sequence[str] | None = (
+    "2c333ed80045",
+    "d5c7e9a1b3f0",
+)
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

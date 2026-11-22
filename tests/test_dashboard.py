@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -7,6 +7,10 @@ from app.models.career import CareerCategory, CareerRole, Skill
 from app.models.interview import InterviewAnswer, InterviewQuestion, InterviewSession
 from app.models.learning_plan import LearningPlan, LearningPlanItem
 from app.models.profile_data import CareerRoleSkill
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def register_user(client, email: str, password: str = "StrongPass123!") -> tuple[dict, int]:
@@ -55,7 +59,7 @@ def setup_dashboard_fixture(db_session, user_id: int):
         consent_purpose_version="v1",
         status="completed",
         summary="Phân tích năng lực Data Analyst",
-        completed_at=datetime.utcnow(),
+        completed_at=_utcnow(),
     )
     db_session.add(analysis)
     db_session.flush()
@@ -85,7 +89,7 @@ def setup_dashboard_fixture(db_session, user_id: int):
         career_role_id=role.id,
         status="completed",
         total_score=82.5,
-        completed_at=datetime.utcnow(),
+        completed_at=_utcnow(),
     )
     db_session.add(session)
     db_session.flush()
@@ -115,8 +119,8 @@ def setup_dashboard_fixture(db_session, user_id: int):
         user_id=user_id,
         analysis_id=analysis.id,
         title="Lộ trình Data Analyst 30 ngày",
-        start_date=datetime.utcnow().date(),
-        end_date=datetime.utcnow().date(),
+        start_date=_utcnow().date(),
+        end_date=_utcnow().date(),
         status="active",
     )
     db_session.add(plan)
@@ -128,7 +132,7 @@ def setup_dashboard_fixture(db_session, user_id: int):
         week_number=1,
         task_description="Học cú pháp SQL Window Functions",
         is_completed=True,
-        completed_at=datetime.utcnow(),
+        completed_at=_utcnow(),
     )
     it2 = LearningPlanItem(
         plan_id=plan.id,

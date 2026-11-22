@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 
 from app.models.analysis import Analysis
 from app.models.cv import CV

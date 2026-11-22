@@ -1,4 +1,4 @@
-import fitz
+import pymupdf as fitz
 
 from app.models.analysis import Analysis, AnalysisSkillGap
 from app.models.career import CareerRole, Skill

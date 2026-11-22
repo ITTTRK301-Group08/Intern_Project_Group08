@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal, ROUND_HALF_UP
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import desc, func, select, update
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.career import CareerRole
@@ -49,6 +51,11 @@ logger = logging.getLogger(__name__)
 
 # Nghiệp vụ Mock Interview yêu cầu đúng 3 câu hỏi cho mỗi phiên.
 REQUIRED_QUESTION_COUNT = 3
+ACTIVE_SESSION_STATUSES = ("ready", "in_progress")
+OPEN_INTERVIEW_STATUSES = ACTIVE_SESSION_STATUSES
+INTERVIEW_IDLE_TIMEOUT = timedelta(hours=24)
+SCORING_TIMEOUT_SECONDS = 30.0
+SCORE_QUANTUM = Decimal("0.01")
 
 CAREER_ROLE_NOT_FOUND = "INTERVIEW_CAREER_ROLE_NOT_FOUND"
 CAREER_ROLE_INACTIVE = "INTERVIEW_CAREER_ROLE_INACTIVE"
@@ -303,6 +310,14 @@ def _persist_session(
     )
 
     try:
+        db.execute(
+            update(InterviewSession)
+            .where(
+                InterviewSession.user_id == user_id,
+                InterviewSession.status.in_(OPEN_INTERVIEW_STATUSES),
+            )
+            .values(status="abandoned", updated_at=func.current_timestamp())
+        )
         db.add(session)
         db.flush()
 

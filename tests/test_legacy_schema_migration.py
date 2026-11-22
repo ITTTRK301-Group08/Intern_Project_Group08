@@ -108,7 +108,7 @@ def test_alembic_history_has_one_head_and_recognizes_legacy_revision():
     config = Config(str(ROOT / "alembic.ini"))
     scripts = ScriptDirectory.from_config(config)
 
-    assert scripts.get_heads() == ["d5c7e9a1b3f0"]
+    assert scripts.get_heads() == ["a9b8c7d6e5f4"]
     assert scripts.get_revision("a6d3f0c2b841") is not None
 
 
