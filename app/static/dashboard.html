@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Bảng điều khiển tổng hợp năng lực nghề nghiệp, biểu đồ Radar kỹ năng và tiến độ học tập 30 ngày." />
   <meta name="theme-color" content="#f2f7f5" />
-  <title>La Bàn Nghề Nghiệp — Dashboard & Biểu đồ Radar</title>
+  <title>CareerPilot AI — Dashboard & Biểu đồ Radar</title>
   <script>
     if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
       document.write('<link rel="stylesheet" href="./profile.css">');
@@ -28,14 +28,26 @@
 <body>
   <main class="container">
     <header class="topbar">
-      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+            <a class="brand-lockup" href="/explore" aria-label="CareerPilot AI — Dẫn lối sự nghiệp thông minh (hệ thống la bàn số)">
         <span class="brand-symbol" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-            <path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" />
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="careerPilotGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4f46e5" />
+                <stop offset="0.5" stop-color="#7c3aed" />
+                <stop offset="1" stop-color="#06b6d4" />
+              </linearGradient>
+              <linearGradient id="careerPilotCore" x1="10" y1="6" x2="22" y2="26" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38bdf8" />
+                <stop offset="1" stop-color="#6366f1" />
+              </linearGradient>
+            </defs>
+            <path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" stroke="url(#careerPilotGrad)" stroke-width="2" stroke-linejoin="round" fill="rgba(79, 70, 229, 0.12)" />
+            <path d="M16 7L23 18.5L16 15.5L9 18.5L16 7Z" fill="url(#careerPilotCore)" />
+            <circle cx="16" cy="16" r="2.2" fill="#ffffff" />
           </svg>
         </span>
-        <span class="brand-name">la bàn<span>.</span></span>
+        <span class="brand-name">Career<strong>Pilot</strong><span class="brand-ai-badge">AI</span></span>
       </a>
       <nav class="site-nav" aria-label="Điều hướng">
         <a href="/explore">Khám phá</a>

@@ -60,3 +60,18 @@ def test_public_pages_load_session_navigation(client):
         assert response.status_code == 200
         assert "/static/session.js" in response.text
         assert 'data-require-auth="true"' not in response.text
+
+
+def test_admin_page_guard_and_redirect_behavior(client):
+    admin_html = client.get("/admin").text
+    assert 'data-require-role="admin"' in admin_html
+    assert 'id="adminAccessDenied"' in admin_html
+    assert 'id="adminAuthorizedContent"' in admin_html
+
+    auth_js = client.get("/static/auth.js").text
+    assert "role === 'admin'" in auth_js
+    assert "/admin" in auth_js
+
+    admin_js = client.get("/static/admin.js").text
+    assert "kickOutNonAdmin" in admin_js
+    assert "/api/v1/auth/me" in admin_js

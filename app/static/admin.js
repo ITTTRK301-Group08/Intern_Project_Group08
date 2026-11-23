@@ -662,17 +662,37 @@
     });
   }
 
+  function kickOutNonAdmin(msg) {
+    var content = $('adminAuthorizedContent');
+    if (content) content.style.display = 'none';
+    var denied = $('adminAccessDenied');
+    if (denied) denied.style.display = 'block';
+
+    var secondsLeft = 2;
+    var countEl = $('kickSeconds');
+    var interval = setInterval(function () {
+      secondsLeft -= 1;
+      if (countEl) countEl.textContent = String(secondsLeft);
+      if (secondsLeft <= 0) {
+        clearInterval(interval);
+        window.location.replace('/explore');
+      }
+    }, 1000);
+  }
+
   function loadInitialData() {
     var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
-    if (isDirectMode || !token) {
-      catalogData.resources = [];
+    if (isDirectMode || !token || token === 'demo_student_token') {
+      renderRolesTable('');
+      renderCategoriesTable('');
+      renderSkillsTable('');
       renderResourcesTable('');
       updateStats();
       showFeedback('Đăng nhập Admin qua FastAPI để tải kho tài nguyên.', true);
       return Promise.resolve(false);
     }
 
-    return fetch('/api/v1/admin/catalog', {
+    fetch('/api/v1/admin/catalog', {
       headers: { Authorization: 'Bearer ' + token }
     })
       .then(function (res) {
@@ -686,12 +706,9 @@
           if (body.data.skills) catalogData.skills = body.data.skills;
           if (body.data.resources) catalogData.resources = body.data.resources;
         }
-        return true;
       })
-      .catch(function (error) {
-        catalogData.resources = [];
-        showFeedback(error.message || 'Không thể tải dữ liệu kho tài nguyên từ máy chủ.', true);
-        return false;
+      .catch(function () {
+        // Fallback demo data
       })
       .finally(function () {
         renderRolesTable('');

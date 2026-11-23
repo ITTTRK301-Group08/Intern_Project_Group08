@@ -131,8 +131,18 @@
     fetch('/api/v1/auth/me', { headers: { Authorization: 'Bearer ' + token } })
       .then(function (res) {
         if (res.ok) {
-          window.location.replace(nextTarget(fallback));
-          return;
+          return res.json().then(function (body) {
+            var explicit = readSafeNext();
+            if (explicit) {
+              window.location.replace(nextTarget(explicit));
+              return;
+            }
+            if (body && body.data && body.data.role === 'admin') {
+              window.location.replace(isDirectMode ? './admin.html' : '/admin');
+              return;
+            }
+            window.location.replace(nextTarget(fallback));
+          });
         }
         if (res.status === 401) {
           clearTokens();
@@ -183,7 +193,27 @@
             return;
           }
           setStatus(statusEl, 'Đăng nhập thành công. Đang chuyển trang...', 'ok');
-          window.location.assign(nextTarget('/explore'));
+          var explicit = readSafeNext();
+          if (explicit) {
+            window.location.assign(nextTarget(explicit));
+            return;
+          }
+          // Kiểm tra vai trò để điều hướng chính xác
+          fetch('/api/v1/auth/me', { headers: { Authorization: 'Bearer ' + token } })
+            .then(function (meRes) {
+              if (meRes.ok) return meRes.json();
+              return null;
+            })
+            .then(function (meBody) {
+              if (meBody && meBody.data && meBody.data.role === 'admin') {
+                window.location.assign(isDirectMode ? './admin.html' : '/admin');
+              } else {
+                window.location.assign(nextTarget('/explore'));
+              }
+            })
+            .catch(function () {
+              window.location.assign(nextTarget('/explore'));
+            });
         })
         .catch(function () {
           setStatus(statusEl, 'Không thể kết nối máy chủ. Vui lòng kiểm tra mạng rồi thử lại.', 'error');

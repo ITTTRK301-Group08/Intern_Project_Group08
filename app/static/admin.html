@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="vi" data-require-auth="true">
+<html lang="vi" data-require-auth="true" data-require-role="admin">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Phân hệ Quản trị danh mục nghề nghiệp, kỹ năng chuẩn và tài nguyên học tập." />
   <meta name="theme-color" content="#f2f7f5" />
-  <title>La Bàn Nghề Nghiệp — Quản trị danh mục</title>
+  <title>CareerPilot AI — Quản trị danh mục hệ thống</title>
   <script>
     if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
       document.write('<link rel="stylesheet" href="./profile.css">');
@@ -26,14 +26,26 @@
 <body>
   <main class="container">
     <header class="topbar">
-      <a class="brand-lockup" href="/explore" aria-label="La Bàn, về trang khám phá">
+            <a class="brand-lockup" href="/explore" aria-label="CareerPilot AI — Dẫn lối sự nghiệp thông minh (hệ thống la bàn số)">
         <span class="brand-symbol" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M19.4 4.6 14.8 15l-10.2 4.4L9 9l10.4-4.4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-            <path d="m9 9 5.8 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" />
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="careerPilotGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4f46e5" />
+                <stop offset="0.5" stop-color="#7c3aed" />
+                <stop offset="1" stop-color="#06b6d4" />
+              </linearGradient>
+              <linearGradient id="careerPilotCore" x1="10" y1="6" x2="22" y2="26" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38bdf8" />
+                <stop offset="1" stop-color="#6366f1" />
+              </linearGradient>
+            </defs>
+            <path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" stroke="url(#careerPilotGrad)" stroke-width="2" stroke-linejoin="round" fill="rgba(79, 70, 229, 0.12)" />
+            <path d="M16 7L23 18.5L16 15.5L9 18.5L16 7Z" fill="url(#careerPilotCore)" />
+            <circle cx="16" cy="16" r="2.2" fill="#ffffff" />
           </svg>
         </span>
-        <span class="brand-name">la bàn<span>.</span></span>
+        <span class="brand-name">Career<strong>Pilot</strong><span class="brand-ai-badge">AI</span></span>
       </a>
       <nav class="site-nav" aria-label="Điều hướng">
         <a href="/explore">Khám phá</a>
@@ -50,7 +62,25 @@
     <!-- Feedback Message Banner -->
     <div id="adminFeedback" class="status-card" role="status" aria-live="polite" style="display: none;"></div>
 
-    <!-- Hero / Title -->
+    <!-- Access Denied Card (Kicking out non-admin) -->
+    <div id="adminAccessDenied" class="status-card danger" role="alert" style="display: none; margin: 40px auto; max-width: 580px; padding: 36px 28px; text-align: center; border-radius: 18px; border: 1px solid rgba(239, 68, 68, 0.25); background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);">
+      <div style="font-size: 52px; margin-bottom: 14px;">🛡️</div>
+      <h2 style="margin: 0 0 10px 0; font-size: 22px; color: #ef4444; font-weight: 700;">Từ chối quyền truy cập (403 Forbidden)</h2>
+      <p style="margin: 0 0 16px 0; color: var(--text-soft, #94a3b8); font-size: 15px; line-height: 1.6;">
+        Tài khoản của bạn hiện tại là <strong>Học viên</strong>, không có thẩm quyền truy cập <strong>Phân hệ Quản trị (Admin)</strong>.
+      </p>
+      <div id="adminKickCountdown" style="font-size: 14px; color: var(--muted, #64748b); margin-bottom: 24px; padding: 8px 16px; background: rgba(0,0,0,0.2); border-radius: 999px; display: inline-block;">
+        Hệ thống sẽ tự động chuyển hướng về trang Khám phá trong <strong><span id="kickSeconds">2</span>s</strong>...
+      </div>
+      <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+        <a href="/explore" class="btn secondary-btn" style="padding: 10px 22px;">Về trang Khám phá</a>
+        <a href="/login?next=/admin" class="btn primary-btn" style="padding: 10px 22px;">Đăng nhập bằng tài khoản Admin</a>
+      </div>
+    </div>
+
+    <!-- Main Admin Dashboard Content -->
+    <div id="adminAuthorizedContent">
+      <!-- Hero / Title -->
     <section class="page-hero" style="margin-bottom: 24px;">
       <div class="page-hero-copy">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
@@ -199,6 +229,7 @@
         </table>
       </div>
     </div>
+    </div> <!-- /adminAuthorizedContent -->
   </main>
 
   <!-- MODAL: CATEGORY -->

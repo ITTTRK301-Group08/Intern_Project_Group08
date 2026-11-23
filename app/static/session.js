@@ -288,11 +288,10 @@
             return response.json().catch(function () { return null; });
           })
           .then(function (body) {
-            var user = nav.querySelector('.nav-user');
-            var email = body && body.data && body.data.email;
-            if (user && email) {
-              user.textContent = email;
-              user.title = email;
+            if (userPill && body && body.data && body.data.email) {
+              userPill.textContent = body.data.email;
+              userPill.title = body.data.email;
+              userPill.hidden = false;
             }
           })
           .catch(function (error) {
