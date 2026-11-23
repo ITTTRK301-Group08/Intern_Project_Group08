@@ -13,7 +13,7 @@ from app.models.cv import CV
 from app.models.profile_data import CareerRoleSkill, ProfileSkill
 from app.models.student_profile import StudentProfile
 from app.schemas.analysis import SUPPORTED_PURPOSE_VERSION, AIConsent
-from app.schemas.analysis_ai import AnalysisAIResponse
+from app.schemas.analysis_ai import AnalysisAIResponse, AnalysisSkillAssessment
 from app.services.ai import AIServiceError, get_ai_service
 from app.services.dashboard_service import calculate_readiness_score
 
@@ -250,6 +250,29 @@ def _create_analysis_prompt(source_text: str, skills: list[dict]) -> str:
     )
 
 
+def _fallback_analysis_result(skills: list[dict]) -> AnalysisAIResponse:
+    """Build an evidence-safe result when AI is temporarily unavailable.
+
+    The pipeline already applies structured self-assessments separately, so a
+    missing AI assessment is represented as level 0 with no evidence instead of
+    guessing. This keeps analysis usable during AI rate limits.
+    """
+    return AnalysisAIResponse(
+        skills=[
+            AnalysisSkillAssessment(
+                skill_id=skill["skill_id"],
+                current_level=0,
+                evidence=None,
+                recommendation=(
+                    "Chưa có bằng chứng từ CV/hồ sơ cho kỹ năng này. "
+                    "Hãy ôn lại kiến thức nền tảng và luyện tập theo lộ trình 30 ngày."
+                ),
+            )
+            for skill in skills
+        ]
+    )
+
+
 def process_analysis_background(analysis_id: int) -> None:
     """Run one queued analysis and persist its result as a single report transaction."""
     db = SessionLocal()
@@ -271,16 +294,30 @@ def process_analysis_background(analysis_id: int) -> None:
             analysis.status = "processing"
             db.commit()
 
-            result = asyncio.run(
-                get_ai_service().generate_structured(
-                    prompt=_create_analysis_prompt(source_text, prompt_skills),
-                    response_schema=AnalysisAIResponse,
-                    system_instruction=(
-                        "Bạn là chuyên gia phân tích nghề nghiệp. "
-                        "Đầu ra phải tuân thủ schema JSON, không thêm kỹ năng ngoài danh sách."
-                    ),
+            try:
+                result = asyncio.run(
+                    get_ai_service().generate_structured(
+                        prompt=_create_analysis_prompt(source_text, prompt_skills),
+                        response_schema=AnalysisAIResponse,
+                        system_instruction=(
+                            "Bạn là chuyên gia phân tích nghề nghiệp. "
+                            "Đầu ra phải tuân thủ schema JSON, không thêm kỹ năng ngoài danh sách."
+                        ),
+                    )
                 )
-            )
+            except AIServiceError as exc:
+                if not exc.retryable:
+                    raise
+                # Rate limit / temporary provider errors must not fail the whole
+                # analysis. Fall back to the evidence-safe default: no claim
+                # without evidence, so current_level = 0 for every target skill.
+                logger.warning(
+                    "Analysis %s using deterministic fallback after AI error (%s)",
+                    analysis_id,
+                    exc.code,
+                )
+                result = _fallback_analysis_result(prompt_skills)
+
             returned_ids = [item.skill_id for item in result.skills]
             if len(returned_ids) != len(set(returned_ids)) or set(returned_ids) != expected_ids:
                 raise ValueError("AI returned incomplete or unexpected skill IDs")

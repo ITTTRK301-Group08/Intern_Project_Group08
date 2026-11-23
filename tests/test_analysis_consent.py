@@ -8,6 +8,7 @@ from app.models.student_profile import StudentProfile
 from app.models.user import User
 from app.schemas.analysis_ai import AnalysisAIResponse, AnalysisSkillAssessment
 from app.services import analysis_service
+from app.services.ai import AIRateLimitError
 
 
 def register_and_login(client, email: str = "consent@example.com", password: str = "StrongPass123"):
@@ -239,6 +240,38 @@ def test_valid_consent_creates_report_and_runs_analysis(client, db_session, monk
     assert second_response.json()["data"]["id"] != first_analysis_id
     history = client.get("/api/v1/analyses", headers=headers)
     assert history.json()["data"]["total"] == 2
+
+def test_analysis_completes_with_fallback_when_ai_is_rate_limited(
+    client, db_session, monkeypatch
+):
+    headers = register_and_login(client, "rate_limited@example.com")
+    cv_id = create_cv(client, headers)
+    role_id, skill_id = create_role(db_session, "rate-limit-role")
+
+    class RateLimitedAIService:
+        async def generate_structured(self, **kwargs):
+            raise AIRateLimitError("quota exhausted")
+
+    monkeypatch.setattr(analysis_service, "get_ai_service", RateLimitedAIService)
+    monkeypatch.setattr(analysis_service, "SessionLocal", lambda: db_session)
+
+    response = client.post(
+        "/api/v1/analyses",
+        headers=headers,
+        json=valid_payload(cv_id=cv_id, career_role_id=role_id),
+    )
+    assert response.status_code == 202
+    analysis_id = response.json()["data"]["id"]
+    analysis = db_session.query(Analysis).filter_by(id=analysis_id).one()
+    assert analysis.status == "completed"
+    assert analysis.completed_at is not None
+
+    gap = db_session.query(AnalysisSkillGap).filter_by(analysis_id=analysis_id).one()
+    assert gap.skill_id == skill_id
+    assert gap.current_level == 0
+    assert gap.has_evidence is False
+    assert gap.evidence is None
+
 
 def test_profile_analysis_uses_self_assessment_and_preserves_overqualified_score(
     client, db_session, monkeypatch

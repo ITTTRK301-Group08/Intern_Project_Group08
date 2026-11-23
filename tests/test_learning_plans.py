@@ -192,6 +192,23 @@ def test_list_plans_auto_creates_from_latest_completed_analysis(client, db_sessi
     assert [p["id"] for p in second.json()["data"]] == [plans[0]["id"]]
 
 
+def test_list_plans_does_not_call_ai(client, db_session, monkeypatch):
+    headers, user_id = register_user(client, "auto_plan_no_ai@example.com")
+    setup_catalog_and_analysis(db_session, user_id=user_id, status="completed")
+
+    class NoAI:
+        def __init__(self):
+            raise AssertionError("Auto-create must not call AI during a page load")
+
+    monkeypatch.setattr(learning_plan_service, "get_ai_service", NoAI)
+
+    response = client.get("/api/v1/learning-plans?include_archived=false", headers=headers)
+    assert response.status_code == 200
+    plans = response.json()["data"]
+    assert len(plans) == 1
+    assert plans[0]["total_items"] > 0
+
+
 def test_list_plans_does_not_create_from_pending_analysis(client, db_session):
     headers, user_id = register_user(client, "auto_plan_pending_user@example.com")
     setup_catalog_and_analysis(db_session, user_id=user_id, status="pending")
