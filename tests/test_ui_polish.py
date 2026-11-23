@@ -54,3 +54,16 @@ def test_analysis_assets_have_no_unresolved_merge_markers(client):
         assert "Temporary merge branch" not in content
         assert "<<<<<<<" not in content
         assert ">>>>>>>" not in content
+
+
+def test_project_branding_is_career_mentor_everywhere(client):
+    for path in ("/", "/explore", "/profile", "/cv", "/analysis", "/interview", "/roadmap", "/dashboard", "/admin", "/login", "/register"):
+        html = client.get(path).text
+        assert "Career Mentor" in html
+        assert "careerpilot" not in html.lower()
+        assert "la bàn" not in html.lower()
+
+    for path in ("/static/admin.js", "/static/roadmap.js"):
+        script = client.get(path).text
+        assert "careerpilot" not in script.lower()
+        assert "la bàn" not in script.lower()

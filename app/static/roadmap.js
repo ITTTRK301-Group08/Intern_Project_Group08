@@ -185,7 +185,7 @@
         resource: {
           id: 7,
           title: 'Intro to Tech Interviews',
-          provider: 'La Bàn Nghề Nghiệp',
+          provider: 'Career Mentor',
           url: '/analysis',
           resource_type: 'practice',
           is_free: true

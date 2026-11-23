@@ -1,4 +1,4 @@
-# AI Career Mentor
+# Career Mentor
 
 ## Initial installation
 

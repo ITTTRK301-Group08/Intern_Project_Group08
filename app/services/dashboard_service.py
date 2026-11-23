@@ -6,9 +6,10 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.analysis import Analysis, AnalysisSkillGap
-from app.models.career import CareerRole
+from app.models.career import CareerCategory, CareerRole, Skill
 from app.models.interview import InterviewQuestion, InterviewSession
 from app.models.learning_plan import LearningPlan, LearningPlanItem
+from app.models.learning_resource import LearningResource
 from app.models.profile_data import CareerRoleSkill
 from app.models.student_profile import StudentProfile
 from app.models.user import User
@@ -17,10 +18,34 @@ logger = logging.getLogger(__name__)
 
 
 def get_admin_system_stats(db: Session) -> dict[str, int]:
+    """Đếm số liệu hệ thống trực tiếp từ Database.
+
+    Mỗi chỉ số là một ``COUNT`` trên một bảng duy nhất, không join, nên không
+    thể đếm trùng bản ghi khi có quan hệ giữa các bảng.
+    """
+
     return {
         "total_users": db.scalar(select(func.count(User.id))) or 0,
+        "total_active_users": db.scalar(
+            select(func.count(User.id)).where(User.is_active.is_(True))
+        )
+        or 0,
+        "total_locked_users": db.scalar(
+            select(func.count(User.id)).where(User.is_active.is_(False))
+        )
+        or 0,
         "total_analyses": db.scalar(select(func.count(Analysis.id))) or 0,
         "total_interviews": db.scalar(select(func.count(InterviewSession.id))) or 0,
+        "total_categories": db.scalar(select(func.count(CareerCategory.id))) or 0,
+        "total_roles": db.scalar(select(func.count(CareerRole.id))) or 0,
+        "total_skills": db.scalar(select(func.count(Skill.id))) or 0,
+        "total_resources": db.scalar(select(func.count(LearningResource.id))) or 0,
+        "total_pending_resources": db.scalar(
+            select(func.count(LearningResource.id)).where(
+                LearningResource.approval_status == "pending"
+            )
+        )
+        or 0,
     }
 
 

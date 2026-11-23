@@ -4,7 +4,7 @@
 def test_login_page_is_served(client):
     response = client.get("/login")
     assert response.status_code == 200
-    assert "la bàn" in response.text
+    assert "Career Mentor" in response.text
     assert 'id="loginForm"' in response.text
     assert 'id="email"' in response.text
     assert 'id="password"' in response.text
@@ -15,7 +15,7 @@ def test_login_page_is_served(client):
 def test_register_page_is_served(client):
     response = client.get("/register")
     assert response.status_code == 200
-    assert "la bàn" in response.text
+    assert "Career Mentor" in response.text
     assert 'id="registerForm"' in response.text
     assert 'id="email"' in response.text
     assert 'id="password"' in response.text

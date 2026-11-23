@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 
 from app.core.deps import CurrentUser, DbSession, require_admin
@@ -8,6 +10,8 @@ from app.models.user import User
 from app.schemas.auth import ApiResponse
 from app.schemas.catalog import (
     AdminCatalogData,
+    AdminCategoryDetailRead,
+    AdminLearningResourceDetailRead,
     AdminSystemStats,
     CatalogStatusUpdate,
     CareerRoleRead,
@@ -17,17 +21,33 @@ from app.schemas.catalog import (
     LearningResourceRead,
     LearningResourceReviewRequest,
     LearningResourceWrite,
+    ResourceType,
     SkillRead,
     SkillWrite,
 )
-from app.schemas.user import UserResponse, UserStatusUpdate
+from app.schemas.pagination import Page
+from app.schemas.user import (
+    AdminUserDetailRead,
+    AdminUserRead,
+    UserResponse,
+    UserStatusUpdate,
+)
+from app.services.admin_service import get_admin_user_detail, list_admin_users
 from app.services.catalog_service import (
     create_item,
     delete_item,
+    ensure_category_deletable,
+    get_category_detail,
+    get_resource_detail,
+    get_role_by_id,
     list_categories,
     list_resources,
     list_roles,
     list_skills,
+    paginate_categories,
+    paginate_resources,
+    paginate_roles,
+    paginate_skills,
     save_career_role,
     set_item_active,
     update_item,
@@ -44,10 +64,37 @@ router = APIRouter(
 )
 
 
-@router.get("/users", response_model=ApiResponse[list[UserResponse]])
-def list_users(db: DbSession):
-    users = db.scalars(select(User).order_by(User.id)).all()
-    return ApiResponse(data=users, message="Users retrieved")
+@router.get(
+    "/users",
+    response_model=ApiResponse[Page[AdminUserRead]],
+)
+def list_users(
+    db: DbSession,
+    search: str | None = Query(default=None, max_length=200),
+    role: Literal["student", "admin"] | None = Query(default=None),
+    is_active: bool | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+):
+    data = list_admin_users(
+        db,
+        search=search,
+        role=role,
+        is_active=is_active,
+        page=page,
+        page_size=page_size,
+    )
+    return ApiResponse(data=data, message="Users retrieved")
+
+
+@router.get(
+    "/users/{user_id}",
+    response_model=ApiResponse[AdminUserDetailRead],
+)
+def get_user_detail(user_id: int, db: DbSession):
+    return ApiResponse(
+        data=get_admin_user_detail(db, user_id), message="User retrieved"
+    )
 
 
 @router.put(
@@ -108,6 +155,35 @@ def get_admin_stats(db: DbSession):
     return ApiResponse(data=get_admin_system_stats(db), message="Admin stats retrieved")
 
 
+@router.get(
+    "/career-categories",
+    response_model=ApiResponse[Page[CategoryRead]],
+)
+def list_admin_categories(
+    db: DbSession,
+    search: str | None = Query(default=None, max_length=200),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+):
+    return ApiResponse(
+        data=paginate_categories(
+            db, search=search, page=page, page_size=page_size
+        ),
+        message="Career categories retrieved",
+    )
+
+
+@router.get(
+    "/career-categories/{item_id}",
+    response_model=ApiResponse[AdminCategoryDetailRead],
+)
+def get_admin_category_detail(item_id: int, db: DbSession):
+    return ApiResponse(
+        data=get_category_detail(db, item_id),
+        message="Career category retrieved",
+    )
+
+
 @router.post(
     "/career-categories",
     response_model=ApiResponse[CategoryRead],
@@ -130,8 +206,47 @@ def update_category(item_id: int, payload: CategoryWrite, db: DbSession):
     "/career-categories/{item_id}", response_model=ApiResponse[dict[str, bool]]
 )
 def delete_category(item_id: int, db: DbSession):
+    ensure_category_deletable(db, item_id)
     delete_item(db, CareerCategory, item_id)
     return ApiResponse(data={"deleted": True}, message="Career category deleted")
+
+
+@router.get(
+    "/career-roles",
+    response_model=ApiResponse[Page[CareerRoleRead]],
+)
+def list_admin_roles(
+    db: DbSession,
+    search: str | None = Query(default=None, max_length=200),
+    category_id: int | None = Query(default=None, gt=0),
+    level: str | None = Query(default=None, max_length=50),
+    is_active: bool | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+):
+    return ApiResponse(
+        data=paginate_roles(
+            db,
+            search=search,
+            category_id=category_id,
+            level=level,
+            is_active=is_active,
+            page=page,
+            page_size=page_size,
+        ),
+        message="Career roles retrieved",
+    )
+
+
+@router.get(
+    "/career-roles/{item_id}",
+    response_model=ApiResponse[CareerRoleRead],
+)
+def get_admin_role_detail(item_id: int, db: DbSession):
+    return ApiResponse(
+        data=get_role_by_id(db, item_id, include_inactive=True),
+        message="Career role retrieved",
+    )
 
 
 @router.post(
@@ -164,6 +279,29 @@ def set_role_status(item_id: int, payload: CatalogStatusUpdate, db: DbSession):
     return ApiResponse(data=item, message="Career role status updated")
 
 
+@router.get(
+    "/skills",
+    response_model=ApiResponse[Page[SkillRead]],
+)
+def list_admin_skills(
+    db: DbSession,
+    search: str | None = Query(default=None, max_length=200),
+    is_active: bool | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+):
+    return ApiResponse(
+        data=paginate_skills(
+            db,
+            search=search,
+            is_active=is_active,
+            page=page,
+            page_size=page_size,
+        ),
+        message="Skills retrieved",
+    )
+
+
 @router.post(
     "/skills",
     response_model=ApiResponse[SkillRead],
@@ -190,6 +328,48 @@ def delete_skill(item_id: int, db: DbSession):
 def set_skill_status(item_id: int, payload: CatalogStatusUpdate, db: DbSession):
     item = set_item_active(db, Skill, item_id, is_active=payload.is_active)
     return ApiResponse(data=item, message="Skill status updated")
+
+
+@router.get(
+    "/resources",
+    response_model=ApiResponse[Page[LearningResourceRead]],
+)
+def list_admin_resources(
+    db: DbSession,
+    search: str | None = Query(default=None, max_length=200),
+    resource_type: ResourceType | None = Query(default=None),
+    approval_status: Literal["pending", "approved", "rejected"] | None = Query(
+        default=None
+    ),
+    is_active: bool | None = Query(default=None),
+    skill_id: int | None = Query(default=None, gt=0),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+):
+    return ApiResponse(
+        data=paginate_resources(
+            db,
+            search=search,
+            resource_type=resource_type,
+            approval_status=approval_status,
+            is_active=is_active,
+            skill_id=skill_id,
+            page=page,
+            page_size=page_size,
+        ),
+        message="Learning resources retrieved",
+    )
+
+
+@router.get(
+    "/resources/{item_id}",
+    response_model=ApiResponse[AdminLearningResourceDetailRead],
+)
+def get_admin_resource_detail(item_id: int, db: DbSession):
+    return ApiResponse(
+        data=get_resource_detail(db, item_id),
+        message="Learning resource retrieved",
+    )
 
 
 @router.post(

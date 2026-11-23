@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "AI Career Mentor & Skill Gap Analyzer"
+    app_name: str = "Career Mentor"
     environment: str = "development"
     # Bắt buộc cung cấp qua DATABASE_URL (biến môi trường hoặc .env); không hardcode thông tin đăng nhập.
     database_url: str

@@ -36,12 +36,12 @@ def test_explore_page_and_assets_are_served(client):
         response = client.get(path)
         assert response.status_code == 200
         assert "Con đường nghề nghiệp của bạn bắt đầu từ đây." in response.text
-        assert "la bàn" in response.text
+        assert "Career Mentor" in response.text
 
     for path in ("/profile", "/cv", "/analysis"):
         response = client.get(path)
         assert response.status_code == 200
-        assert "la bàn" in response.text
+        assert "Career Mentor" in response.text
         assert 'aria-label="Điều hướng"' in response.text
 
     for path in (
@@ -72,12 +72,17 @@ def test_admin_can_list_lock_and_unlock_users(client, db_session):
 
     listed = client.get("/api/v1/admin/users", headers=headers)
     assert listed.status_code == 200
-    listed_data = listed.json()["data"]
+    listed_page = listed.json()["data"]
+    assert listed_page["total"] == 2
+    assert listed_page["page"] == 1
+    assert listed_page["total_pages"] == 1
+    listed_data = listed_page["items"]
     assert {item["email"] for item in listed_data} == {
         "user-admin@example.com",
         "managed-user@example.com",
     }
-    assert "password_hash" not in str(listed_data)
+    assert all(item["full_name"] is None for item in listed_data)
+    assert "password_hash" not in str(listed_page)
 
     locked = client.put(
         f"/api/v1/admin/users/{managed_user.id}/status",
@@ -339,8 +344,15 @@ def test_admin_system_stats_count_users_analyses_and_interviews(client, db_sessi
     assert response.status_code == 200
     assert response.json()["data"] == {
         "total_users": 2,
+        "total_active_users": 2,
+        "total_locked_users": 0,
         "total_analyses": 1,
         "total_interviews": 1,
+        "total_categories": 0,
+        "total_roles": 0,
+        "total_skills": 0,
+        "total_resources": 0,
+        "total_pending_resources": 0,
     }
 
 
