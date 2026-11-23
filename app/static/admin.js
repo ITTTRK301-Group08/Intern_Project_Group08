@@ -60,6 +60,8 @@
       { id: 14, skill_id: 14, title: 'Guide to wireframing', provider: 'Figma', url: 'https://www.figma.com/resource-library/what-is-wireframing/', resource_type: 'article', is_free: true }
     ]
   };
+  var users = [];
+  var currentUserId = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -412,6 +414,114 @@
       });
   }
 
+  function renderUsersTable(filterText) {
+    var tbody = $('usersTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    var query = (filterText || '').trim().toLowerCase();
+    var filteredUsers = users.filter(function (user) {
+      return !query || user.email.toLowerCase().includes(query) ||
+        user.role.toLowerCase().includes(query);
+    });
+
+    if (filteredUsers.length === 0) {
+      var emptyRow = document.createElement('tr');
+      var emptyCell = document.createElement('td');
+      emptyCell.colSpan = 5;
+      emptyCell.textContent = 'Không tìm thấy người dùng nào.';
+      emptyCell.style.textAlign = 'center';
+      emptyRow.appendChild(emptyCell);
+      tbody.appendChild(emptyRow);
+      return;
+    }
+
+    filteredUsers.forEach(function (user) {
+      var tr = document.createElement('tr');
+      var idCell = document.createElement('td');
+      var emailCell = document.createElement('td');
+      var roleCell = document.createElement('td');
+      var statusCell = document.createElement('td');
+      var actionCell = document.createElement('td');
+      var badge = document.createElement('span');
+      var button = document.createElement('button');
+
+      idCell.textContent = '#' + user.id;
+      emailCell.textContent = user.email;
+      roleCell.textContent = user.role === 'admin' ? 'Quản trị viên' : 'Người dùng';
+      badge.className = 'badge ' + (user.is_active ? 'badge-ok' : 'badge-muted');
+      badge.textContent = user.is_active ? 'Hoạt động' : 'Đã khóa';
+      statusCell.appendChild(badge);
+      actionCell.style.textAlign = 'right';
+
+      if (user.id === currentUserId) {
+        button.type = 'button';
+        button.className = 'admin-action-btn';
+        button.disabled = true;
+        button.textContent = 'Tài khoản của bạn';
+      } else {
+        button.type = 'button';
+        button.className = 'admin-action-btn ' + (user.is_active ? 'admin-btn-delete' : 'admin-btn-edit');
+        button.textContent = user.is_active ? 'Khóa' : 'Mở khóa';
+        button.addEventListener('click', function () {
+          updateUserStatus(user);
+        });
+      }
+
+      actionCell.appendChild(button);
+      tr.append(idCell, emailCell, roleCell, statusCell, actionCell);
+      tbody.appendChild(tr);
+    });
+  }
+
+  function loadUsers(token) {
+    return fetch('/api/v1/admin/users', {
+      headers: { Authorization: 'Bearer ' + token }
+    })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().then(function (body) {
+            throw new Error(window.LaBanApp.extractApiError(body, 'Không thể tải danh sách người dùng.'));
+          });
+        }
+        return res.json();
+      })
+      .then(function (body) {
+        users = body.data || [];
+        renderUsersTable($('searchUsersInput').value);
+      })
+      .catch(function (error) {
+        showFeedback(error.message || 'Không thể tải danh sách người dùng.', true);
+      });
+  }
+
+  function updateUserStatus(user) {
+    var isActive = !user.is_active;
+    if (!isActive && !confirm('Bạn có chắc chắn muốn khóa tài khoản ' + user.email + ' không?')) return;
+
+    var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
+    fetch('/api/v1/admin/users/' + user.id + '/status', {
+      method: 'PUT',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ is_active: isActive })
+    })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().then(function (body) {
+            throw new Error(window.LaBanApp.extractApiError(body, 'Không thể cập nhật trạng thái tài khoản.'));
+          });
+        }
+        showFeedback(isActive ? 'Đã mở khóa tài khoản thành công.' : 'Đã khóa tài khoản thành công.', false);
+        return loadUsers(token);
+      })
+      .catch(function (error) {
+        showFeedback(error.message || 'Không thể cập nhật trạng thái tài khoản.', true);
+      });
+  }
+
   function openResourceModal(resId) {
     var skSelect = $('resourceFormSkill');
     skSelect.innerHTML = '<option value="">-- Không gắn kỹ năng cụ thể --</option>';
@@ -478,7 +588,8 @@
       roles: $('tabContentRoles'),
       categories: $('tabContentCategories'),
       skills: $('tabContentSkills'),
-      resources: $('tabContentResources')
+      resources: $('tabContentResources'),
+      users: $('tabContentUsers')
     };
 
     Array.prototype.forEach.call(tabBtns, function (btn) {
@@ -500,6 +611,7 @@
     $('searchCategoriesInput').addEventListener('input', function () { renderCategoriesTable(this.value); });
     $('searchSkillsInput').addEventListener('input', function () { renderSkillsTable(this.value); });
     $('searchResourcesInput').addEventListener('input', function () { renderResourcesTable(this.value); });
+    $('searchUsersInput').addEventListener('input', function () { renderUsersTable(this.value); });
 
     // Wire Add buttons
     $('btnAddRole').addEventListener('click', function () { openRoleModal(null); });
@@ -720,9 +832,19 @@
           if (body.data.skills) catalogData.skills = body.data.skills;
           if (body.data.resources) catalogData.resources = body.data.resources;
         }
+        return fetch('/api/v1/auth/me', {
+          headers: { Authorization: 'Bearer ' + token }
+        }).then(function (res) {
+          if (!res.ok) throw new Error('Không thể xác định tài khoản quản trị hiện tại.');
+          return res.json();
+        });
       })
-      .catch(function () {
-        // Fallback demo data
+      .then(function (body) {
+        if (body && body.data) currentUserId = body.data.id;
+        return loadUsers(token);
+      })
+      .catch(function (error) {
+        showFeedback(error.message || 'Không thể tải dữ liệu quản trị.', true);
       })
       .finally(function () {
         renderRolesTable('');

@@ -58,6 +58,78 @@ def test_catalog_administration_requires_admin(client):
     assert response.status_code == 403
 
 
+def test_admin_can_list_lock_and_unlock_users(client, db_session):
+    admin_token = register_and_get_token(client, email="user-admin@example.com")
+    admin = db_session.query(User).filter_by(email="user-admin@example.com").one()
+    admin.role = "admin"
+    db_session.commit()
+    user_token = register_and_get_token(client, email="managed-user@example.com")
+    managed_user = db_session.query(User).filter_by(email="managed-user@example.com").one()
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    listed = client.get("/api/v1/admin/users", headers=headers)
+    assert listed.status_code == 200
+    listed_data = listed.json()["data"]
+    assert {item["email"] for item in listed_data} == {
+        "user-admin@example.com",
+        "managed-user@example.com",
+    }
+    assert "password_hash" not in str(listed_data)
+
+    locked = client.put(
+        f"/api/v1/admin/users/{managed_user.id}/status",
+        headers=headers,
+        json={"is_active": False},
+    )
+    assert locked.status_code == 200
+    assert locked.json()["data"]["is_active"] is False
+    assert client.post(
+        "/api/v1/auth/login",
+        json={"email": "managed-user@example.com", "password": "StrongPass123"},
+    ).status_code == 403
+    assert client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {user_token}"},
+    ).status_code == 403
+
+    unlocked = client.put(
+        f"/api/v1/admin/users/{managed_user.id}/status",
+        headers=headers,
+        json={"is_active": True},
+    )
+    assert unlocked.status_code == 200
+    assert unlocked.json()["data"]["is_active"] is True
+    assert client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {user_token}"},
+    ).status_code == 200
+
+
+def test_user_management_requires_admin_and_prevents_self_lock(client, db_session):
+    student_token = register_and_get_token(client, email="regular-user@example.com")
+    admin_token = register_and_get_token(client, email="self-lock-admin@example.com")
+    admin = db_session.query(User).filter_by(email="self-lock-admin@example.com").one()
+    admin.role = "admin"
+    db_session.commit()
+
+    student_headers = {"Authorization": f"Bearer {student_token}"}
+    assert client.get("/api/v1/admin/users", headers=student_headers).status_code == 403
+    assert client.put(
+        f"/api/v1/admin/users/{admin.id}/status",
+        headers=student_headers,
+        json={"is_active": False},
+    ).status_code == 403
+
+    self_lock = client.put(
+        f"/api/v1/admin/users/{admin.id}/status",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={"is_active": False},
+    )
+    assert self_lock.status_code == 400
+    assert self_lock.json()["detail"] == "You cannot lock your own account"
+    assert admin.is_active is True
+
+
 def test_admin_can_manage_catalog_and_users_can_explore_it(client, db_session):
     token = register_and_get_token(client)
     user = db_session.query(User).filter_by(email="catalog@example.com").one()
