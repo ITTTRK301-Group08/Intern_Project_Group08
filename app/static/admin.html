@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi" data-require-auth="true">
+<html lang="vi" data-require-auth="true" data-require-role="admin">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -49,7 +49,25 @@
     <!-- Feedback Message Banner -->
     <div id="adminFeedback" class="status-card" role="status" aria-live="polite" style="display: none;"></div>
 
-    <!-- Hero / Title -->
+    <!-- Access Denied Card (Kicking out non-admin) -->
+    <div id="adminAccessDenied" class="status-card danger" role="alert" style="display: none; margin: 40px auto; max-width: 580px; padding: 36px 28px; text-align: center; border-radius: 18px; border: 1px solid rgba(239, 68, 68, 0.25); background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);">
+      <div style="font-size: 52px; margin-bottom: 14px;">🛡️</div>
+      <h2 style="margin: 0 0 10px 0; font-size: 22px; color: #ef4444; font-weight: 700;">Từ chối quyền truy cập (403 Forbidden)</h2>
+      <p style="margin: 0 0 16px 0; color: var(--text-soft, #94a3b8); font-size: 15px; line-height: 1.6;">
+        Tài khoản của bạn hiện tại là <strong>Học viên</strong>, không có thẩm quyền truy cập <strong>Phân hệ Quản trị (Admin)</strong>.
+      </p>
+      <div id="adminKickCountdown" style="font-size: 14px; color: var(--muted, #64748b); margin-bottom: 24px; padding: 8px 16px; background: rgba(0,0,0,0.2); border-radius: 999px; display: inline-block;">
+        Hệ thống sẽ tự động chuyển hướng về trang Khám phá trong <strong><span id="kickSeconds">2</span>s</strong>...
+      </div>
+      <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+        <a href="/explore" class="btn secondary-btn" style="padding: 10px 22px;">Về trang Khám phá</a>
+        <a href="/login?next=/admin" class="btn primary-btn" style="padding: 10px 22px;">Đăng nhập bằng tài khoản Admin</a>
+      </div>
+    </div>
+
+    <!-- Main Admin Dashboard Content -->
+    <div id="adminAuthorizedContent">
+      <!-- Hero / Title -->
     <section class="page-hero" style="margin-bottom: 24px;">
       <div class="page-hero-copy">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
@@ -197,6 +215,7 @@
         </table>
       </div>
     </div>
+    </div> <!-- /adminAuthorizedContent -->
   </main>
 
   <!-- MODAL: CATEGORY -->

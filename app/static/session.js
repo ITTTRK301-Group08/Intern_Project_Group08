@@ -260,9 +260,27 @@
           })
           .then(function (body) {
             if (userPill && body && body.data && body.data.email) {
-              userPill.textContent = body.data.email;
-              userPill.title = body.data.email;
+              var isAdmin = body.data.role === 'admin';
+              userPill.textContent = body.data.email + (isAdmin ? ' (Admin)' : '');
+              userPill.title = body.data.email + (isAdmin ? ' [Quản trị viên]' : '');
               userPill.hidden = false;
+
+              // Thêm nút Quản trị lên thanh điều hướng cho tài khoản Admin
+              if (isAdmin && nav) {
+                var existingAdminLink = nav.querySelector('a[href="/admin"], a[href="./admin.html"]');
+                if (!existingAdminLink) {
+                  var adminLink = document.createElement('a');
+                  adminLink.href = isDirectMode ? './admin.html' : '/admin';
+                  adminLink.textContent = 'Quản trị';
+                  adminLink.setAttribute('data-auth-slot', 'true');
+                  var divider = nav.querySelector('.nav-divider');
+                  if (divider) {
+                    nav.insertBefore(adminLink, divider);
+                  } else {
+                    nav.appendChild(adminLink);
+                  }
+                }
+              }
             }
           })
           .catch(function () {
