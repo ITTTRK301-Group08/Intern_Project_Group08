@@ -261,8 +261,10 @@
           .then(function (body) {
             if (userPill && body && body.data && body.data.email) {
               var isAdmin = body.data.role === 'admin';
-              userPill.textContent = body.data.email + (isAdmin ? ' (Admin)' : '');
-              userPill.title = body.data.email + (isAdmin ? ' [Quản trị viên]' : '');
+              var email = body.data.email;
+              var namePart = email.indexOf('@') > 0 ? email.split('@')[0] : email;
+              userPill.textContent = (isAdmin ? '⚡ ' : '👤 ') + namePart + (isAdmin ? ' (Admin)' : '');
+              userPill.title = email + (isAdmin ? ' [Quản trị viên]' : '');
               userPill.hidden = false;
 
               // Thêm nút Quản trị lên thanh điều hướng cho tài khoản Admin
