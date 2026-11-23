@@ -30,14 +30,18 @@
     el.className = 'status' + (type ? ' ' + type : '');
   }
 
+  /** Đọc tham số next từ URL, trả về chuỗi rỗng nếu không có. */
+  function readSafeNext() {
+    try {
+      return new URLSearchParams(window.location.search).get('next') || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
   /** Chỉ chấp nhận đường dẫn nội bộ để tránh chuyển hướng ra ngoài (open redirect). */
   function nextTarget(fallback) {
-    var raw = '';
-    try {
-      raw = new URLSearchParams(window.location.search).get('next') || '';
-    } catch (_) {
-      raw = '';
-    }
+    var raw = readSafeNext();
     if (raw.charAt(0) === '/' && raw.charAt(1) !== '/' && raw.charAt(1) !== '\\') {
       return raw;
     }
@@ -199,7 +203,7 @@
             return;
           }
           // Kiểm tra vai trò để điều hướng chính xác
-          fetch('/api/v1/auth/me', { headers: { Authorization: 'Bearer ' + token } })
+          fetch('/api/v1/auth/me', { headers: { Authorization: 'Bearer ' + tokens.access_token } })
             .then(function (meRes) {
               if (meRes.ok) return meRes.json();
               return null;

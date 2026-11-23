@@ -13,6 +13,7 @@
                      !window.location.host;
   var originalFetch = window.fetch.bind(window);
   var refreshInFlight = null;
+  var userPill = null;
 
   function readToken(key) {
     var storageKey = key || TOKEN_KEY;
@@ -222,6 +223,7 @@
 
   function renderSignedInNav(nav, email) {
     var user = document.createElement('span');
+    userPill = user;
     user.className = 'nav-user';
     user.textContent = email || 'Tài khoản';
     user.title = email || 'Tài khoản của bạn';

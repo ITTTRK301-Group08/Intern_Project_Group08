@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.cors import CORSMiddleware
@@ -164,6 +164,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @application.get("/health", tags=["health"])
     def health() -> dict[str, bool]:
         return {"ok": True}
+
+    @application.get("/favicon.ico", include_in_schema=False)
+    def favicon() -> Response:
+        icon = (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+            '<path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" '
+            'fill="#4f46e5"/>'
+            '<path d="M16 7L23 18.5L16 15.5L9 18.5L16 7Z" fill="#38bdf8"/>'
+            '<circle cx="16" cy="16" r="2.2" fill="#fff"/>'
+            "</svg>"
+        )
+        return Response(content=icon, media_type="image/svg+xml")
 
     return application
 

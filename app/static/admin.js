@@ -692,10 +692,24 @@
       return Promise.resolve(false);
     }
 
-    fetch('/api/v1/admin/catalog', {
+    fetch('/api/v1/auth/me', {
       headers: { Authorization: 'Bearer ' + token }
     })
       .then(function (res) {
+        if (!res.ok) throw new Error('Không thể xác nhận phiên đăng nhập');
+        return res.json();
+      })
+      .then(function (meBody) {
+        if (!meBody || !meBody.data || meBody.data.role !== 'admin') {
+          kickOutNonAdmin('Bạn cần quyền Admin để truy cập trang này.');
+          return false;
+        }
+        return fetch('/api/v1/admin/catalog', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+      })
+      .then(function (res) {
+        if (res === false) return null;
         if (!res.ok) throw new Error('Không thể tải catalog admin');
         return res.json();
       })
