@@ -561,9 +561,27 @@
     });
   }
 
+  function kickOutNonAdmin(msg) {
+    var content = $('adminAuthorizedContent');
+    if (content) content.style.display = 'none';
+    var denied = $('adminAccessDenied');
+    if (denied) denied.style.display = 'block';
+
+    var secondsLeft = 2;
+    var countEl = $('kickSeconds');
+    var interval = setInterval(function () {
+      secondsLeft -= 1;
+      if (countEl) countEl.textContent = String(secondsLeft);
+      if (secondsLeft <= 0) {
+        clearInterval(interval);
+        window.location.replace('/explore');
+      }
+    }, 1000);
+  }
+
   function loadInitialData() {
     var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
-    if (isDirectMode || !token || token === 'demo_student_token') {
+    if (isDirectMode) {
       renderRolesTable('');
       renderCategoriesTable('');
       renderSkillsTable('');
@@ -572,30 +590,61 @@
       return;
     }
 
-    fetch('/api/v1/admin/catalog', {
+    if (!token || token === 'demo_student_token') {
+      kickOutNonAdmin('Vui lòng đăng nhập bằng tài khoản quản trị.');
+      return;
+    }
+
+    // 1. Kiểm tra vai trò admin từ /api/v1/auth/me
+    fetch('/api/v1/auth/me', {
       headers: { Authorization: 'Bearer ' + token }
     })
       .then(function (res) {
-        if (!res.ok) throw new Error('Không thể tải catalog admin');
+        if (!res.ok) {
+          throw { status: res.status, message: 'Phiên đăng nhập không hợp lệ.' };
+        }
         return res.json();
       })
-      .then(function (body) {
-        if (body && body.data) {
-          if (body.data.roles) catalogData.roles = body.data.roles;
-          if (body.data.categories) catalogData.categories = body.data.categories;
-          if (body.data.skills) catalogData.skills = body.data.skills;
-          if (body.data.resources) catalogData.resources = body.data.resources;
+      .then(function (meBody) {
+        if (!meBody || !meBody.data || meBody.data.role !== 'admin') {
+          // Không phải admin -> KICK RA NGAY
+          kickOutNonAdmin('Tài khoản không có quyền quản trị.');
+          return;
         }
+
+        // 2. Đúng là admin -> tải dữ liệu catalog
+        fetch('/api/v1/admin/catalog', {
+          headers: { Authorization: 'Bearer ' + token }
+        })
+          .then(function (res) {
+            if (!res.ok) throw new Error('Không thể tải catalog admin');
+            return res.json();
+          })
+          .then(function (body) {
+            if (body && body.data) {
+              if (body.data.roles) catalogData.roles = body.data.roles;
+              if (body.data.categories) catalogData.categories = body.data.categories;
+              if (body.data.skills) catalogData.skills = body.data.skills;
+              if (body.data.resources) catalogData.resources = body.data.resources;
+            }
+          })
+          .catch(function () {
+            showFeedback('Không thể nạp dữ liệu từ máy chủ, đang dùng dữ liệu lưu trữ.', true);
+          })
+          .finally(function () {
+            renderRolesTable('');
+            renderCategoriesTable('');
+            renderSkillsTable('');
+            renderResourcesTable('');
+            updateStats();
+          });
       })
-      .catch(function () {
-        // Fallback demo data
-      })
-      .finally(function () {
-        renderRolesTable('');
-        renderCategoriesTable('');
-        renderSkillsTable('');
-        renderResourcesTable('');
-        updateStats();
+      .catch(function (err) {
+        if (err && (err.status === 401 || err.status === 403)) {
+          kickOutNonAdmin('Từ chối quyền truy cập.');
+        } else {
+          kickOutNonAdmin('Lỗi kiểm tra quyền hạn.');
+        }
       });
   }
 
