@@ -75,3 +75,14 @@ def test_admin_page_guard_and_redirect_behavior(client):
     admin_js = client.get("/static/admin.js").text
     assert "kickOutNonAdmin" in admin_js
     assert "/api/v1/auth/me" in admin_js
+
+
+def test_admin_nav_link_is_restored_on_every_page(client):
+    """Admin link must come from the shared session, not only admin.html."""
+    script = client.get("/static/session.js").text
+
+    assert "ensureAdminNav" in script
+    assert "role === 'admin'" in script
+    assert "/api/v1/auth/me" in script
+    assert "Quản trị" in script
+    assert 'data-admin-nav="true"' in script
