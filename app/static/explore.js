@@ -227,6 +227,8 @@
       ($('categoryFilter') && $('categoryFilter').value) ||
       ($('levelFilter') && $('levelFilter').value) ||
       ($('skillFilter') && $('skillFilter').value) ||
+      ($('resourceTypeFilter') && $('resourceTypeFilter').value) ||
+      ($('resourceRoleFilter') && $('resourceRoleFilter').value) ||
       ($('resourceSearch') && $('resourceSearch').value.trim()) ||
       currentView !== 'all'
     );
@@ -769,10 +771,12 @@
 
   if ($('resetFilters')) {
     $('resetFilters').addEventListener('click', function () {
-      $('categoryFilter').value = '';
+      if ($('categoryFilter')) $('categoryFilter').value = '';
       if ($('levelFilter')) $('levelFilter').value = '';
-      $('skillFilter').value = '';
-      $('resourceSearch').value = '';
+      if ($('skillFilter')) $('skillFilter').value = '';
+      if ($('resourceTypeFilter')) $('resourceTypeFilter').value = '';
+      if ($('resourceRoleFilter')) $('resourceRoleFilter').value = '';
+      if ($('resourceSearch')) $('resourceSearch').value = '';
       applyViewMode('all');
       renderRoles();
       renderSkills();

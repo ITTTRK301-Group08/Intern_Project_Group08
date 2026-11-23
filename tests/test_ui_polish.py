@@ -23,6 +23,8 @@ def test_explore_hides_raw_weight_notation_and_keeps_filters(client):
     explore_js = client.get("/static/explore.js").text
     assert "w=" not in explore_js
     assert "Đã tải dữ liệu nghề nghiệp" not in explore_js
+    assert "$('resourceTypeFilter').value = ''" in explore_js
+    assert "$('resourceRoleFilter').value = ''" in explore_js
 
 
 def test_profile_cv_analysis_expose_user_friendly_controls(client):
