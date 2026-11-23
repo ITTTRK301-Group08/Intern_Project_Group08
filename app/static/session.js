@@ -254,6 +254,24 @@
     nav.append(user, logout);
   }
 
+  function ensureAdminNav(nav) {
+    if (!nav) return;
+    var existing = nav.querySelector(
+      'a[data-admin-nav="true"], a[href="/admin"], a[href="./admin.html"]'
+    );
+    if (existing) return;
+
+    var adminLink = document.createElement('a');
+    adminLink.href = isDirectMode ? './admin.html' : '/admin';
+    adminLink.textContent = 'Quản trị';
+    adminLink.setAttribute('data-admin-nav', 'true');
+    if (userPill && userPill.parentNode === nav) {
+      nav.insertBefore(adminLink, userPill);
+    } else {
+      nav.appendChild(adminLink);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     if (isDirectMode) {
       var directRoutes = {
@@ -290,9 +308,13 @@
             return response.json().catch(function () { return null; });
           })
           .then(function (body) {
-            if (userPill && body && body.data && body.data.email) {
-              userPill.textContent = body.data.email;
-              userPill.title = body.data.email;
+            var me = body && body.data;
+            if (me && me.role === 'admin') {
+              ensureAdminNav(nav);
+            }
+            if (userPill && me && me.email) {
+              userPill.textContent = me.email;
+              userPill.title = me.email;
               userPill.hidden = false;
             }
           })
