@@ -1,0 +1,19 @@
+Traceback do người dùng gửi sau khi pull code mới (uvicorn trên .venv):
+
+File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Cong anh\Intern_Project_Group08\.venv\Scripts\uvicorn.exe\__main__.py", line 5, in <module>
+    sys.exit(main())
+  File "C:\Users\Cong anh\Intern_Project_Group08\.venv\Lib\site-packages\uvicorn\main.py", line 609, in run
+    config.load_app()
+  File "C:\Users\Cong anh\Intern_Project_Group08\.venv\Lib\site-packages\uvicorn\config.py", line 415, in load_app
+    return import_from_string(self.app)
+  File "C:\Users\Cong anh\Intern_Project_Group08\.venv\Lib\site-packages\uvicorn\importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "C:\Users\Cong anh\Intern_Project_Group08\app\main.py", line 14, in <module>
+    from app.routers.analyses import router as analyses_router
+  File "C:\Users\Cong anh\Intern_Project_Group08\app\routers\analyses.py", line 19, in <module>
+    from app.services.analysis_service import (
+  File "C:\Users\Cong anh\Intern_Project_Group08\app\services\analysis_service.py", line 62, in <module>
+    ) -> ProfileAnalysisContext:
+NameError: name 'ProfileAnalysisContext' is not defined

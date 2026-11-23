@@ -172,6 +172,8 @@ def list_resources(
         )
     if not include_inactive:
         query = query.where(LearningResource.is_active.is_(True))
+    if not include_unapproved:
+        query = query.where(LearningResource.approval_status == "approved")
     return db.scalars(
         query.order_by(LearningResource.title).limit(limit)
     ).all()

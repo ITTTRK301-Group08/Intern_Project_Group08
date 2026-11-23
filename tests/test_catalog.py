@@ -3,6 +3,10 @@ from types import SimpleNamespace
 import pytest
 
 from app import bootstrap_admin as bootstrap_admin_command
+from app.models.analysis import Analysis
+from app.models.career import CareerRole, Skill
+from app.models.interview import InterviewSession
+from app.models.learning_resource import LearningResource
 from app.models.user import User
 from app.services.catalog_service import bootstrap_admin
 
@@ -432,6 +436,15 @@ def test_admin_can_hide_and_restore_roles_skills_and_resources(client, db_sessio
         )
         assert response.status_code == 200
         assert response.json()["data"]["is_active"] is True
+
+    # Admin-created resources start as pending; public catalog only lists
+    # approved resources (BUG-06), so approve it before the final assertion.
+    approval = client.patch(
+        f"/api/v1/admin/resources/{resource['id']}/approval",
+        headers=headers,
+        json={"approval_status": "approved"},
+    )
+    assert approval.status_code == 200
 
     assert len(client.get("/api/v1/catalog/roles").json()["data"]) == 1
     assert len(client.get("/api/v1/catalog/skills").json()["data"]) == 1
