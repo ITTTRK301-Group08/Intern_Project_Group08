@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import TypeVar
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -12,6 +12,7 @@ from app.models.profile_data import CareerRoleSkill
 from app.schemas.catalog import CareerRoleWrite, LearningResourceRead
 
 ModelT = TypeVar("ModelT", CareerCategory, CareerRole, Skill, LearningResource)
+ActiveCatalogModelT = TypeVar("ActiveCatalogModelT", CareerRole, Skill, LearningResource)
 
 
 def list_categories(db: Session) -> Sequence[CareerCategory]:
@@ -27,9 +28,14 @@ def list_roles(
     level: str | None = None,
     include_inactive: bool = False,
 ) -> Sequence[CareerRole]:
+    required_skills = CareerRole.required_skills
+    if not include_inactive:
+        required_skills = required_skills.and_(
+            CareerRoleSkill.skill.has(Skill.is_active.is_(True))
+        )
     query = select(CareerRole).options(
         joinedload(CareerRole.category),
-        joinedload(CareerRole.required_skills).joinedload(CareerRoleSkill.skill),
+        joinedload(required_skills).joinedload(CareerRoleSkill.skill),
     )
     if category_id is not None:
         query = query.where(CareerRole.category_id == category_id)
@@ -37,22 +43,29 @@ def list_roles(
         query = query.where(func.lower(CareerRole.level) == level.strip().lower())
     if not include_inactive:
         query = query.where(CareerRole.is_active.is_(True))
+        query = query.execution_options(populate_existing=True)
     return db.scalars(query.order_by(CareerRole.name, CareerRole.level)).unique().all()
 
 
 def get_role_by_id(
     db: Session, role_id: int, *, include_inactive: bool = False
 ) -> CareerRole:
+    required_skills = CareerRole.required_skills
+    if not include_inactive:
+        required_skills = required_skills.and_(
+            CareerRoleSkill.skill.has(Skill.is_active.is_(True))
+        )
     query = (
         select(CareerRole)
         .options(
             joinedload(CareerRole.category),
-            joinedload(CareerRole.required_skills).joinedload(CareerRoleSkill.skill),
+            joinedload(required_skills).joinedload(CareerRoleSkill.skill),
         )
         .where(CareerRole.id == role_id)
     )
     if not include_inactive:
         query = query.where(CareerRole.is_active.is_(True))
+        query = query.execution_options(populate_existing=True)
     role = db.scalars(query).unique().one_or_none()
     if role is None:
         raise HTTPException(
@@ -67,7 +80,11 @@ def get_role_skills(
 ) -> list[CareerRoleSkill]:
     role = get_role_by_id(db, role_id, include_inactive=include_inactive)
     return sorted(
-        role.required_skills,
+        (
+            item
+            for item in role.required_skills
+            if include_inactive or item.skill.is_active
+        ),
         key=lambda item: (-float(item.weight), -item.required_level, item.skill_id),
     )
 
@@ -78,6 +95,7 @@ def list_skills(
     search: str | None = None,
     category_id: int | None = None,
     role_id: int | None = None,
+    include_inactive: bool = False,
 ) -> Sequence[Skill]:
     query = select(Skill)
 
@@ -85,13 +103,21 @@ def list_skills(
         role_subquery = (
             select(CareerRoleSkill.skill_id)
             .join(CareerRole, CareerRole.id == CareerRoleSkill.career_role_id)
-            .where(CareerRole.category_id == category_id)
+            .where(
+                CareerRole.category_id == category_id,
+                CareerRole.is_active.is_(True),
+            )
         )
         query = query.where(Skill.id.in_(role_subquery))
 
     if role_id is not None:
-        role_subquery = select(CareerRoleSkill.skill_id).where(
-            CareerRoleSkill.career_role_id == role_id
+        role_subquery = (
+            select(CareerRoleSkill.skill_id)
+            .join(CareerRole, CareerRole.id == CareerRoleSkill.career_role_id)
+            .where(
+                CareerRoleSkill.career_role_id == role_id,
+                CareerRole.is_active.is_(True),
+            )
         )
         query = query.where(Skill.id.in_(role_subquery))
 
@@ -100,6 +126,9 @@ def list_skills(
         query = query.where(
             Skill.name.ilike(term) | Skill.description.ilike(term)
         )
+
+    if not include_inactive:
+        query = query.where(Skill.is_active.is_(True))
 
     return db.scalars(query.order_by(Skill.name).distinct()).all()
 
@@ -143,8 +172,6 @@ def list_resources(
         )
     if not include_inactive:
         query = query.where(LearningResource.is_active.is_(True))
-    if not include_unapproved:
-        query = query.where(LearningResource.approval_status == "approved")
     return db.scalars(
         query.order_by(LearningResource.title).limit(limit)
     ).all()
@@ -258,6 +285,24 @@ def delete_item(db: Session, model: type[ModelT], item_id: int) -> None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog item not found")
     db.delete(item)
     _commit(db, "delete catalog item")
+
+
+def set_item_active(
+    db: Session,
+    model: type[ActiveCatalogModelT],
+    item_id: int,
+    *,
+    is_active: bool,
+) -> ActiveCatalogModelT:
+    item = db.get(model, item_id)
+    if item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Catalog item not found"
+        )
+    item.is_active = is_active
+    _commit(db, "update catalog item status")
+    db.refresh(item)
+    return item
 
 
 def save_career_role(

@@ -175,6 +175,18 @@
   color: #ffffff;
 }
 
+.admin-btn-toggle {
+  background: var(--surface-soft);
+  color: var(--text-soft);
+  border-color: var(--border);
+  margin-left: 6px;
+}
+
+.admin-btn-toggle:hover {
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+}
+
 .admin-btn-delete {
   background: var(--danger-bg);
   color: var(--danger);

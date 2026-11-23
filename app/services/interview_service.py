@@ -213,7 +213,10 @@ def _load_role_with_skills(db: Session, career_role_id: int) -> CareerRole:
             CAREER_ROLE_INACTIVE,
             "Vị trí nghề nghiệp đã ngừng hoạt động.",
         )
-    if not role.required_skills:
+    if not any(
+        item.skill is not None and item.skill.is_active
+        for item in role.required_skills
+    ):
         raise _error(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             CAREER_ROLE_SKILLS_REQUIRED,
@@ -229,7 +232,11 @@ def _build_skill_contexts(role: CareerRole) -> list[InterviewSkillContext]:
     những kỹ năng quan trọng nhất của vị trí.
     """
     ordered = sorted(
-        role.required_skills,
+        (
+            item
+            for item in role.required_skills
+            if item.skill is not None and item.skill.is_active
+        ),
         key=lambda item: (
             -float(item.weight),
             -item.required_level,
@@ -243,7 +250,6 @@ def _build_skill_contexts(role: CareerRole) -> list[InterviewSkillContext]:
             is_required=bool(item.is_required),
         )
         for item in ordered
-        if item.skill is not None
     ]
 
 

@@ -11,8 +11,17 @@ from app.models.interview import InterviewQuestion, InterviewSession
 from app.models.learning_plan import LearningPlan, LearningPlanItem
 from app.models.profile_data import CareerRoleSkill
 from app.models.student_profile import StudentProfile
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
+
+
+def get_admin_system_stats(db: Session) -> dict[str, int]:
+    return {
+        "total_users": db.scalar(select(func.count(User.id))) or 0,
+        "total_analyses": db.scalar(select(func.count(Analysis.id))) or 0,
+        "total_interviews": db.scalar(select(func.count(InterviewSession.id))) or 0,
+    }
 
 
 def calculate_readiness_score(skill_items: list[dict]) -> float:
