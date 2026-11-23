@@ -12,6 +12,7 @@ from app.models.profile_data import CareerRoleSkill
 from app.models.user import User
 from app.schemas.learning_plan_ai import ResourceSelectionResponse
 from app.services import learning_plan_service
+from app.services.ai import AIServiceError
 
 
 @pytest.fixture(autouse=True)
@@ -173,6 +174,34 @@ def test_create_plan_analysis_not_completed(client, db_session):
     assert res.json()["detail"]["data"]["code"] == "ANALYSIS_NOT_COMPLETED"
 
 
+def test_list_plans_auto_creates_from_latest_completed_analysis(client, db_session):
+    headers, user_id = register_user(client, "auto_plan_user@example.com")
+    analysis = setup_catalog_and_analysis(db_session, user_id=user_id, status="completed")
+
+    first = client.get("/api/v1/learning-plans?include_archived=false", headers=headers)
+    assert first.status_code == 200
+    plans = first.json()["data"]
+    assert len(plans) == 1
+    assert plans[0]["analysis_id"] == analysis.id
+    assert plans[0]["status"] == "active"
+    assert plans[0]["total_items"] > 0
+
+    # Một lượt mở lộ trình thứ hai không được tạo thêm plan trùng.
+    second = client.get("/api/v1/learning-plans?include_archived=false", headers=headers)
+    assert second.status_code == 200
+    assert [p["id"] for p in second.json()["data"]] == [plans[0]["id"]]
+
+
+def test_list_plans_does_not_create_from_pending_analysis(client, db_session):
+    headers, user_id = register_user(client, "auto_plan_pending_user@example.com")
+    setup_catalog_and_analysis(db_session, user_id=user_id, status="pending")
+
+    response = client.get("/api/v1/learning-plans?include_archived=false", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["data"] == []
+    assert db_session.query(LearningPlan).count() == 0
+
+
 def test_create_plan_success_and_br06_enforcement(client, db_session):
     headers, user_id = register_user(client, "plan_user@example.com")
     analysis = setup_catalog_and_analysis(db_session, user_id=user_id, status="completed")
@@ -279,6 +308,27 @@ def test_plan_has_no_unapproved_resources_when_no_approved_match(client, db_sess
     assert items
     assert all(item["resource_id"] is None for item in items)
     assert all(item["resource"] is None for item in items)
+    assert all(item["resource_match_status"] == "no_approved_match" for item in items)
+
+
+def test_plan_is_created_when_resource_ai_is_unavailable(client, db_session, monkeypatch):
+    headers, user_id = register_user(client, "resource-ai-down@example.com")
+    analysis = setup_catalog_and_analysis(db_session, user_id=user_id)
+
+    class FailingAIService:
+        async def generate_structured(self, *, prompt, response_schema, system_instruction):
+            raise AIServiceError("provider rate limited")
+
+    monkeypatch.setattr(learning_plan_service, "get_ai_service", FailingAIService)
+    response = client.post(
+        "/api/v1/learning-plans",
+        json={"analysis_id": analysis.id},
+        headers=headers,
+    )
+    assert response.status_code == 201
+    items = response.json()["data"]["items"]
+    assert items
+    assert all(item["resource_id"] is None for item in items)
     assert all(item["resource_match_status"] == "no_approved_match" for item in items)
 
 

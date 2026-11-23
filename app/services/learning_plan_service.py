@@ -289,49 +289,50 @@ async def create_plan_from_analysis(
                 ),
             )
         except AIServiceError as exc:
+            # A temporary provider/rate-limit error must not block the roadmap.
+            # The plan is still useful with tasks only; resources can be matched later.
             logger.warning(
-                "AI learning-resource selection failed with code %s", exc.code
+                "AI learning-resource selection failed with code %s; "
+                "creating plan without recommended resources",
+                exc.code,
             )
-            raise _error(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "RESOURCE_RECOMMENDATION_UNAVAILABLE",
-                "Không thể chọn tài nguyên học tập lúc này; vui lòng thử lại sau.",
-            ) from exc
+            recommendation = None
 
-        seen_slots: set[tuple[int, int]] = set()
-        for selection in recommendation.selections:
-            slot = (selection.skill_id, selection.week_number)
-            if slot not in selected_resources or slot in seen_slots:
+        if recommendation is not None:
+            seen_slots: set[tuple[int, int]] = set()
+            for selection in recommendation.selections:
+                slot = (selection.skill_id, selection.week_number)
+                if slot not in selected_resources or slot in seen_slots:
+                    raise _error(
+                        status.HTTP_502_BAD_GATEWAY,
+                        "INVALID_RESOURCE_RECOMMENDATION",
+                        "AI trả về lựa chọn tài nguyên không hợp lệ.",
+                    )
+                seen_slots.add(slot)
+                resource = (
+                    resources_by_id.get(selection.resource_id)
+                    if selection.resource_id is not None
+                    else None
+                )
+                if selection.resource_id is not None and (
+                    resource is None
+                    or resource.skill_id != selection.skill_id
+                    or not resource.is_active
+                    or resource.approval_status != "approved"
+                ):
+                    raise _error(
+                        status.HTTP_502_BAD_GATEWAY,
+                        "INVALID_RESOURCE_RECOMMENDATION",
+                        "AI đã chọn tài nguyên không tồn tại, không phù hợp hoặc chưa được duyệt.",
+                    )
+                selected_resources[slot] = selection.resource_id
+
+            if seen_slots != set(task_slots):
                 raise _error(
                     status.HTTP_502_BAD_GATEWAY,
                     "INVALID_RESOURCE_RECOMMENDATION",
-                    "AI trả về lựa chọn tài nguyên không hợp lệ.",
+                    "AI chưa trả về lựa chọn cho toàn bộ nhiệm vụ.",
                 )
-            seen_slots.add(slot)
-            resource = (
-                resources_by_id.get(selection.resource_id)
-                if selection.resource_id is not None
-                else None
-            )
-            if selection.resource_id is not None and (
-                resource is None
-                or resource.skill_id != selection.skill_id
-                or not resource.is_active
-                or resource.approval_status != "approved"
-            ):
-                raise _error(
-                    status.HTTP_502_BAD_GATEWAY,
-                    "INVALID_RESOURCE_RECOMMENDATION",
-                    "AI đã chọn tài nguyên không tồn tại, không phù hợp hoặc chưa được duyệt.",
-                )
-            selected_resources[slot] = selection.resource_id
-
-        if seen_slots != set(task_slots):
-            raise _error(
-                status.HTTP_502_BAD_GATEWAY,
-                "INVALID_RESOURCE_RECOMMENDATION",
-                "AI chưa trả về lựa chọn cho toàn bộ nhiệm vụ.",
-            )
 
     tasks_to_add: list[LearningPlanItem] = []
     db.add(plan)
@@ -412,6 +413,55 @@ async def create_plan_from_analysis(
     db.refresh(plan)
 
     return serialize_plan(plan)
+
+
+async def ensure_plan_for_user(db: Session, *, user_id: int) -> None:
+    """Create a plan from the latest completed analysis when the user has none.
+
+    UC-08 requires the 30-day roadmap to be available as soon as an analysis
+    finishes. The analysis pipeline and the roadmap can be opened in different
+    sessions, so this check is idempotent and runs before the plan list is
+    returned. It never fails the list request; a generation error is logged and
+    the existing empty state is kept for a later retry.
+    """
+    existing_plans = get_user_plans(db, user_id=user_id, include_archived=False)
+    if existing_plans:
+        return
+
+    latest_analysis = db.scalar(
+        select(Analysis)
+        .where(
+            Analysis.user_id == user_id,
+            Analysis.status == "completed",
+        )
+        .order_by(desc(Analysis.completed_at), desc(Analysis.id))
+    )
+    if latest_analysis is None:
+        return
+
+    try:
+        await create_plan_from_analysis(
+            db,
+            user_id=user_id,
+            analysis_id=latest_analysis.id,
+        )
+    except HTTPException as exc:
+        detail = exc.detail if isinstance(exc.detail, dict) else {}
+        data = detail.get("data") if isinstance(detail.get("data"), dict) else {}
+        if data.get("code") == ACTIVE_PLAN_EXISTS:
+            return
+        logger.warning(
+            "Could not auto-create learning plan for user %s from analysis %s: %s",
+            user_id,
+            latest_analysis.id,
+            detail.get("message") or exc.detail,
+        )
+    except Exception:
+        logger.exception(
+            "Could not auto-create learning plan for user %s from analysis %s",
+            user_id,
+            latest_analysis.id,
+        )
 
 
 def get_user_plans(db: Session, *, user_id: int, include_archived: bool = True) -> list[dict]:

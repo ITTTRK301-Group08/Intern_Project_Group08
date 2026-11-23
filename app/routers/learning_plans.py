@@ -35,12 +35,16 @@ async def create_learning_plan(
 
 
 @router.get("", response_model=LearningPlanListApiResponse)
-def list_learning_plans(
+async def list_learning_plans(
     current_user: CurrentUser,
     db: DbSession,
     include_archived: bool = True,
 ) -> LearningPlanListApiResponse:
     """Lấy danh sách các lộ trình học tập của người dùng hiện tại."""
+    await learning_plan_service.ensure_plan_for_user(
+        db,
+        user_id=current_user.id,
+    )
     data = learning_plan_service.get_user_plans(
         db,
         user_id=current_user.id,
