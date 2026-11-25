@@ -1,5 +1,7 @@
 # Career Mentor
 
+> **Chạy thử staging (HTTPS), sao lưu và khôi phục:** xem [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
 ## Initial installation
 
 Use Python 3.11+ and MySQL 8.x (InnoDB, `utf8mb4`). The existing application
@@ -86,8 +88,8 @@ Hai trang giao diện tương ứng UI-01 trong SRS:
   token hoặc token đã hết hạn (401).
 
 Access token dùng chung với các trang hiện có nên không cần dán token thủ công.
-FR-AUTH-06 (refresh token, thu hồi token phía máy chủ) vẫn ở mức Could và chưa
-triển khai; đăng xuất hiện chỉ xóa token trong trình duyệt.
+FR-AUTH-06 đã được triển khai: đăng nhập phát thêm refresh token, frontend tự
+refresh khi nhận 401 và `/api/v1/auth/logout` thu hồi phiên phía máy chủ.
 
 ## Analysis reports
 
@@ -161,21 +163,7 @@ Chạy toàn bộ test suite:
 python -m pytest -q
 ```
 
-=========
-## Analysis reports
+## Triển khai chạy thử HTTPS & sao lưu
 
-- `GET /api/v1/analyses?page=1&page_size=10`: paginated history for the
-  authenticated student.
-- `GET /api/v1/analyses/{analysis_id}`: report status, readiness score, summary,
-  and target role.
-- `GET /api/v1/analyses/{analysis_id}/skills`: current and required skill
-  levels, gap score, evidence, and recommendation.
-- `GET /api/v1/analyses/{analysis_id}/status`: status for polling. The status
-  values are `pending`, `processing`, `completed`, and `failed`.
-
-All report queries are scoped to the authenticated user; an analysis owned by
-another account returns 404. Run `python -m alembic upgrade head` to apply the
-report fields migration. The analysis creation endpoint remains gated because
-the AI analysis pipeline has not yet been implemented; this page does not
-fabricate reports.
->>>>>>>>> Temporary merge branch 2
+Xem [`DEPLOYMENT.md`](DEPLOYMENT.md) để đóng gói Docker, chạy thử qua HTTPS,
+thiết lập sao lưu định kỳ và khôi phục dữ liệu (MySQL + CV đã upload).
