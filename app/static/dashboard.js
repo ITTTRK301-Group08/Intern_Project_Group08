@@ -427,6 +427,45 @@
     }
   }
 
+  function monitorReadinessHistory() {
+    if (isDirectMode || readinessRefreshTimer) return;
+    readinessRefreshTimer = window.setInterval(function () {
+      var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
+      if (!token || token === 'demo_student_token') return;
+      fetch('/api/v1/dashboard/readiness-history', {
+        headers: { Authorization: 'Bearer ' + token }
+      })
+        .then(function (response) {
+          if (response.status === 401) {
+            if (window.LaBanApp) window.LaBanApp.redirectToLogin();
+            throw new Error('Phiên đăng nhập đã hết hạn');
+          }
+          if (!response.ok) throw new Error('Không thể kiểm tra cập nhật điểm readiness');
+          return response.json();
+        })
+        .then(function (response) {
+          if (!response || !response.data || !readinessHistoryLoaded) {
+            throw new Error('Phản hồi lịch sử điểm không hợp lệ');
+          }
+          var points = response.data.points || [];
+          var newestId = points.length ? points[points.length - 1].analysis_id : null;
+          var status = $('readinessRefreshStatus');
+          if (status) status.hidden = true;
+          if (newestId !== readinessReportId) {
+            readinessReportId = newestId;
+            loadDashboardData();
+          }
+        })
+        .catch(function () {
+          var status = $('readinessRefreshStatus');
+          if (status) {
+            status.textContent = 'Chưa thể kiểm tra báo cáo mới. Biểu đồ đang giữ dữ liệu đã tải.';
+            status.hidden = false;
+          }
+        });
+    }, 30000);
+  }
+
   function renderReadinessHistory(historyData) {
     var state = $('readinessHistoryState');
     var content = $('readinessHistoryContent');
@@ -434,43 +473,6 @@
     if (!points || !points.length) {
       showReadinessHistoryState('Chưa có báo cáo phân tích hoàn tất để thể hiện lịch sử điểm.');
       return;
-    }
-
-    function monitorReadinessHistory() {
-      if (isDirectMode || readinessRefreshTimer) return;
-      readinessRefreshTimer = window.setInterval(function () {
-        var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
-        if (!token || token === 'demo_student_token') return;
-        fetch('/api/v1/dashboard/readiness-history', {
-          headers: { Authorization: 'Bearer ' + token }
-        })
-          .then(function (response) {
-            if (response.status === 401) {
-              if (window.LaBanApp) window.LaBanApp.redirectToLogin();
-              throw new Error('Phiên đăng nhập đã hết hạn');
-            }
-            if (!response.ok) throw new Error('Không thể kiểm tra cập nhật điểm readiness');
-            return response.json();
-          })
-          .then(function (response) {
-            if (!response || !response.data || !readinessHistoryLoaded) {
-              throw new Error('Phản hồi lịch sử điểm không hợp lệ');
-            }
-            var points = response.data.points || [];
-            var newestId = points.length ? points[points.length - 1].analysis_id : null;
-            var status = $('readinessRefreshStatus');
-            status.hidden = true;
-            if (newestId !== readinessReportId) {
-              readinessReportId = newestId;
-              loadDashboardData();
-            }
-          })
-          .catch(function () {
-            var status = $('readinessRefreshStatus');
-            status.textContent = 'Chưa thể kiểm tra báo cáo mới. Biểu đồ đang giữ dữ liệu đã tải.';
-            status.hidden = false;
-          });
-      }, 30000);
     }
 
     state.hidden = true;

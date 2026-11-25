@@ -69,3 +69,16 @@ def test_project_branding_is_career_mentor_everywhere(client):
         script = client.get(path).text
         assert "careerpilot" not in script.lower()
         assert "la bàn" not in script.lower()
+
+
+def test_session_dashboard_and_responsive_nav_regressions(client):
+    session_js = client.get("/static/session.js").text
+    assert "clearToken(" not in session_js
+    assert "clearTokens();" in session_js
+
+    dashboard_js = client.get("/static/dashboard.js").text
+    assert "\n  function monitorReadinessHistory()" in dashboard_js
+
+    profile_css = client.get("/static/profile.css").text
+    assert "@media (max-width: 1120px)" in profile_css
+    assert "flex-wrap: wrap;" in profile_css

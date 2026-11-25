@@ -72,9 +72,12 @@
       body: JSON.stringify({ refresh_token: refreshToken })
     }).then(function (response) {
       return response.json().catch(function () { return {}; }).then(function (body) {
+        if (response.status === 401 || response.status === 403) {
+          clearTokens();
+          return null;
+        }
         if (!response.ok || !body.data ||
             !body.data.access_token || !body.data.refresh_token) {
-          if (response.status === 401 || response.status === 403) clearTokens();
           throw new Error('Refresh token rejected with status ' + response.status);
         }
         if (!saveTokens(body.data)) throw new Error('Unable to save refreshed tokens');
@@ -216,6 +219,12 @@
   }
 
   function renderGuestNav(nav) {
+    Array.prototype.slice.call(
+      nav.querySelectorAll('.nav-user, .nav-action, .nav-cta, a[data-admin-nav="true"]')
+    ).forEach(function (node) {
+      node.remove();
+    });
+    userPill = null;
     var login = document.createElement('a');
     login.href = isDirectMode ? './login.html' : loginUrl();
     login.className = 'nav-cta';
@@ -306,7 +315,7 @@
         fetch('/api/v1/auth/me', { headers: { Authorization: 'Bearer ' + token } })
           .then(function (res) {
             if (res.status === 401) {
-              clearToken();
+              clearTokens();
               if (requiresAuth) {
                 window.location.replace(loginUrl());
               } else {
