@@ -3,16 +3,50 @@ import logging
 
 from fastapi import HTTPException, status
 from sqlalchemy import desc, func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.analysis import Analysis, AnalysisSkillGap
-from app.models.career import CareerRole
+from app.models.career import CareerCategory, CareerRole, Skill
 from app.models.interview import InterviewQuestion, InterviewSession
 from app.models.learning_plan import LearningPlan, LearningPlanItem
+from app.models.learning_resource import LearningResource
 from app.models.profile_data import CareerRoleSkill
 from app.models.student_profile import StudentProfile
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
+
+
+def get_admin_system_stats(db: Session) -> dict[str, int]:
+    """Đếm số liệu hệ thống trực tiếp từ Database.
+
+    Mỗi chỉ số là một ``COUNT`` trên một bảng duy nhất, không join, nên không
+    thể đếm trùng bản ghi khi có quan hệ giữa các bảng.
+    """
+
+    return {
+        "total_users": db.scalar(select(func.count(User.id))) or 0,
+        "total_active_users": db.scalar(
+            select(func.count(User.id)).where(User.is_active.is_(True))
+        )
+        or 0,
+        "total_locked_users": db.scalar(
+            select(func.count(User.id)).where(User.is_active.is_(False))
+        )
+        or 0,
+        "total_analyses": db.scalar(select(func.count(Analysis.id))) or 0,
+        "total_interviews": db.scalar(select(func.count(InterviewSession.id))) or 0,
+        "total_categories": db.scalar(select(func.count(CareerCategory.id))) or 0,
+        "total_roles": db.scalar(select(func.count(CareerRole.id))) or 0,
+        "total_skills": db.scalar(select(func.count(Skill.id))) or 0,
+        "total_resources": db.scalar(select(func.count(LearningResource.id))) or 0,
+        "total_pending_resources": db.scalar(
+            select(func.count(LearningResource.id)).where(
+                LearningResource.approval_status == "pending"
+            )
+        )
+        or 0,
+    }
 
 
 def calculate_readiness_score(skill_items: list[dict]) -> float:
@@ -57,7 +91,7 @@ def get_latest_completed_analysis(db: Session, user_id: int) -> Analysis | None:
 def get_dashboard_summary(db: Session, *, user_id: int) -> dict:
     latest_analysis = get_latest_completed_analysis(db, user_id)
 
-    readiness_score = 0.0
+    readiness_score: float | None = None
     target_role_id = None
     target_role_name = None
     target_role_level = None
@@ -98,7 +132,11 @@ def get_dashboard_summary(db: Session, *, user_id: int) -> dict:
             else:
                 gap_skills += 1
 
-        readiness_score = calculate_readiness_score(evaluated_items)
+        readiness_score = (
+            float(latest_analysis.readiness_score)
+            if latest_analysis.readiness_score is not None
+            else calculate_readiness_score(evaluated_items)
+        )
     else:
         # Nếu chưa có analysis nào hoàn thành, kiểm tra student_profile để lấy role mục tiêu nếu có
         profile = db.scalar(
@@ -117,6 +155,9 @@ def get_dashboard_summary(db: Session, *, user_id: int) -> dict:
     ) or 0
 
     # Tổng số phỏng vấn
+    from app.services.interview_service import abandon_stale_interview_sessions
+
+    abandon_stale_interview_sessions(db, user_id=user_id)
     total_interviews = db.scalar(
         select(func.count(InterviewSession.id)).where(InterviewSession.user_id == user_id)
     ) or 0
@@ -165,6 +206,75 @@ def get_dashboard_summary(db: Session, *, user_id: int) -> dict:
         "skills_gap_count": gap_skills,
         "active_plan": active_plan_brief,
         "last_analyzed_at": last_analyzed_at,
+    }
+
+
+def get_readiness_history(db: Session, *, user_id: int) -> dict:
+    analyses = db.scalars(
+        select(Analysis)
+        .options(
+            joinedload(Analysis.career_role),
+            selectinload(Analysis.skill_gaps).joinedload(AnalysisSkillGap.skill),
+        )
+        .where(
+            Analysis.user_id == user_id,
+            Analysis.status == "completed",
+            Analysis.readiness_score.is_not(None),
+        )
+        .order_by(
+            func.coalesce(Analysis.completed_at, Analysis.created_at),
+            Analysis.id,
+        )
+    ).all()
+    points = [
+        {
+            "analysis_id": analysis.id,
+            "score": analysis.readiness_score,
+            "analyzed_at": analysis.completed_at or analysis.created_at,
+            "career_role_name": (
+                analysis.career_role.name if analysis.career_role else None
+            ),
+            "skills": [
+                {
+                    "skill_id": gap.skill_id,
+                    "skill_name": gap.skill.name,
+                    "current_level": gap.current_level,
+                    "required_level": gap.target_level,
+                }
+                for gap in sorted(
+                    analysis.skill_gaps,
+                    key=lambda item: item.skill.name if item.skill else "",
+                )
+                if gap.skill
+            ],
+        }
+        for analysis in analyses
+    ]
+    scores = [point["score"] for point in points]
+    latest_change = scores[-1] - scores[-2] if len(scores) >= 2 else None
+    change_since_first = scores[-1] - scores[0] if scores else None
+    overall_change = change_since_first
+    trend = (
+        "improving"
+        if overall_change is not None and overall_change > 0
+        else "declining"
+        if overall_change is not None and overall_change < 0
+        else "stable"
+        if overall_change is not None and len(scores) >= 2
+        else None
+    )
+    return {
+        "points": points,
+        "stats": {
+            "report_count": len(scores),
+            "latest_score": scores[-1] if scores else None,
+            "previous_score": scores[-2] if len(scores) >= 2 else None,
+            "change_since_first": change_since_first,
+            "latest_change": latest_change,
+            "highest_score": max(scores) if scores else None,
+            "lowest_score": min(scores) if scores else None,
+            "trend": trend,
+        },
     }
 
 
@@ -323,6 +433,9 @@ def get_interview_history(
     page: int = 1,
     page_size: int = 10,
 ) -> dict:
+    from app.services.interview_service import abandon_stale_interview_sessions
+
+    abandon_stale_interview_sessions(db, user_id=user_id)
     offset = max(0, (page - 1) * page_size)
 
     total = db.scalar(
@@ -335,7 +448,9 @@ def get_interview_history(
         select(InterviewSession)
         .options(
             joinedload(InterviewSession.career_role),
-            joinedload(InterviewSession.questions),
+            selectinload(InterviewSession.questions).selectinload(
+                InterviewQuestion.answer
+            ),
         )
         .where(InterviewSession.user_id == user_id)
         .order_by(desc(InterviewSession.created_at))
@@ -346,13 +461,17 @@ def get_interview_history(
     items = []
     for s in sessions:
         role_name = s.career_role.name if s.career_role else "Chưa xác định"
+        questions = s.questions or []
         items.append({
             "id": s.id,
             "career_role_id": s.career_role_id,
             "career_role_name": role_name,
             "status": s.status,
             "created_at": s.created_at,
-            "question_count": len(s.questions) if s.questions else 0,
+            "question_count": len(questions),
+            "answered_count": sum(1 for q in questions if q.answer is not None),
+            "total_score": s.total_score,
+            "completed_at": s.completed_at,
         })
 
     return {

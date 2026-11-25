@@ -1,0 +1,20 @@
+Sau khi pull (trước sửa): `.venv\Scripts\python.exe -m alembic heads`
+c5d8e2f0b4a7 (head)
+c5e9b22d7a01 (head)
+e71b3c9d4a20 (head)
+
+DB hiện tại trước sửa: c5d8e2f0b4a7 (head)
+
+Sau khi thêm `alembic/versions/f7a8b9c0d1e2_merge_pull_heads.py`:
+`.venv\Scripts\python.exe -m alembic heads`
+f7a8b9c0d1e2 (head)
+
+`.venv\Scripts\python.exe -m alembic upgrade head`
+INFO  [alembic.runtime.migration] Running upgrade d3f4a8c21b60 -> e71b3c9d4a20, add analysis benchmark metadata
+INFO  [alembic.runtime.migration] Running upgrade 4f2fe7519541 -> c5e9b22d7a01, add active status to skills
+INFO  [alembic.runtime.migration] Running upgrade c5d8e2f0b4a7, c5e9b22d7a01, e71b3c9d4a20 -> f7a8b9c0d1e2, merge migration heads introduced by the pull
+
+`.venv\Scripts\python.exe -m alembic current`
+f7a8b9c0d1e2 (head) (mergepoint)
+
+Test cũ hardcoded head: `tests/test_legacy_schema_migration.py` assert scripts.get_heads() == ["c5d8e2f0b4a7"] => AssertionError: ['f7a8b9c0d1e2'] != ['c5d8e2f0b4a7'] (xem pytest_after_pull_fix.txt).

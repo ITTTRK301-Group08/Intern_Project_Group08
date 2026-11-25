@@ -32,6 +32,9 @@ class LearningResource(Base):
     language: Mapped[str] = mapped_column(String(20), nullable=False, default="en")
     is_free: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    approval_status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pending", server_default="pending"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
@@ -40,10 +43,20 @@ class LearningResource(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "resource_type IN ('documentation', 'course', 'video', 'article', 'practice')",
+            "resource_type IN ('documentation', 'course', 'video', 'article', 'practice', 'project')",
             name="ck_learning_resource_type",
         ),
+        CheckConstraint(
+            "approval_status IN ('pending', 'approved', 'rejected')",
+            name="ck_learning_resource_approval_status",
+        ),
         Index("ix_learning_resources_skill_active", "skill_id", "is_active"),
+        Index(
+            "ix_learning_resources_approval_active_skill",
+            "approval_status",
+            "is_active",
+            "skill_id",
+        ),
         {
             "mysql_engine": "InnoDB",
             "mysql_charset": "utf8mb4",

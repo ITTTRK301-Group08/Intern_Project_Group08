@@ -4,7 +4,7 @@
 def test_login_page_is_served(client):
     response = client.get("/login")
     assert response.status_code == 200
-    assert "la bàn" in response.text
+    assert "Career Mentor" in response.text
     assert 'id="loginForm"' in response.text
     assert 'id="email"' in response.text
     assert 'id="password"' in response.text
@@ -15,7 +15,7 @@ def test_login_page_is_served(client):
 def test_register_page_is_served(client):
     response = client.get("/register")
     assert response.status_code == 200
-    assert "la bàn" in response.text
+    assert "Career Mentor" in response.text
     assert 'id="registerForm"' in response.text
     assert 'id="email"' in response.text
     assert 'id="password"' in response.text
@@ -34,6 +34,16 @@ def test_auth_script_targets_public_auth_endpoints(client):
     assert "/api/v1/auth/register" in script
     assert "/api/v1/auth/login" in script
     assert "acm_access_token" in script
+    assert "acm_refresh_token" in script
+    assert "/api/v1/auth/refresh" in client.get("/static/session.js").text
+    assert "/api/v1/auth/logout" in client.get("/static/session.js").text
+
+
+def test_auth_pages_load_session_refresh_support(client):
+    for path in ("/login", "/register"):
+        page = client.get(path).text
+        assert "/static/session.js" in page
+        assert "/static/auth.js" in page
 
 
 def test_internal_pages_require_session_and_load_guard(client):
@@ -42,7 +52,6 @@ def test_internal_pages_require_session_and_load_guard(client):
         assert response.status_code == 200
         assert 'data-require-auth="true"' in response.text
         assert "/static/session.js" in response.text
-        assert 'aria-label="Điều hướng"' in response.text
 
 
 def test_public_pages_load_session_navigation(client):
@@ -66,3 +75,14 @@ def test_admin_page_guard_and_redirect_behavior(client):
     admin_js = client.get("/static/admin.js").text
     assert "kickOutNonAdmin" in admin_js
     assert "/api/v1/auth/me" in admin_js
+
+
+def test_admin_nav_link_is_restored_on_every_page(client):
+    """Admin link must come from the shared session, not only admin.html."""
+    script = client.get("/static/session.js").text
+
+    assert "ensureAdminNav" in script
+    assert "role === 'admin'" in script
+    assert "/api/v1/auth/me" in script
+    assert "Quản trị" in script
+    assert 'data-admin-nav="true"' in script

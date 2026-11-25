@@ -10,7 +10,6 @@
 
   var isDirectMode = window.location.protocol === 'file:' ||
                      window.location.pathname.indexOf('/app/static/') !== -1 ||
-                     window.location.pathname.endsWith('.html') ||
                      !window.location.host;
 
   var currentPlan = null;
@@ -29,6 +28,13 @@
     setTimeout(function () {
       box.hidden = true;
     }, 4500);
+  }
+
+  function setPlanLoadError(message) {
+    $('planContent').hidden = true;
+    $('emptyPlanState').hidden = false;
+    $('emptyPlanState').querySelector('.empty-plan-title').textContent = 'Không thể tải lộ trình';
+    $('emptyPlanState').querySelector('.empty-plan-text').textContent = message;
   }
 
   var DEMO_PLAN = {
@@ -179,7 +185,7 @@
         resource: {
           id: 7,
           title: 'Intro to Tech Interviews',
-          provider: 'La Bàn Nghề Nghiệp',
+          provider: 'Career Mentor',
           url: '/analysis',
           resource_type: 'practice',
           is_free: true
@@ -336,14 +342,73 @@
         body.append(meta, descP);
 
         if (task.resource && task.resource.url) {
-          var resPill = document.createElement('a');
-          resPill.className = 'resource-pill';
-          resPill.href = task.resource.url;
-          resPill.target = '_blank';
-          resPill.rel = 'noopener noreferrer';
-          resPill.innerHTML = '<span class="resource-type-icon">📖</span> ' +
-                              task.resource.title + ' (' + task.resource.provider + ') →';
-          body.appendChild(resPill);
+          var resourceCard = document.createElement('div');
+          resourceCard.className = 'resource-detail';
+
+          var resourceTitle = document.createElement('strong');
+          resourceTitle.className = 'resource-title';
+          resourceTitle.textContent = task.resource.title;
+
+          var resourceMeta = document.createElement('p');
+          resourceMeta.className = 'resource-meta';
+          var resourceTypeLabels = {
+            course: 'Khóa học',
+            article: 'Bài viết',
+            project: 'Dự án',
+            documentation: 'Tài liệu',
+            video: 'Video',
+            practice: 'Thực hành'
+          };
+          resourceMeta.textContent = (resourceTypeLabels[task.resource.resource_type] || 'Tài nguyên') +
+            ' · ' + (task.resource.provider || 'Nguồn đã duyệt') +
+            ' · Phù hợp ' + (task.resource.relevance_score || 0) + '%';
+          resourceCard.append(resourceTitle, resourceMeta);
+
+          if (task.resource.description) {
+            var resourceDescription = document.createElement('p');
+            resourceDescription.className = 'resource-description';
+            resourceDescription.textContent = task.resource.description;
+            resourceCard.appendChild(resourceDescription);
+          }
+
+          if (task.resource.skill) {
+            var resourceSkill = document.createElement('p');
+            resourceSkill.className = 'resource-meta';
+            resourceSkill.textContent = 'Kỹ năng: ' + task.resource.skill.name;
+            resourceCard.appendChild(resourceSkill);
+          }
+
+          if (task.resource.related_roles && task.resource.related_roles.length) {
+            var roleNames = task.resource.related_roles.map(function (role) {
+              return role.name + (role.level ? ' (' + role.level + ')' : '');
+            });
+            var resourceRoles = document.createElement('p');
+            resourceRoles.className = 'resource-meta';
+            resourceRoles.textContent = 'Vị trí liên quan: ' + roleNames.join(', ');
+            resourceCard.appendChild(resourceRoles);
+          }
+
+          var resourceUrl;
+          try {
+            resourceUrl = new URL(task.resource.url, window.location.origin);
+          } catch (_) {
+            resourceUrl = null;
+          }
+          if (resourceUrl && (resourceUrl.protocol === 'https:' || resourceUrl.protocol === 'http:')) {
+            var resourceLink = document.createElement('a');
+            resourceLink.className = 'resource-pill';
+            resourceLink.href = resourceUrl.href;
+            resourceLink.target = '_blank';
+            resourceLink.rel = 'noopener noreferrer';
+            resourceLink.textContent = 'Mở tài nguyên đã kiểm duyệt';
+            resourceCard.appendChild(resourceLink);
+          }
+          body.appendChild(resourceCard);
+        } else if (task.resource_match_status === 'no_approved_match') {
+          var noResource = document.createElement('p');
+          noResource.className = 'resource-unavailable';
+          noResource.textContent = 'Chưa có tài nguyên phù hợp đã được duyệt cho kỹ năng này.';
+          body.appendChild(noResource);
         }
 
         li.append(checkWrap, body);
@@ -469,7 +534,7 @@
   function loadPlan() {
     var token = window.LaBanApp ? window.LaBanApp.getToken() : '';
 
-    if (isDirectMode || !token || token === 'demo_student_token') {
+    if (isDirectMode) {
       try {
         var cached = localStorage.getItem('acm_roadmap_demo_state');
         if (cached) {
@@ -480,8 +545,14 @@
       } catch (_) {
         currentPlan = DEMO_PLAN;
       }
+      $('planContent').hidden = false;
+      $('emptyPlanState').hidden = true;
       updatePlanMetrics(currentPlan);
       renderWeeks(currentPlan);
+      return;
+    }
+    if (!token || token === 'demo_student_token') {
+      if (window.LaBanApp) window.LaBanApp.redirectToLogin();
       return;
     }
 
@@ -507,7 +578,10 @@
         var activePlan = body.data.find(function (p) { return p.status === 'active'; }) || body.data[0];
         return fetch('/api/v1/learning-plans/' + activePlan.id, {
           headers: { Authorization: 'Bearer ' + token }
-        }).then(function (r) { return r.json(); });
+        }).then(function (r) {
+          if (!r.ok) throw new Error('Không thể tải chi tiết lộ trình');
+          return r.json();
+        });
       })
       .then(function (detailBody) {
         if (!detailBody || !detailBody.data) return;
@@ -517,11 +591,8 @@
         updatePlanMetrics(currentPlan);
         renderWeeks(currentPlan);
       })
-      .catch(function () {
-        // Fallback demo plan khi có lỗi kết nối
-        currentPlan = DEMO_PLAN;
-        updatePlanMetrics(currentPlan);
-        renderWeeks(currentPlan);
+      .catch(function (error) {
+        setPlanLoadError(error.message || 'Không thể kết nối để tải lộ trình. Vui lòng thử lại.');
       });
   }
 

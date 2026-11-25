@@ -8,13 +8,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "AI Career Mentor & Skill Gap Analyzer"
+    app_name: str = "Career Mentor"
     environment: str = "development"
     # Bắt buộc cung cấp qua DATABASE_URL (biến môi trường hoặc .env); không hardcode thông tin đăng nhập.
     database_url: str
     secret_key: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     jwt_algorithm: Literal["HS256"] = "HS256"
     access_token_expire_minutes: int = Field(default=30, gt=0)
+    refresh_token_expire_days: int = Field(default=14, gt=0)
     cors_allowed_origins: list[str] = Field(default_factory=list)
 
     # Cấu hình lớp AI dùng chung. API Key không bắt buộc khi khởi động app

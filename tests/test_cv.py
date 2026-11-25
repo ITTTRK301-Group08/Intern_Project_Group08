@@ -2,7 +2,7 @@ import os
 import uuid
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

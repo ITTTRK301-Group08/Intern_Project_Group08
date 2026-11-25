@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-ResourceType = Literal["documentation", "course", "video", "article", "practice"]
+ResourceType = Literal["documentation", "course", "video", "article", "practice", "project"]
 Slug = Annotated[str, Field(min_length=2, max_length=180, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")]
 
 
@@ -44,9 +44,29 @@ class SkillRead(BaseModel):
     id: int
     name: str
     description: str | None
+    is_active: bool
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CatalogStatusUpdate(BaseModel):
+    is_active: bool
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class AdminSystemStats(BaseModel):
+    total_users: int
+    total_active_users: int
+    total_locked_users: int
+    total_analyses: int
+    total_interviews: int
+    total_categories: int
+    total_roles: int
+    total_skills: int
+    total_resources: int
+    total_pending_resources: int
 
 
 class CareerRoleWrite(BaseModel):
@@ -139,9 +159,23 @@ class LearningResourceWrite(BaseModel):
         return value
 
 
+class ResourceRelatedRoleRead(BaseModel):
+    id: int
+    name: str
+    level: str
+
+
+class LearningResourceReviewRequest(BaseModel):
+    approval_status: Literal["approved", "rejected"]
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class LearningResourceRead(LearningResourceWrite):
     id: int
     skill: SkillRead | None
+    approval_status: Literal["pending", "approved", "rejected"]
+    related_roles: list[ResourceRelatedRoleRead] = Field(default_factory=list)
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -152,3 +186,28 @@ class AdminCatalogData(BaseModel):
     roles: list[CareerRoleRead]
     skills: list[SkillRead]
     resources: list[LearningResourceRead]
+
+
+class AdminCategoryRoleRead(BaseModel):
+    id: int
+    name: str
+    level: str
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminCategoryDetailRead(CategoryRead):
+    roles: list[AdminCategoryRoleRead] = Field(default_factory=list)
+    role_count: int = 0
+
+
+class ResourceRelatedCategoryRead(BaseModel):
+    id: int
+    name: str
+
+
+class AdminLearningResourceDetailRead(LearningResourceRead):
+    related_categories: list[ResourceRelatedCategoryRead] = Field(
+        default_factory=list
+    )

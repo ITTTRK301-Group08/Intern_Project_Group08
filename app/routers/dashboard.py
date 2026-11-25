@@ -5,11 +5,25 @@ from app.schemas.dashboard import (
     DashboardSummaryResponse,
     InterviewHistoryResponse,
     LearningProgressResponse,
+    ReadinessHistoryResponse,
     SkillRadarResponse,
 )
 from app.services import dashboard_service
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
+
+
+@router.get("/readiness-history", response_model=ReadinessHistoryResponse)
+def get_readiness_history(
+    current_user: CurrentUser,
+    db: DbSession,
+) -> ReadinessHistoryResponse:
+    """Lịch sử điểm readiness và thống kê được tính từ các báo cáo đã hoàn thành."""
+    data = dashboard_service.get_readiness_history(db, user_id=current_user.id)
+    return ReadinessHistoryResponse(
+        data=data,
+        message="Lấy lịch sử điểm sẵn sàng nghề nghiệp thành công",
+    )
 
 
 @router.get("/summary", response_model=DashboardSummaryResponse)

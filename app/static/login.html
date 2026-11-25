@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Đăng nhập La Bàn để quản lý hồ sơ, CV và nhận phân tích kỹ năng." />
-  <title>CareerPilot AI — Đăng nhập</title>
+  <meta name="description" content="Đăng nhập Career Mentor để quản lý hồ sơ, CV và nhận phân tích kỹ năng." />
+  <title>Career Mentor — Đăng nhập</title>
   <script>
     if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
       document.write('<link rel="stylesheet" href="./profile.css">');
@@ -17,26 +17,26 @@
 <body class="auth-body">
   <main class="auth-layout">
     <section class="auth-intro">
-            <a class="brand-lockup" href="/explore" aria-label="CareerPilot AI — Dẫn lối sự nghiệp thông minh (hệ thống la bàn số)">
+            <a class="brand-lockup" href="/explore" aria-label="Career Mentor — Dẫn lối sự nghiệp thông minh">
         <span class="brand-symbol" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="careerPilotGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+              <linearGradient id="careerMentorGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
                 <stop stop-color="#4f46e5" />
                 <stop offset="0.5" stop-color="#7c3aed" />
                 <stop offset="1" stop-color="#06b6d4" />
               </linearGradient>
-              <linearGradient id="careerPilotCore" x1="10" y1="6" x2="22" y2="26" gradientUnits="userSpaceOnUse">
+              <linearGradient id="careerMentorCore" x1="10" y1="6" x2="22" y2="26" gradientUnits="userSpaceOnUse">
                 <stop stop-color="#38bdf8" />
                 <stop offset="1" stop-color="#6366f1" />
               </linearGradient>
             </defs>
-            <path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" stroke="url(#careerPilotGrad)" stroke-width="2" stroke-linejoin="round" fill="rgba(79, 70, 229, 0.12)" />
-            <path d="M16 7L23 18.5L16 15.5L9 18.5L16 7Z" fill="url(#careerPilotCore)" />
+            <path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" stroke="url(#careerMentorGrad)" stroke-width="2" stroke-linejoin="round" fill="rgba(79, 70, 229, 0.12)" />
+            <path d="M16 7L23 18.5L16 15.5L9 18.5L16 7Z" fill="url(#careerMentorCore)" />
             <circle cx="16" cy="16" r="2.2" fill="#ffffff" />
           </svg>
         </span>
-        <span class="brand-name">Career<strong>Pilot</strong><span class="brand-ai-badge">AI</span></span>
+        <span class="brand-name">Career<strong>Mentor</strong></span>
       </a>
       <h1>Đăng nhập để tiếp tục hành trình</h1>
       <p class="muted">Lưu hồ sơ, quản lý CV và nhận phân tích kỹ năng theo vị trí nghề nghiệp bạn hướng tới.</p>
@@ -63,7 +63,6 @@
           </span>
         </div>
         <button type="submit" id="submitBtn">Đăng nhập</button>
-        <button type="button" id="quickDemoBtn" class="ghost" style="width: 100%; margin-top: 8px;">Dùng thử tài khoản mẫu (Demo)</button>
       </form>
 
       <div id="status" class="status" role="alert" aria-live="polite"></div>

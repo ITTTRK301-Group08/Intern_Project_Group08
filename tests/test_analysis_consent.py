@@ -1,7 +1,14 @@
-import fitz
+import pymupdf as fitz
 
+from app.models.analysis import Analysis, AnalysisSkillGap
+from app.models.career import CareerRole, Skill
 from app.models.cv import CV
-from app.services import ai_service, analysis_service
+from app.models.profile_data import CareerRoleSkill, ProfileSkill
+from app.models.student_profile import StudentProfile
+from app.models.user import User
+from app.schemas.analysis_ai import AnalysisAIResponse, AnalysisSkillAssessment
+from app.services import analysis_service
+from app.services.ai import AIRateLimitError
 
 
 def register_and_login(client, email: str = "consent@example.com", password: str = "StrongPass123"):
@@ -29,6 +36,23 @@ def create_cv(client, headers, name: str = "cv.pdf") -> int:
     return res.json()["data"]["cv"]["id"]
 
 
+def create_role(db_session, slug: str = "analysis-role") -> tuple[int, int]:
+    skill = Skill(name="Python")
+    role = CareerRole(name="Analysis Role", slug=slug, level="Junior")
+    db_session.add_all([skill, role])
+    db_session.flush()
+    db_session.add(
+        CareerRoleSkill(
+            career_role_id=role.id,
+            skill_id=skill.id,
+            required_level=4,
+            is_required=True,
+        )
+    )
+    db_session.commit()
+    return role.id, skill.id
+
+
 def valid_payload(cv_id=None, career_role_id=None, accepted=True, purpose_version="v1"):
     payload = {
         "ai_consent": {"accepted": accepted, "purpose_version": purpose_version},
@@ -43,11 +67,59 @@ def valid_payload(cv_id=None, career_role_id=None, accepted=True, purpose_versio
 def _install_ai_spy(monkeypatch):
     calls = []
 
-    def spy(*args, **kwargs):
-        calls.append({"args": args, "kwargs": kwargs})
-        raise AssertionError("AI provider must not be called in Task 4")
+    class SpyService:
+        async def generate_structured(self, **kwargs):
+            calls.append(kwargs)
+            raise AssertionError("AI provider should not be called for rejected requests")
 
-    monkeypatch.setattr(ai_service, "request_skill_gap_analysis", spy)
+    def spy():
+        return SpyService()
+
+    monkeypatch.setattr(analysis_service, "get_ai_service", spy)
+    return calls
+
+
+def _install_ai_result(monkeypatch, db_session, skill_id: int, evidence: str):
+    calls = []
+
+    class FakeAIService:
+        async def generate_structured(self, **kwargs):
+            calls.append(kwargs)
+            return AnalysisAIResponse(
+                skills=[
+                    AnalysisSkillAssessment(
+                        skill_id=skill_id,
+                        current_level=3,
+                        evidence=evidence,
+                        recommendation="Thực hành thêm với dự án nhỏ.",
+                    )
+                ]
+            )
+
+    monkeypatch.setattr(analysis_service, "get_ai_service", FakeAIService)
+    monkeypatch.setattr(analysis_service, "SessionLocal", lambda: db_session)
+    return calls
+
+
+def _install_profile_ai_result(monkeypatch, db_session, skill_id: int):
+    calls = []
+
+    class FakeAIService:
+        async def generate_structured(self, **kwargs):
+            calls.append(kwargs)
+            return AnalysisAIResponse(
+                skills=[
+                    AnalysisSkillAssessment(
+                        skill_id=skill_id,
+                        current_level=0,
+                        evidence=None,
+                        recommendation="Duy trì và bổ sung ví dụ dự án.",
+                    )
+                ]
+            )
+
+    monkeypatch.setattr(analysis_service, "get_ai_service", FakeAIService)
+    monkeypatch.setattr(analysis_service, "SessionLocal", lambda: db_session)
     return calls
 
 
@@ -134,32 +206,121 @@ def test_inactive_cv_rejected(client, db_session, monkeypatch):
     assert calls == []
 
 
-def test_valid_consent_and_ownership_returns_501(client, monkeypatch):
+def test_valid_consent_creates_report_and_runs_analysis(client, db_session, monkeypatch):
     headers = register_and_login(client)
     cv_id = create_cv(client, headers)
-    calls = _install_ai_spy(monkeypatch)
+    role_id, skill_id = create_role(db_session)
+    calls = _install_ai_result(monkeypatch, db_session, skill_id, "Consent CV content")
     res = client.post(
         "/api/v1/analyses",
         headers=headers,
-        json=valid_payload(cv_id=cv_id, career_role_id=2),
+        json=valid_payload(cv_id=cv_id, career_role_id=role_id),
     )
-    assert res.status_code == 501
-    body = res.json()
-    detail = body["detail"]
-    assert detail["success"] is False
-    assert detail["data"]["code"] == "ANALYSIS_PIPELINE_NOT_IMPLEMENTED"
-    assert "consent" in detail["message"].lower()
-    assert "analysis_id" not in str(body)
-    assert calls == []
+    assert res.status_code == 202
+    response_data = res.json()["data"]
+    assert response_data["status"] == "pending"
+    analysis = db_session.query(Analysis).filter_by(id=response_data["id"]).one()
+    first_analysis_id = analysis.id
+    assert analysis.status == "completed"
+    assert analysis.readiness_score == 75
+    assert analysis.completed_at is not None
+    gap = db_session.query(AnalysisSkillGap).filter_by(analysis_id=first_analysis_id).one()
+    assert gap.skill_id == skill_id
+    assert gap.current_level == 3
+    assert gap.target_level == 4
+    assert gap.evidence == "Consent CV content"
+    assert calls and "Consent CV content" in calls[0]["prompt"]
+
+    second_response = client.post(
+        "/api/v1/analyses",
+        headers=headers,
+        json=valid_payload(cv_id=cv_id, career_role_id=role_id),
+    )
+    assert second_response.status_code == 202
+    assert second_response.json()["data"]["id"] != first_analysis_id
+    history = client.get("/api/v1/analyses", headers=headers)
+    assert history.json()["data"]["total"] == 2
+
+def test_analysis_completes_with_fallback_when_ai_is_rate_limited(
+    client, db_session, monkeypatch
+):
+    headers = register_and_login(client, "rate_limited@example.com")
+    cv_id = create_cv(client, headers)
+    role_id, skill_id = create_role(db_session, "rate-limit-role")
+
+    class RateLimitedAIService:
+        async def generate_structured(self, **kwargs):
+            raise AIRateLimitError("quota exhausted")
+
+    monkeypatch.setattr(analysis_service, "get_ai_service", RateLimitedAIService)
+    monkeypatch.setattr(analysis_service, "SessionLocal", lambda: db_session)
+
+    response = client.post(
+        "/api/v1/analyses",
+        headers=headers,
+        json=valid_payload(cv_id=cv_id, career_role_id=role_id),
+    )
+    assert response.status_code == 202
+    analysis_id = response.json()["data"]["id"]
+    analysis = db_session.query(Analysis).filter_by(id=analysis_id).one()
+    assert analysis.status == "completed"
+    assert analysis.completed_at is not None
+
+    gap = db_session.query(AnalysisSkillGap).filter_by(analysis_id=analysis_id).one()
+    assert gap.skill_id == skill_id
+    assert gap.current_level == 0
+    assert gap.has_evidence is False
+    assert gap.evidence is None
 
 
-def test_valid_consent_without_cv_returns_501(client, monkeypatch):
-    headers = register_and_login(client)
-    calls = _install_ai_spy(monkeypatch)
-    res = client.post("/api/v1/analyses", headers=headers, json=valid_payload())
-    assert res.status_code == 501
-    assert res.json()["detail"]["data"]["code"] == "ANALYSIS_PIPELINE_NOT_IMPLEMENTED"
-    assert calls == []
+def test_profile_analysis_uses_self_assessment_and_preserves_overqualified_score(
+    client, db_session, monkeypatch
+):
+    headers = register_and_login(client, "profile_analysis@example.com")
+    user_id = db_session.query(User).filter_by(email="profile_analysis@example.com").one().id
+    role_id, skill_id = create_role(db_session, "profile-analysis-role")
+    profile = StudentProfile(user_id=user_id, full_name="Test Student", bio="Backend projects")
+    db_session.add(profile)
+    db_session.flush()
+    db_session.add(ProfileSkill(profile_id=profile.id, skill_id=skill_id, level=5))
+    db_session.commit()
+    calls = _install_profile_ai_result(monkeypatch, db_session, skill_id)
+
+    response = client.post(
+        "/api/v1/analyses",
+        headers=headers,
+        json=valid_payload(career_role_id=role_id),
+    )
+    assert response.status_code == 202
+    analysis = db_session.query(Analysis).filter_by(id=response.json()["data"]["id"]).one()
+    gap = db_session.query(AnalysisSkillGap).filter_by(analysis_id=analysis.id).one()
+    assert analysis.status == "completed"
+    assert analysis.readiness_score == 100
+    assert gap.current_level == 5
+    assert gap.target_level == 4
+    assert gap.evidence == "Mức tự đánh giá trong hồ sơ: 5/5"
+    assert calls
+
+
+def test_unverifiable_ai_skill_evidence_fails_without_saving_a_score(
+    client, db_session, monkeypatch
+):
+    headers = register_and_login(client, "ungrounded_analysis@example.com")
+    cv_id = create_cv(client, headers)
+    role_id, skill_id = create_role(db_session, "ungrounded-analysis-role")
+    calls = _install_ai_result(monkeypatch, db_session, skill_id, "Not present in the CV")
+
+    response = client.post(
+        "/api/v1/analyses",
+        headers=headers,
+        json=valid_payload(cv_id=cv_id, career_role_id=role_id),
+    )
+    assert response.status_code == 202
+    analysis = db_session.query(Analysis).filter_by(id=response.json()["data"]["id"]).one()
+    assert analysis.status == "failed"
+    assert analysis.readiness_score is None
+    assert db_session.query(AnalysisSkillGap).filter_by(analysis_id=analysis.id).count() == 0
+    assert calls
 
 
 def test_consent_check_runs_before_ownership(client, monkeypatch):

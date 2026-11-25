@@ -3,6 +3,10 @@ from types import SimpleNamespace
 import pytest
 
 from app import bootstrap_admin as bootstrap_admin_command
+from app.models.analysis import Analysis
+from app.models.career import CareerRole, Skill
+from app.models.interview import InterviewSession
+from app.models.learning_resource import LearningResource
 from app.models.user import User
 from app.services.catalog_service import bootstrap_admin
 
@@ -32,12 +36,12 @@ def test_explore_page_and_assets_are_served(client):
         response = client.get(path)
         assert response.status_code == 200
         assert "Con đường nghề nghiệp của bạn bắt đầu từ đây." in response.text
-        assert "la bàn" in response.text
+        assert "Career Mentor" in response.text
 
     for path in ("/profile", "/cv", "/analysis"):
         response = client.get(path)
         assert response.status_code == 200
-        assert "la bàn" in response.text
+        assert "Career Mentor" in response.text
         assert 'aria-label="Điều hướng"' in response.text
 
     for path in (
@@ -55,6 +59,83 @@ def test_catalog_administration_requires_admin(client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
+
+
+def test_admin_can_list_lock_and_unlock_users(client, db_session):
+    admin_token = register_and_get_token(client, email="user-admin@example.com")
+    admin = db_session.query(User).filter_by(email="user-admin@example.com").one()
+    admin.role = "admin"
+    db_session.commit()
+    user_token = register_and_get_token(client, email="managed-user@example.com")
+    managed_user = db_session.query(User).filter_by(email="managed-user@example.com").one()
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    listed = client.get("/api/v1/admin/users", headers=headers)
+    assert listed.status_code == 200
+    listed_page = listed.json()["data"]
+    assert listed_page["total"] == 2
+    assert listed_page["page"] == 1
+    assert listed_page["total_pages"] == 1
+    listed_data = listed_page["items"]
+    assert {item["email"] for item in listed_data} == {
+        "user-admin@example.com",
+        "managed-user@example.com",
+    }
+    assert all(item["full_name"] is None for item in listed_data)
+    assert "password_hash" not in str(listed_page)
+
+    locked = client.put(
+        f"/api/v1/admin/users/{managed_user.id}/status",
+        headers=headers,
+        json={"is_active": False},
+    )
+    assert locked.status_code == 200
+    assert locked.json()["data"]["is_active"] is False
+    assert client.post(
+        "/api/v1/auth/login",
+        json={"email": "managed-user@example.com", "password": "StrongPass123"},
+    ).status_code == 403
+    assert client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {user_token}"},
+    ).status_code == 403
+
+    unlocked = client.put(
+        f"/api/v1/admin/users/{managed_user.id}/status",
+        headers=headers,
+        json={"is_active": True},
+    )
+    assert unlocked.status_code == 200
+    assert unlocked.json()["data"]["is_active"] is True
+    assert client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {user_token}"},
+    ).status_code == 200
+
+
+def test_user_management_requires_admin_and_prevents_self_lock(client, db_session):
+    student_token = register_and_get_token(client, email="regular-user@example.com")
+    admin_token = register_and_get_token(client, email="self-lock-admin@example.com")
+    admin = db_session.query(User).filter_by(email="self-lock-admin@example.com").one()
+    admin.role = "admin"
+    db_session.commit()
+
+    student_headers = {"Authorization": f"Bearer {student_token}"}
+    assert client.get("/api/v1/admin/users", headers=student_headers).status_code == 403
+    assert client.put(
+        f"/api/v1/admin/users/{admin.id}/status",
+        headers=student_headers,
+        json={"is_active": False},
+    ).status_code == 403
+
+    self_lock = client.put(
+        f"/api/v1/admin/users/{admin.id}/status",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={"is_active": False},
+    )
+    assert self_lock.status_code == 400
+    assert self_lock.json()["detail"] == "You cannot lock your own account"
+    assert admin.is_active is True
 
 
 def test_admin_can_manage_catalog_and_users_can_explore_it(client, db_session):
@@ -111,13 +192,49 @@ def test_admin_can_manage_catalog_and_users_can_explore_it(client, db_session):
         },
     )
     assert resource_response.status_code == 201
+    resource_id = resource_response.json()["data"]["id"]
+    assert resource_response.json()["data"]["approval_status"] == "pending"
 
     roles = client.get("/api/v1/catalog/roles").json()["data"]
     assert roles[0]["required_skills"][0]["skill"]["name"] == "Python"
     resources = client.get(
         "/api/v1/catalog/resources", params={"skill_id": skill_id}
     ).json()["data"]
+    assert resources == []
+    assert client.get(f"/api/v1/catalog/resources/{resource_id}").status_code == 404
+
+    approval = client.patch(
+        f"/api/v1/admin/resources/{resource_id}/approval",
+        headers=headers,
+        json={"approval_status": "approved"},
+    )
+    assert approval.status_code == 200
+    assert approval.json()["data"]["approval_status"] == "approved"
+    assert approval.json()["data"]["related_roles"][0]["name"] == "Backend Developer"
+
+    resources = client.get(
+        "/api/v1/catalog/resources",
+        params={"skill_id": skill_id, "resource_type": "documentation", "role_id": role_response.json()["data"]["id"]},
+    ).json()["data"]
     assert resources[0]["title"] == "Python tutorial"
+    assert client.get(f"/api/v1/catalog/resources/{resource_id}").json()["data"]["url"] == "https://docs.python.org/3/tutorial/"
+
+    update = client.put(
+        f"/api/v1/admin/resources/{resource_id}",
+        headers=headers,
+        json={
+            "slug": "python-docs",
+            "skill_id": skill_id,
+            "title": "Python tutorial updated",
+            "provider": "Python",
+            "url": "https://docs.python.org/3/tutorial/",
+            "resource_type": "documentation",
+            "description": "Updated description",
+        },
+    )
+    assert update.status_code == 200
+    assert update.json()["data"]["approval_status"] == "pending"
+    assert client.get(f"/api/v1/catalog/resources/{resource_id}").status_code == 404
 
     hidden = client.post(
         "/api/v1/admin/resources",
@@ -140,6 +257,26 @@ def test_admin_can_manage_catalog_and_users_can_explore_it(client, db_session):
     assert admin_catalog["success"] is True
     admin_resources = admin_catalog["data"]["resources"]
     assert any(item["slug"] == "hidden-resource" for item in admin_resources)
+
+
+def test_student_cannot_review_resource(client, db_session):
+    student_token = register_and_get_token(client, email="resource-student@example.com")
+    resource = LearningResource(
+        slug="review-protected",
+        title="Review protected",
+        provider="Example",
+        url="https://example.com/resource",
+        resource_type="project",
+    )
+    db_session.add(resource)
+    db_session.commit()
+
+    response = client.patch(
+        f"/api/v1/admin/resources/{resource.id}/approval",
+        headers={"Authorization": f"Bearer {student_token}"},
+        json={"approval_status": "approved"},
+    )
+    assert response.status_code == 403
 
 
 def test_bootstrapped_admin_can_login_and_manage_catalog(client, db_session):
@@ -173,6 +310,157 @@ def test_bootstrapped_admin_can_login_and_manage_catalog(client, db_session):
     assert deleted.status_code == 200
     assert deleted.json()["success"] is True
     assert deleted.json()["data"] == {"deleted": True}
+    retained_skill = db_session.get(Skill, skill_id)
+    assert retained_skill is not None
+    assert retained_skill.is_active is False
+    assert client.get("/api/v1/catalog/skills").json()["data"] == []
+
+
+def test_admin_system_stats_count_users_analyses_and_interviews(client, db_session):
+    token = register_and_get_token(client, email="stats-admin@example.com")
+    admin = db_session.query(User).filter_by(email="stats-admin@example.com").one()
+    admin.role = "admin"
+    student_response = client.post(
+        "/api/v1/auth/register",
+        json={"email": "stats-student@example.com", "password": "StrongPass123"},
+    )
+    assert student_response.status_code == 201
+    db_session.add(
+        Analysis(
+            user_id=admin.id,
+            consent_accepted=True,
+            consent_purpose_version="v1",
+            status="pending",
+        )
+    )
+    db_session.add(InterviewSession(user_id=admin.id, status="ready"))
+    db_session.commit()
+
+    response = client.get(
+        "/api/v1/admin/stats",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"] == {
+        "total_users": 2,
+        "total_active_users": 2,
+        "total_locked_users": 0,
+        "total_analyses": 1,
+        "total_interviews": 1,
+        "total_categories": 0,
+        "total_roles": 0,
+        "total_skills": 0,
+        "total_resources": 0,
+        "total_pending_resources": 0,
+    }
+
+
+def test_admin_can_hide_and_restore_roles_skills_and_resources(client, db_session):
+    token = register_and_get_token(client, email="status-admin@example.com")
+    admin = db_session.query(User).filter_by(email="status-admin@example.com").one()
+    admin.role = "admin"
+    db_session.commit()
+    headers = {"Authorization": f"Bearer {token}"}
+
+    skill = client.post(
+        "/api/v1/admin/skills",
+        headers=headers,
+        json={"name": "Status test skill"},
+    ).json()["data"]
+    role = client.post(
+        "/api/v1/admin/career-roles",
+        headers=headers,
+        json={
+            "name": "Status test role",
+            "slug": "status-test-role",
+            "required_skills": [
+                {"skill_id": skill["id"], "required_level": 3}
+            ],
+        },
+    ).json()["data"]
+    resource = client.post(
+        "/api/v1/admin/resources",
+        headers=headers,
+        json={
+            "slug": "status-test-resource",
+            "skill_id": skill["id"],
+            "title": "Status test resource",
+            "provider": "Example",
+            "url": "https://example.com/status-test",
+            "resource_type": "article",
+        },
+    ).json()["data"]
+
+    for collection, item in (
+        ("career-roles", role),
+        ("skills", skill),
+        ("resources", resource),
+    ):
+        response = client.patch(
+            f"/api/v1/admin/{collection}/{item['id']}/status",
+            headers=headers,
+            json={"is_active": False},
+        )
+        assert response.status_code == 200
+        assert response.json()["data"]["is_active"] is False
+
+    assert client.get("/api/v1/catalog/roles").json()["data"] == []
+    assert client.get("/api/v1/catalog/skills").json()["data"] == []
+    assert client.get("/api/v1/catalog/resources").json()["data"] == []
+
+    admin_catalog = client.get("/api/v1/admin/catalog", headers=headers).json()["data"]
+    assert any(not item["is_active"] for item in admin_catalog["roles"])
+    assert any(not item["is_active"] for item in admin_catalog["skills"])
+    assert any(not item["is_active"] for item in admin_catalog["resources"])
+    assert db_session.get(CareerRole, role["id"]) is not None
+    assert db_session.get(Skill, skill["id"]) is not None
+    assert db_session.get(LearningResource, resource["id"]) is not None
+
+    role_status = client.patch(
+        f"/api/v1/admin/career-roles/{role['id']}/status",
+        headers=headers,
+        json={"is_active": True},
+    )
+    assert role_status.status_code == 200
+    resource_status = client.patch(
+        f"/api/v1/admin/resources/{resource['id']}/status",
+        headers=headers,
+        json={"is_active": True},
+    )
+    assert resource_status.status_code == 200
+    active_role = client.get("/api/v1/catalog/roles").json()["data"][0]
+    assert active_role["required_skills"] == []
+    assert client.get(
+        f"/api/v1/catalog/roles/{role['id']}/skills"
+    ).json()["data"] == []
+    assert client.get("/api/v1/catalog/resources").json()["data"] == []
+
+    for collection, item in (
+        ("career-roles", role),
+        ("skills", skill),
+        ("resources", resource),
+    ):
+        response = client.patch(
+            f"/api/v1/admin/{collection}/{item['id']}/status",
+            headers=headers,
+            json={"is_active": True},
+        )
+        assert response.status_code == 200
+        assert response.json()["data"]["is_active"] is True
+
+    # Admin-created resources start as pending; public catalog only lists
+    # approved resources (BUG-06), so approve it before the final assertion.
+    approval = client.patch(
+        f"/api/v1/admin/resources/{resource['id']}/approval",
+        headers=headers,
+        json={"approval_status": "approved"},
+    )
+    assert approval.status_code == 200
+
+    assert len(client.get("/api/v1/catalog/roles").json()["data"]) == 1
+    assert len(client.get("/api/v1/catalog/skills").json()["data"]) == 1
+    assert len(client.get("/api/v1/catalog/resources").json()["data"]) == 1
 
 
 def test_student_and_invalid_token_cannot_manage_catalog(client):

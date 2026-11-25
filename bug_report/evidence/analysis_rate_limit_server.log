@@ -1,0 +1,6 @@
+﻿L\u1ea7n g\u1ecdi AI th\u1ee9 1/3 th\u1ea5t b\u1ea1i (AI_RATE_LIMIT_ERROR); th\u1eed l\u1ea1i sau 0.50 giÔy.
+L\u1ea7n g\u1ecdi AI th\u1ee9 2/3 th\u1ea5t b\u1ea1i (AI_RATE_LIMIT_ERROR); th\u1eed l\u1ea1i sau 1.00 giÔy.
+Analysis 27 using deterministic fallback after AI error (AI_RATE_LIMIT_ERROR)
+L\u1ea7n g\u1ecdi AI th\u1ee9 1/3 th\u1ea5t b\u1ea1i (AI_PROVIDER_ERROR); th\u1eed l\u1ea1i sau 0.50 giÔy.
+L\u1ea7n g\u1ecdi AI th\u1ee9 2/3 th\u1ea5t b\u1ea1i (AI_RATE_LIMIT_ERROR); th\u1eed l\u1ea1i sau 1.00 giÔy.
+Analysis 28 using deterministic fallback after AI error (AI_RATE_LIMIT_ERROR)

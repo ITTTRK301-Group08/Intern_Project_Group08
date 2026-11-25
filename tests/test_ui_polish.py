@@ -2,7 +2,7 @@
 
 
 def test_user_facing_pages_hide_backend_artifacts(client):
-    for path in ("/", "/explore", "/profile", "/cv", "/analysis", "/roadmap", "/dashboard", "/admin", "/login", "/register"):
+    for path in ("/", "/explore", "/profile", "/cv", "/analysis", "/interview", "/roadmap", "/dashboard", "/admin", "/login", "/register"):
         html = client.get(path).text
         assert 'href="/docs"' not in html
         assert "M2 - Student Profile" not in html
@@ -23,6 +23,8 @@ def test_explore_hides_raw_weight_notation_and_keeps_filters(client):
     explore_js = client.get("/static/explore.js").text
     assert "w=" not in explore_js
     assert "Đã tải dữ liệu nghề nghiệp" not in explore_js
+    assert "$('resourceTypeFilter').value = ''" in explore_js
+    assert "$('resourceRoleFilter').value = ''" in explore_js
 
 
 def test_profile_cv_analysis_expose_user_friendly_controls(client):
@@ -38,10 +40,45 @@ def test_profile_cv_analysis_expose_user_friendly_controls(client):
     assert "xóa mềm" not in cv_html.lower()
 
     analysis_html = client.get("/analysis").text
-    assert 'id="cv_id" name="cv_id" type="hidden"' in analysis_html
-    assert 'id="career_role_id" name="career_role_id" type="hidden"' in analysis_html
     assert 'id="cvSelect"' in analysis_html
     assert 'id="roleSelect"' in analysis_html
     assert 'id="sourceCvBtn"' in analysis_html
     assert 'id="sourceProfileBtn"' in analysis_html
+    assert 'id="consentModal"' in analysis_html
+    assert 'id="cv_id"' in analysis_html
+    assert 'id="career_role_id"' in analysis_html
     assert "pipeline" not in analysis_html.lower()
+
+
+def test_analysis_assets_have_no_unresolved_merge_markers(client):
+    for path in ("/analysis", "/static/analysis.js"):
+        content = client.get(path).text
+        assert "Temporary merge branch" not in content
+        assert "<<<<<<<" not in content
+        assert ">>>>>>>" not in content
+
+
+def test_project_branding_is_career_mentor_everywhere(client):
+    for path in ("/", "/explore", "/profile", "/cv", "/analysis", "/interview", "/roadmap", "/dashboard", "/admin", "/login", "/register"):
+        html = client.get(path).text
+        assert "Career Mentor" in html
+        assert "careerpilot" not in html.lower()
+        assert "la bàn" not in html.lower()
+
+    for path in ("/static/admin.js", "/static/roadmap.js"):
+        script = client.get(path).text
+        assert "careerpilot" not in script.lower()
+        assert "la bàn" not in script.lower()
+
+
+def test_session_dashboard_and_responsive_nav_regressions(client):
+    session_js = client.get("/static/session.js").text
+    assert "clearToken(" not in session_js
+    assert "clearTokens();" in session_js
+
+    dashboard_js = client.get("/static/dashboard.js").text
+    assert "\n  function monitorReadinessHistory()" in dashboard_js
+
+    profile_css = client.get("/static/profile.css").text
+    assert "@media (max-width: 1120px)" in profile_css
+    assert "flex-wrap: wrap;" in profile_css

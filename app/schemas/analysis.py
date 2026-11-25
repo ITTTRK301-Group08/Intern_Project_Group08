@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -60,10 +60,18 @@ class AnalysisHistoryData(BaseModel):
     pages: int
 
 
+class AnalysisAcceptedData(BaseModel):
+    id: int
+    status: Literal["pending", "processing", "completed", "failed"]
+    created_at: datetime
+
+
 class AnalysisReport(BaseModel):
     id: int
     status: Literal["pending", "processing", "completed", "failed"]
     readiness_score: int | None
+    market_source: str
+    benchmark_date: date | None
     summary: str | None
     career_role_name: str | None
     created_at: datetime
@@ -83,6 +91,7 @@ class AnalysisSkillReport(BaseModel):
 
 
 AnalysisHistoryResponse = ApiResponse[AnalysisHistoryData]
+AnalysisAcceptedResponse = ApiResponse[AnalysisAcceptedData]
 AnalysisReportResponse = ApiResponse[AnalysisReport]
 AnalysisSkillsResponse = ApiResponse[list[AnalysisSkillReport]]
 AnalysisStatusResponse = ApiResponse[dict[str, str]]

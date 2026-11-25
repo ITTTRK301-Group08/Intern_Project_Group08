@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Bảng điều khiển tổng hợp năng lực nghề nghiệp, biểu đồ Radar kỹ năng và tiến độ học tập 30 ngày." />
   <meta name="theme-color" content="#f2f7f5" />
-  <title>CareerPilot AI — Dashboard & Biểu đồ Radar</title>
+  <title>Career Mentor — Dashboard & Biểu đồ Radar</title>
   <script>
     if (window.location.protocol === 'file:' || window.location.pathname.indexOf('/app/static/') !== -1 || window.location.pathname.endsWith('.html') || !window.location.host) {
       document.write('<link rel="stylesheet" href="./profile.css">');
@@ -28,32 +28,33 @@
 <body>
   <main class="container">
     <header class="topbar">
-            <a class="brand-lockup" href="/explore" aria-label="CareerPilot AI — Dẫn lối sự nghiệp thông minh (hệ thống la bàn số)">
+            <a class="brand-lockup" href="/explore" aria-label="Career Mentor — Dẫn lối sự nghiệp thông minh">
         <span class="brand-symbol" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="careerPilotGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+              <linearGradient id="careerMentorGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
                 <stop stop-color="#4f46e5" />
                 <stop offset="0.5" stop-color="#7c3aed" />
                 <stop offset="1" stop-color="#06b6d4" />
               </linearGradient>
-              <linearGradient id="careerPilotCore" x1="10" y1="6" x2="22" y2="26" gradientUnits="userSpaceOnUse">
+              <linearGradient id="careerMentorCore" x1="10" y1="6" x2="22" y2="26" gradientUnits="userSpaceOnUse">
                 <stop stop-color="#38bdf8" />
                 <stop offset="1" stop-color="#6366f1" />
               </linearGradient>
             </defs>
-            <path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" stroke="url(#careerPilotGrad)" stroke-width="2" stroke-linejoin="round" fill="rgba(79, 70, 229, 0.12)" />
-            <path d="M16 7L23 18.5L16 15.5L9 18.5L16 7Z" fill="url(#careerPilotCore)" />
+            <path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" stroke="url(#careerMentorGrad)" stroke-width="2" stroke-linejoin="round" fill="rgba(79, 70, 229, 0.12)" />
+            <path d="M16 7L23 18.5L16 15.5L9 18.5L16 7Z" fill="url(#careerMentorCore)" />
             <circle cx="16" cy="16" r="2.2" fill="#ffffff" />
           </svg>
         </span>
-        <span class="brand-name">Career<strong>Pilot</strong><span class="brand-ai-badge">AI</span></span>
+        <span class="brand-name">Career<strong>Mentor</strong></span>
       </a>
       <nav class="site-nav" aria-label="Điều hướng">
         <a href="/explore">Khám phá</a>
         <a href="/profile">Hồ sơ</a>
         <a href="/cv">CV của tôi</a>
         <a href="/analysis">Phân tích kỹ năng</a>
+        <a href="/interview">Phỏng vấn</a>
         <a href="/roadmap">Lộ trình 30 ngày</a>
         <a href="/dashboard" aria-current="page">Dashboard</a>
       </nav>
@@ -74,10 +75,10 @@
       <div class="kpi-card kpi-card-highlight">
         <div class="kpi-header">
           <span class="kpi-label">Điểm sẵn sàng nghề nghiệp</span>
-          <span id="readinessStatusBadge" class="readiness-pill readiness-mid">Cần nâng cao</span>
+          <span id="readinessStatusBadge" class="readiness-pill">Chưa có báo cáo</span>
         </div>
         <div class="kpi-value-row">
-          <span id="kpiReadinessVal" class="kpi-value-big">72.5</span>
+          <span id="kpiReadinessVal" class="kpi-value-big">--</span>
           <span class="kpi-unit">%</span>
         </div>
         <div class="kpi-subtext">Công thức chuẩn trọng số (SRS 6.3)</div>
@@ -90,9 +91,9 @@
           <div class="kpi-icon">🎯</div>
         </div>
         <div class="kpi-value-row">
-          <span id="kpiRoleName" class="kpi-value-big" style="font-size: 22px;">Backend Developer</span>
+          <span id="kpiRoleName" class="kpi-value-big" style="font-size: 22px;">Chưa chọn</span>
         </div>
-        <div id="kpiRoleLevel" class="kpi-subtext">Cấp độ: Junior • 5 kỹ năng yêu cầu</div>
+        <div id="kpiRoleLevel" class="kpi-subtext">Chưa có báo cáo phân tích</div>
       </div>
 
       <!-- 3. Độ phủ kỹ năng -->
@@ -102,9 +103,9 @@
           <div class="kpi-icon">📊</div>
         </div>
         <div class="kpi-value-row">
-          <span id="kpiMatchedRatio" class="kpi-value-big">3 / 5</span>
+          <span id="kpiMatchedRatio" class="kpi-value-big">0 / 0</span>
         </div>
-        <div id="kpiGapSubtext" class="kpi-subtext">2 kỹ năng cần bổ sung thêm</div>
+        <div id="kpiGapSubtext" class="kpi-subtext">Chưa có dữ liệu đánh giá</div>
       </div>
 
       <!-- 4. Lộ trình 30 ngày -->
@@ -114,10 +115,10 @@
           <a href="/roadmap" class="kpi-icon" title="Đến lộ trình" style="text-decoration: none;">🚀</a>
         </div>
         <div class="kpi-value-row">
-          <span id="kpiPlanProgress" class="kpi-value-big">37.5</span>
+          <span id="kpiPlanProgress" class="kpi-value-big">0</span>
           <span class="kpi-unit">%</span>
         </div>
-        <div id="kpiPlanDaysLeft" class="kpi-subtext">3 / 8 nhiệm vụ • Còn 22 ngày</div>
+        <div id="kpiPlanDaysLeft" class="kpi-subtext">Chưa có lộ trình đang thực hiện</div>
       </div>
 
       <!-- 5. Phỏng vấn thử -->
@@ -127,10 +128,37 @@
           <div class="kpi-icon">🎙️</div>
         </div>
         <div class="kpi-value-row">
-          <span id="kpiInterviewsCount" class="kpi-value-big">2</span>
+          <span id="kpiInterviewsCount" class="kpi-value-big">0</span>
           <span class="kpi-unit">phiên</span>
         </div>
         <div class="kpi-subtext">Đã hoàn thành đánh giá câu hỏi</div>
+      </div>
+    </section>
+
+    <section class="dash-panel readiness-history-panel" aria-labelledby="readinessHistoryHeading">
+      <div class="dash-panel-header">
+        <div>
+          <h2 id="readinessHistoryHeading" class="dash-panel-title">Tiến độ điểm sẵn sàng nghề nghiệp</h2>
+          <p class="dash-panel-desc">Mỗi điểm tương ứng với một báo cáo phân tích đã hoàn tất.</p>
+        </div>
+      </div>
+      <div id="readinessHistoryState" class="readiness-history-state" role="status" hidden></div>
+      <p id="readinessRefreshStatus" class="readiness-refresh-status" role="status" hidden></p>
+      <div id="readinessHistoryContent" class="readiness-history-grid" hidden>
+        <div class="readiness-chart-wrap">
+          <canvas id="readinessHistoryChart" aria-label="Biểu đồ đường lịch sử điểm readiness" role="img"></canvas>
+        </div>
+        <div id="readinessHistoryStats" class="readiness-stats-grid"></div>
+        <div id="skillHistoryPanel" class="readiness-skill-history">
+          <div class="skill-history-heading">
+            <h3>Tiến bộ theo kỹ năng</h3>
+            <p>Mức hiện tại trong các báo cáo có đánh giá kỹ năng tương ứng.</p>
+          </div>
+          <div id="skillHistoryState" class="readiness-history-state" role="status" hidden></div>
+          <div class="readiness-chart-wrap skill-history-chart-wrap">
+            <canvas id="readinessSkillHistoryChart" aria-label="Biểu đồ đường mức kỹ năng qua các lần phân tích" role="img"></canvas>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -244,7 +272,7 @@
           </div>
 
           <div style="margin-top: 16px; text-align: center;">
-            <a href="/analysis" class="btn secondary-btn" style="text-decoration: none; font-size: 14px; width: 100%; display: block;">
+            <a href="/interview" class="btn secondary-btn" style="text-decoration: none; font-size: 14px; width: 100%; display: block;">
               Bắt đầu phiên phỏng vấn mới
             </a>
           </div>

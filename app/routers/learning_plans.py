@@ -15,13 +15,13 @@ router = APIRouter(prefix="/api/v1/learning-plans", tags=["learning-plans"])
 
 
 @router.post("", response_model=LearningPlanApiResponse, status_code=status.HTTP_201_CREATED)
-def create_learning_plan(
+async def create_learning_plan(
     payload: LearningPlanCreateRequest,
     current_user: CurrentUser,
     db: DbSession,
 ) -> LearningPlanApiResponse:
     """Tạo lộ trình học tập cá nhân hóa 30 ngày từ báo cáo phân tích đã hoàn thành (UC-08)."""
-    data = learning_plan_service.create_plan_from_analysis(
+    data = await learning_plan_service.create_plan_from_analysis(
         db,
         user_id=current_user.id,
         analysis_id=payload.analysis_id,
@@ -35,12 +35,16 @@ def create_learning_plan(
 
 
 @router.get("", response_model=LearningPlanListApiResponse)
-def list_learning_plans(
+async def list_learning_plans(
     current_user: CurrentUser,
     db: DbSession,
     include_archived: bool = True,
 ) -> LearningPlanListApiResponse:
     """Lấy danh sách các lộ trình học tập của người dùng hiện tại."""
+    await learning_plan_service.ensure_plan_for_user(
+        db,
+        user_id=current_user.id,
+    )
     data = learning_plan_service.get_user_plans(
         db,
         user_id=current_user.id,

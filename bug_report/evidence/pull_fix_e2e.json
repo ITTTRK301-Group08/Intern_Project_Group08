@@ -1,0 +1,121 @@
+{
+  "api": [
+    {
+      "url": "/api/v1/auth/me",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/auth/me",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses?page=1&page_size=10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/auth/me",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses",
+      "method": "POST",
+      "status": 202
+    },
+    {
+      "url": "/api/v1/analyses?page=1&page_size=10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses/29",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses/29/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses/29/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses/29/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses/29/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses/29/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses/29/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses/29/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses/29",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses/29/skills",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/analyses?page=1&page_size=10",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/learning-plans?include_archived=false",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/auth/me",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "/api/v1/learning-plans/10",
+      "method": "GET",
+      "status": 200
+    }
+  ],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "steps": {
+    "admin_nav": {
+      "url": "http://127.0.0.1:8004/dashboard",
+      "admin_link_count": 1
+    },
+    "analysis": {
+      "email": "pull.fix.verify.1795422668@example.com",
+      "progress": "Trạng thái: Hoàn tất"
+    },
+    "roadmap": {
+      "plan_visible": true,
+      "empty_visible": false
+    }
+  }
+}
