@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Đăng nhập Career Mentor để quản lý hồ sơ, CV và nhận phân tích kỹ năng." />
+  <title>Career Mentor — Đăng nhập</title>
+  <script src="./demo-api.js?v=1795616870"></script>
+  <link rel="stylesheet" href="./profile.css?v=1795616870" />
+  <link rel="stylesheet" href="./auth.css?v=1795616870" />
+</head>
+<body class="auth-body">
+  <main class="auth-layout">
+    <section class="auth-intro">
+            <a class="brand-lockup" href="./explore.html" aria-label="Career Mentor — Dẫn lối sự nghiệp thông minh">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="careerMentorGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4f46e5" />
+                <stop offset="0.5" stop-color="#7c3aed" />
+                <stop offset="1" stop-color="#06b6d4" />
+              </linearGradient>
+              <linearGradient id="careerMentorCore" x1="10" y1="6" x2="22" y2="26" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38bdf8" />
+                <stop offset="1" stop-color="#6366f1" />
+              </linearGradient>
+            </defs>
+            <path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" stroke="url(#careerMentorGrad)" stroke-width="2" stroke-linejoin="round" fill="rgba(79, 70, 229, 0.12)" />
+            <path d="M16 7L23 18.5L16 15.5L9 18.5L16 7Z" fill="url(#careerMentorCore)" />
+            <circle cx="16" cy="16" r="2.2" fill="#ffffff" />
+          </svg>
+        </span>
+        <span class="brand-name">Career<strong>Mentor</strong></span>
+      </a>
+      <h1>Đăng nhập để tiếp tục hành trình</h1>
+      <p class="muted">Lưu hồ sơ, quản lý CV và nhận phân tích kỹ năng theo vị trí nghề nghiệp bạn hướng tới.</p>
+      <ul class="auth-points">
+        <li>Hồ sơ học tập và CV gắn riêng với tài khoản của bạn.</li>
+        <li>Phân tích khoảng cách kỹ năng dựa trên dữ liệu bạn chọn.</li>
+        <li>Chỉ bạn mới xem được hồ sơ, CV và báo cáo của mình.</li>
+      </ul>
+    </section>
+
+    <section class="card auth-card" aria-labelledby="loginHeading">
+      <h2 id="loginHeading">Đăng nhập</h2>
+      <p class="muted small">Dùng email và mật khẩu đã đăng ký.</p>
+
+      <form id="loginForm" class="auth-form" novalidate>
+        <label for="email">Email
+          <input id="email" name="email" type="email" required maxlength="255" autocomplete="email" placeholder="ban@example.com" />
+        </label>
+        <div class="auth-field">
+          <label for="password">Mật khẩu</label>
+          <span class="password-wrap">
+            <input id="password" name="password" type="password" required maxlength="72" autocomplete="current-password" placeholder="Nhập mật khẩu" />
+            <button type="button" class="password-toggle" data-target="password" aria-pressed="false">Hiện</button>
+          </span>
+        </div>
+        <button type="submit" id="submitBtn">Đăng nhập</button>
+      </form>
+
+      <div id="status" class="status" role="alert" aria-live="polite"></div>
+
+      <div class="auth-footer">
+        
+        <div class="demo-accounts-box" style="margin-top:16px;padding:12px 14px;border-radius:12px;background:#f0f9ff;border:1px solid #bae6fd;font-size:0.86rem;line-height:1.55;color:#0f172a;"><strong>Tài khoản Demo 24/7 (GitHub Pages):</strong><br>• <strong>Học viên:</strong> <code>student@careermentor.vn</code> / <code>StudentPass123!</code><br>• <strong>Quản trị (Admin):</strong> <code>admin@careermentor.vn</code> / <code>AdminPassword123!</code><br><span style="color:#475569;">Hoặc tự đăng ký tài khoản mới — mọi dữ liệu lưu trực tiếp trên trình duyệt.</span></div>
+        <p class="muted small">Chưa có tài khoản? <a id="switchToRegisterLink" href="./register.html">Đăng ký ngay</a></p>
+        <p class="muted small"><a href="./explore.html">← Về trang khám phá</a></p>
+      </div>
+    </section>
+  </main>
+  <script src="./session.js?v=1795616870"></script>
+  <script src="./auth.js?v=1795616870"></script>
+</body>
+</html>

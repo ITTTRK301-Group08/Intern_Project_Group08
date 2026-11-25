@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="vi" data-require-auth="true" data-require-role="admin">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Phân hệ Quản trị danh mục nghề nghiệp, kỹ năng chuẩn và tài nguyên học tập." />
+  <meta name="theme-color" content="#f2f7f5" />
+  <title>Career Mentor — Quản trị danh mục hệ thống</title>
+  <script src="./demo-api.js?v=1795616870"></script>
+  <link rel="stylesheet" href="./profile.css?v=1795616870" />
+  <link rel="stylesheet" href="./admin.css?v=1795616870" />
+  <script src="./session.js?v=1795616870"></script>
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <a class="brand-lockup" href="./explore.html" aria-label="Career Mentor — Dẫn lối sự nghiệp thông minh">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="careerMentorGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4f46e5" />
+                <stop offset="0.5" stop-color="#7c3aed" />
+                <stop offset="1" stop-color="#06b6d4" />
+              </linearGradient>
+              <linearGradient id="careerMentorCore" x1="10" y1="6" x2="22" y2="26" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38bdf8" />
+                <stop offset="1" stop-color="#6366f1" />
+              </linearGradient>
+            </defs>
+            <path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" stroke="url(#careerMentorGrad)" stroke-width="2" stroke-linejoin="round" fill="rgba(79, 70, 229, 0.12)" />
+            <path d="M16 7L23 18.5L16 15.5L9 18.5L16 7Z" fill="url(#careerMentorCore)" />
+            <circle cx="16" cy="16" r="2.2" fill="#ffffff" />
+          </svg>
+        </span>
+        <span class="brand-name">Career<strong>Mentor</strong></span>
+      </a>
+      <nav class="site-nav" aria-label="Điều hướng">
+        <a href="./explore.html">Khám phá</a>
+        <a href="./profile.html">Hồ sơ</a>
+        <a href="./cv.html">CV của tôi</a>
+        <a href="./analysis.html">Phân tích kỹ năng</a>
+        <a href="./interview.html">Phỏng vấn</a>
+        <a href="./roadmap.html">Lộ trình 30 ngày</a>
+        <a href="./dashboard.html">Dashboard</a>
+        <a href="./admin.html" aria-current="page">Quản trị</a>
+      </nav>
+    </header>
+
+    <!-- Feedback Message Banner -->
+    <div id="adminFeedback" class="status-card" role="status" aria-live="polite" style="display: none;"></div>
+
+    <!-- Access Denied Card (Kicking out non-admin) -->
+    <div id="adminAccessDenied" class="status-card danger" role="alert" style="display: none; margin: 40px auto; max-width: 580px; padding: 36px 28px; text-align: center; border-radius: 18px; border: 1px solid rgba(239, 68, 68, 0.25); background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);">
+      <div style="font-size: 52px; margin-bottom: 14px;">🛡️</div>
+      <h2 style="margin: 0 0 10px 0; font-size: 22px; color: #ef4444; font-weight: 700;">Từ chối quyền truy cập (403 Forbidden)</h2>
+      <p style="margin: 0 0 16px 0; color: var(--text-soft, #94a3b8); font-size: 15px; line-height: 1.6;">
+        Tài khoản của bạn hiện tại là <strong>Học viên</strong>, không có thẩm quyền truy cập <strong>Phân hệ Quản trị (Admin)</strong>.
+      </p>
+      <div id="adminKickCountdown" style="font-size: 14px; color: var(--muted, #64748b); margin-bottom: 24px; padding: 8px 16px; background: rgba(0,0,0,0.2); border-radius: 999px; display: inline-block;">
+        Hệ thống sẽ tự động chuyển hướng về trang Khám phá trong <strong><span id="kickSeconds">2</span>s</strong>...
+      </div>
+      <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+        <a href="./explore.html" class="btn secondary-btn" style="padding: 10px 22px;">Về trang Khám phá</a>
+        <a href="./login.html?next=/admin" class="btn primary-btn" style="padding: 10px 22px;">Đăng nhập bằng tài khoản Admin</a>
+      </div>
+    </div>
+
+    <!-- Main Admin Dashboard Content -->
+    <div id="adminAuthorizedContent">
+      <!-- Hero / Title -->
+      <section class="page-hero" style="margin-bottom: 24px;">
+        <div class="page-hero-copy">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <p class="page-eyebrow" style="margin-bottom: 0;">Trung tâm điều hành</p>
+            <span class="admin-badge-pill">Quản trị viên</span>
+          </div>
+          <h1 style="margin: 0 0 6px 0;">Phân hệ Quản trị danh mục hệ thống</h1>
+          <p class="muted" style="margin: 0;">
+            Số liệu lấy trực tiếp từ cơ sở dữ liệu: quản lý người dùng, danh mục nghề nghiệp, kỹ năng chuẩn và tài nguyên học tập.
+          </p>
+        </div>
+      </section>
+
+      <!-- System usage statistics -->
+      <section class="admin-stats-grid" aria-label="Thống kê sử dụng hệ thống">
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Tổng người dùng</div>
+          <div id="statTotalUsers" class="admin-stat-val">—</div>
+          <div id="statUserBreakdown" class="admin-stat-note">Đang tải…</div>
+          <button type="button" class="admin-stat-link" data-goto-tab="users">Quản lý người dùng →</button>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Tổng lượt phân tích</div>
+          <div id="statTotalAnalyses" class="admin-stat-val">—</div>
+          <div class="admin-stat-note">Dữ liệu từ bảng analyses</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Tổng phiên phỏng vấn</div>
+          <div id="statTotalInterviews" class="admin-stat-val">—</div>
+          <div class="admin-stat-note">Dữ liệu từ bảng interview_sessions</div>
+        </div>
+      </section>
+
+      <!-- Catalog counts -->
+      <section class="admin-stats-grid" aria-label="Thống kê danh mục">
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Vị trí nghề nghiệp</div>
+          <div id="statRolesCount" class="admin-stat-val">—</div>
+          <div class="admin-stat-note">Tổng số bản ghi trong career_roles</div>
+          <button type="button" class="admin-stat-link" data-goto-tab="roles">Quản lý →</button>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Phân nhóm nghề nghiệp</div>
+          <div id="statCategoriesCount" class="admin-stat-val">—</div>
+          <div class="admin-stat-note">Tổng số bản ghi trong career_categories</div>
+          <button type="button" class="admin-stat-link" data-goto-tab="categories">Quản lý →</button>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Kỹ năng chuẩn hóa</div>
+          <div id="statSkillsCount" class="admin-stat-val">—</div>
+          <div class="admin-stat-note">Tổng số bản ghi trong skills</div>
+          <button type="button" class="admin-stat-link" data-goto-tab="skills">Quản lý →</button>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Tài nguyên học tập</div>
+          <div id="statResourcesCount" class="admin-stat-val">—</div>
+          <div id="statResourcesBreakdown" class="admin-stat-note">Đang tải…</div>
+          <button type="button" class="admin-stat-link" data-goto-tab="resources">Quản lý →</button>
+        </div>
+      </section>
+
+      <!-- Admin Tabs -->
+      <div class="admin-tab-bar" role="tablist" aria-label="Khu vực quản trị">
+        <button type="button" class="admin-tab-btn active" data-tab="roles" role="tab" aria-selected="true">
+          <span>💼</span> Vị trí nghề nghiệp
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="categories" role="tab" aria-selected="false">
+          <span>📂</span> Phân nhóm nghề nghiệp
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="skills" role="tab" aria-selected="false">
+          <span>⚡</span> Danh mục kỹ năng
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="resources" role="tab" aria-selected="false">
+          <span>📚</span> Tài nguyên học tập
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="users" role="tab" aria-selected="false">
+          <span>👥</span> Người dùng
+        </button>
+      </div>
+
+      <!-- TAB 1: CAREER ROLES -->
+      <div id="tabContentRoles" class="admin-tab-content" role="tabpanel">
+        <div class="admin-section-toolbar">
+          <div class="admin-filter-bar">
+            <input type="search" id="searchRolesInput" class="admin-search-input" placeholder="Tìm theo tên, slug hoặc mô tả..." aria-label="Tìm vị trí nghề nghiệp" />
+            <select id="filterRolesCategory" class="admin-filter-control" aria-label="Lọc theo phân nhóm">
+              <option value="">Tất cả phân nhóm</option>
+            </select>
+            <select id="filterRolesLevel" class="admin-filter-control" aria-label="Lọc theo cấp độ">
+              <option value="">Tất cả cấp độ</option>
+              <option value="Intern">Intern</option>
+              <option value="Fresher">Fresher</option>
+              <option value="Junior">Junior</option>
+              <option value="Middle">Middle</option>
+              <option value="Senior">Senior</option>
+            </select>
+            <select id="filterRolesActive" class="admin-filter-control" aria-label="Lọc theo trạng thái">
+              <option value="">Mọi trạng thái</option>
+              <option value="true">Đang hoạt động</option>
+              <option value="false">Tạm ẩn</option>
+            </select>
+          </div>
+          <button type="button" id="btnAddRole" class="btn primary-btn" style="font-size: 14px; padding: 8px 18px;">
+            + Thêm vị trí mới
+          </button>
+        </div>
+        <div class="admin-table-card">
+          <div class="admin-table-scroll">
+            <table class="admin-data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tên vị trí</th>
+                  <th>Cấp độ</th>
+                  <th>Phân nhóm</th>
+                  <th>Số kỹ năng</th>
+                  <th>Trạng thái</th>
+                  <th style="text-align: right;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="rolesTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer">
+            <span id="rolesPageInfo" class="admin-page-info">Đang tải…</span>
+            <div class="admin-pagination">
+              <button type="button" class="admin-page-btn" data-page="roles" data-dir="prev" disabled>‹ Trước</button>
+              <button type="button" class="admin-page-btn" data-page="roles" data-dir="next" disabled>Sau ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: CAREER CATEGORIES -->
+      <div id="tabContentCategories" class="admin-tab-content" role="tabpanel" style="display: none;">
+        <div class="admin-section-toolbar">
+          <div class="admin-filter-bar">
+            <input type="search" id="searchCategoriesInput" class="admin-search-input" placeholder="Tìm theo tên, slug hoặc mô tả..." aria-label="Tìm phân nhóm nghề nghiệp" />
+          </div>
+          <button type="button" id="btnAddCategory" class="btn primary-btn" style="font-size: 14px; padding: 8px 18px;">
+            + Thêm phân nhóm mới
+          </button>
+        </div>
+        <div class="admin-table-card">
+          <div class="admin-table-scroll">
+            <table class="admin-data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tên phân nhóm</th>
+                  <th>Slug định danh</th>
+                  <th>Mô tả</th>
+                  <th>Số vị trí</th>
+                  <th style="text-align: right;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="categoriesTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer">
+            <span id="categoriesPageInfo" class="admin-page-info">Đang tải…</span>
+            <div class="admin-pagination">
+              <button type="button" class="admin-page-btn" data-page="categories" data-dir="prev" disabled>‹ Trước</button>
+              <button type="button" class="admin-page-btn" data-page="categories" data-dir="next" disabled>Sau ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: SKILLS -->
+      <div id="tabContentSkills" class="admin-tab-content" role="tabpanel" style="display: none;">
+        <div class="admin-section-toolbar">
+          <div class="admin-filter-bar">
+            <input type="search" id="searchSkillsInput" class="admin-search-input" placeholder="Tìm theo tên hoặc mô tả kỹ năng..." aria-label="Tìm kỹ năng" />
+            <select id="filterSkillsActive" class="admin-filter-control" aria-label="Lọc theo trạng thái kỹ năng">
+              <option value="">Mọi trạng thái</option>
+              <option value="true">Đang hoạt động</option>
+              <option value="false">Tạm ẩn</option>
+            </select>
+          </div>
+          <button type="button" id="btnAddSkill" class="btn primary-btn" style="font-size: 14px; padding: 8px 18px;">
+            + Thêm kỹ năng mới
+          </button>
+        </div>
+        <div class="admin-table-card">
+          <div class="admin-table-scroll">
+            <table class="admin-data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tên kỹ năng</th>
+                  <th>Mô tả chuyên môn</th>
+                  <th>Trạng thái</th>
+                  <th style="text-align: right;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="skillsTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer">
+            <span id="skillsPageInfo" class="admin-page-info">Đang tải…</span>
+            <div class="admin-pagination">
+              <button type="button" class="admin-page-btn" data-page="skills" data-dir="prev" disabled>‹ Trước</button>
+              <button type="button" class="admin-page-btn" data-page="skills" data-dir="next" disabled>Sau ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: RESOURCES -->
+      <div id="tabContentResources" class="admin-tab-content" role="tabpanel" style="display: none;">
+        <div class="admin-section-toolbar">
+          <div class="admin-filter-bar">
+            <input type="search" id="searchResourcesInput" class="admin-search-input" placeholder="Tìm theo tiêu đề, nhà cung cấp..." aria-label="Tìm tài nguyên học tập" />
+            <select id="filterResourcesType" class="admin-filter-control" aria-label="Lọc theo loại tài nguyên">
+              <option value="">Mọi loại</option>
+              <option value="documentation">Tài liệu</option>
+              <option value="course">Khóa học</option>
+              <option value="video">Video</option>
+              <option value="article">Bài viết</option>
+              <option value="practice">Thực hành</option>
+              <option value="project">Dự án</option>
+            </select>
+            <select id="filterResourcesApproval" class="admin-filter-control" aria-label="Lọc theo trạng thái kiểm duyệt">
+              <option value="">Mọi kiểm duyệt</option>
+              <option value="pending">Chờ duyệt</option>
+              <option value="approved">Đã duyệt</option>
+              <option value="rejected">Từ chối</option>
+            </select>
+            <select id="filterResourcesActive" class="admin-filter-control" aria-label="Lọc theo trạng thái hiển thị">
+              <option value="">Mọi trạng thái</option>
+              <option value="true">Đang hoạt động</option>
+              <option value="false">Tạm ẩn</option>
+            </select>
+          </div>
+          <button type="button" id="btnAddResource" class="btn primary-btn" style="font-size: 14px; padding: 8px 18px;">
+            + Thêm tài nguyên mới
+          </button>
+        </div>
+        <div class="admin-table-card">
+          <div class="admin-table-scroll">
+            <table class="admin-data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tiêu đề tài nguyên</th>
+                  <th>Nhà cung cấp</th>
+                  <th>Kỹ năng gắn liền</th>
+                  <th>Phân loại</th>
+                  <th>Kiểm duyệt</th>
+                  <th>Chi phí</th>
+                  <th>Trạng thái</th>
+                  <th style="text-align: right;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="resourcesTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer">
+            <span id="resourcesPageInfo" class="admin-page-info">Đang tải…</span>
+            <div class="admin-pagination">
+              <button type="button" class="admin-page-btn" data-page="resources" data-dir="prev" disabled>‹ Trước</button>
+              <button type="button" class="admin-page-btn" data-page="resources" data-dir="next" disabled>Sau ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: USERS -->
+      <div id="tabContentUsers" class="admin-tab-content" role="tabpanel" style="display: none;">
+        <div class="admin-section-toolbar">
+          <div class="admin-filter-bar">
+            <input type="search" id="searchUsersInput" class="admin-search-input" placeholder="Tìm theo email hoặc họ tên..." aria-label="Tìm người dùng" />
+            <select id="filterUsersRole" class="admin-filter-control" aria-label="Lọc theo vai trò">
+              <option value="">Mọi vai trò</option>
+              <option value="student">Học viên</option>
+              <option value="admin">Quản trị viên</option>
+            </select>
+            <select id="filterUsersStatus" class="admin-filter-control" aria-label="Lọc theo trạng thái tài khoản">
+              <option value="">Mọi trạng thái</option>
+              <option value="true">Đang hoạt động</option>
+              <option value="false">Đã khóa</option>
+            </select>
+          </div>
+        </div>
+        <div class="admin-table-card">
+          <div class="admin-table-scroll">
+            <table class="admin-data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Email</th>
+                  <th>Họ tên</th>
+                  <th>Vai trò</th>
+                  <th>Trạng thái</th>
+                  <th>Ngày tạo</th>
+                  <th style="text-align: right;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-table-footer">
+            <span id="usersPageInfo" class="admin-page-info">Đang tải…</span>
+            <div class="admin-pagination">
+              <button type="button" class="admin-page-btn" data-page="users" data-dir="prev" disabled>‹ Trước</button>
+              <button type="button" class="admin-page-btn" data-page="users" data-dir="next" disabled>Sau ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL: CATEGORY -->
+  <div id="categoryModal" class="admin-modal-backdrop" style="display: none;">
+    <div class="admin-modal-box">
+      <div class="admin-modal-head">
+        <h3 id="categoryModalTitle" class="admin-modal-title">Thêm phân nhóm nghề nghiệp</h3>
+        <button type="button" class="btn-close-modal ghost small" onclick="closeAllModals()">✕</button>
+      </div>
+      <form id="categoryForm">
+        <input type="hidden" id="categoryFormId" />
+        <div class="admin-form-group">
+          <label for="categoryFormName">Tên nhóm nghề nghiệp *</label>
+          <input type="text" id="categoryFormName" class="admin-form-control" required placeholder="Ví dụ: Software Development" />
+        </div>
+        <div class="admin-form-group">
+          <label for="categoryFormSlug">Slug định danh *</label>
+          <input type="text" id="categoryFormSlug" class="admin-form-control" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="software-development" />
+        </div>
+        <div class="admin-form-group">
+          <label for="categoryFormDesc">Mô tả tóm tắt</label>
+          <textarea id="categoryFormDesc" class="admin-form-control" rows="3" placeholder="Mô tả phạm vi nhóm nghề..."></textarea>
+        </div>
+        <div class="admin-modal-footer">
+          <button type="button" class="btn secondary-btn" onclick="closeAllModals()">Hủy bỏ</button>
+          <button type="submit" class="btn primary-btn">Lưu thông tin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CAREER ROLE -->
+  <div id="roleModal" class="admin-modal-backdrop" style="display: none;">
+    <div class="admin-modal-box">
+      <div class="admin-modal-head">
+        <h3 id="roleModalTitle" class="admin-modal-title">Thêm vị trí nghề nghiệp</h3>
+        <button type="button" class="btn-close-modal ghost small" onclick="closeAllModals()">✕</button>
+      </div>
+      <form id="roleForm">
+        <input type="hidden" id="roleFormId" />
+        <div class="admin-form-group">
+          <label for="roleFormName">Tên vị trí *</label>
+          <input type="text" id="roleFormName" class="admin-form-control" required placeholder="Ví dụ: Backend Developer" />
+        </div>
+        <div class="admin-form-group">
+          <label for="roleFormLevel">Cấp độ *</label>
+          <select id="roleFormLevel" class="admin-form-control" required>
+            <option value="Intern">Intern</option>
+            <option value="Fresher">Fresher</option>
+            <option value="Junior" selected>Junior</option>
+            <option value="Middle">Middle</option>
+            <option value="Senior">Senior</option>
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label for="roleFormSlug">Slug định danh *</label>
+          <input type="text" id="roleFormSlug" class="admin-form-control" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="backend-developer" />
+        </div>
+        <div class="admin-form-group">
+          <label for="roleFormCategory">Phân nhóm nghề nghiệp</label>
+          <select id="roleFormCategory" class="admin-form-control">
+            <option value="">-- Chưa phân nhóm --</option>
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label for="roleFormDesc">Mô tả công việc</label>
+          <textarea id="roleFormDesc" class="admin-form-control" rows="3" placeholder="Mô tả trách nhiệm vị trí..."></textarea>
+        </div>
+        <div class="admin-form-group">
+          <label>Kỹ năng yêu cầu</label>
+          <div class="admin-skill-picker-row">
+            <select id="roleSkillPicker" class="admin-form-control" aria-label="Chọn kỹ năng để thêm"></select>
+            <button type="button" id="btnAddRoleSkill" class="btn secondary-btn" style="white-space: nowrap;">Thêm</button>
+          </div>
+          <div id="roleSkillsList" class="admin-skill-list"></div>
+        </div>
+        <div class="admin-modal-footer">
+          <button type="button" class="btn secondary-btn" onclick="closeAllModals()">Hủy bỏ</button>
+          <button type="submit" class="btn primary-btn">Lưu thông tin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: SKILL -->
+  <div id="skillModal" class="admin-modal-backdrop" style="display: none;">
+    <div class="admin-modal-box">
+      <div class="admin-modal-head">
+        <h3 id="skillModalTitle" class="admin-modal-title">Thêm kỹ năng chuẩn</h3>
+        <button type="button" class="btn-close-modal ghost small" onclick="closeAllModals()">✕</button>
+      </div>
+      <form id="skillForm">
+        <input type="hidden" id="skillFormId" />
+        <div class="admin-form-group">
+          <label for="skillFormName">Tên kỹ năng *</label>
+          <input type="text" id="skillFormName" class="admin-form-control" required placeholder="Ví dụ: Python, SQL, REST APIs" />
+        </div>
+        <div class="admin-form-group">
+          <label for="skillFormDesc">Mô tả tiêu chuẩn năng lực</label>
+          <textarea id="skillFormDesc" class="admin-form-control" rows="3" placeholder="Tiêu chuẩn kiến thức và kỹ năng cần đạt..."></textarea>
+        </div>
+        <div class="admin-modal-footer">
+          <button type="button" class="btn secondary-btn" onclick="closeAllModals()">Hủy bỏ</button>
+          <button type="submit" class="btn primary-btn">Lưu thông tin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: RESOURCE -->
+  <div id="resourceModal" class="admin-modal-backdrop" style="display: none;">
+    <div class="admin-modal-box">
+      <div class="admin-modal-head">
+        <h3 id="resourceModalTitle" class="admin-modal-title">Thêm tài nguyên học tập</h3>
+        <button type="button" class="btn-close-modal ghost small" onclick="closeAllModals()">✕</button>
+      </div>
+      <form id="resourceForm">
+        <input type="hidden" id="resourceFormId" />
+        <div class="admin-form-group">
+          <label for="resourceFormSlug">Slug định danh *</label>
+          <input type="text" id="resourceFormSlug" class="admin-form-control" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="180" placeholder="python-tutorial" />
+        </div>
+        <div class="admin-form-group">
+          <label for="resourceFormTitle">Tiêu đề tài nguyên *</label>
+          <input type="text" id="resourceFormTitle" class="admin-form-control" required placeholder="Ví dụ: Python Tutorial" />
+        </div>
+        <div class="admin-form-group">
+          <label for="resourceFormProvider">Nhà cung cấp / Tác giả *</label>
+          <input type="text" id="resourceFormProvider" class="admin-form-control" required placeholder="Ví dụ: Python Software Foundation, Coursera" />
+        </div>
+        <div class="admin-form-group">
+          <label for="resourceFormUrl">Đường dẫn liên kết (URL) *</label>
+          <input type="url" id="resourceFormUrl" class="admin-form-control" required placeholder="https://docs.python.org/3/" />
+        </div>
+        <div class="admin-form-group">
+          <label for="resourceFormSkill">Kỹ năng liên kết</label>
+          <select id="resourceFormSkill" class="admin-form-control">
+            <option value="">-- Không gắn kỹ năng cụ thể --</option>
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label for="resourceFormType">Phân loại tài nguyên *</label>
+          <select id="resourceFormType" class="admin-form-control" required>
+            <option value="documentation">Tài liệu (Documentation)</option>
+            <option value="course">Khóa học (Course)</option>
+            <option value="practice">Bài tập thực hành (Practice)</option>
+            <option value="project">Dự án (Project)</option>
+            <option value="article">Bài viết (Article)</option>
+            <option value="video">Video</option>
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label for="resourceFormLanguage">Ngôn ngữ</label>
+          <select id="resourceFormLanguage" class="admin-form-control">
+            <option value="en">Tiếng Anh (en)</option>
+            <option value="vi">Tiếng Việt (vi)</option>
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label for="resourceFormDescription">Mô tả</label>
+          <textarea id="resourceFormDescription" class="admin-form-control" rows="3" maxlength="4000"></textarea>
+        </div>
+        <div class="admin-form-group">
+          <label for="resourceFormFree">Chi phí</label>
+          <select id="resourceFormFree" class="admin-form-control">
+            <option value="true">Miễn phí (Free)</option>
+            <option value="false">Có phí (Paid)</option>
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label for="resourceFormActive">Trạng thái hiển thị</label>
+          <select id="resourceFormActive" class="admin-form-control">
+            <option value="true">Đang hoạt động</option>
+            <option value="false">Tạm ẩn</option>
+          </select>
+        </div>
+        <div class="admin-modal-footer">
+          <button type="button" class="btn secondary-btn" onclick="closeAllModals()">Hủy bỏ</button>
+          <button type="submit" class="btn primary-btn">Lưu tài nguyên</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: DETAIL (dùng chung cho user/role/category/resource) -->
+  <div id="detailModal" class="admin-modal-backdrop" style="display: none;">
+    <div class="admin-modal-box">
+      <div class="admin-modal-head">
+        <h3 id="detailModalTitle" class="admin-modal-title">Chi tiết</h3>
+        <button type="button" class="btn-close-modal ghost small" onclick="closeAllModals()">✕</button>
+      </div>
+      <div id="detailModalBody" class="admin-detail-body"></div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn secondary-btn" onclick="closeAllModals()">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./admin.js?v=1795616870"></script>
+</body>
+</html>

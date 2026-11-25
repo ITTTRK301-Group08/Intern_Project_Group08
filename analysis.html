@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="vi" data-require-auth="true">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Career Mentor — Phân tích kỹ năng & Báo cáo</title>
+  <script src="./demo-api.js?v=1795616870"></script>
+  <link rel="stylesheet" href="./profile.css?v=1795616870" />
+  <script src="./session.js?v=1795616870"></script>
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+            <a class="brand-lockup" href="./explore.html" aria-label="Career Mentor — Dẫn lối sự nghiệp thông minh">
+        <span class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="careerMentorGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4f46e5" />
+                <stop offset="0.5" stop-color="#7c3aed" />
+                <stop offset="1" stop-color="#06b6d4" />
+              </linearGradient>
+              <linearGradient id="careerMentorCore" x1="10" y1="6" x2="22" y2="26" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38bdf8" />
+                <stop offset="1" stop-color="#6366f1" />
+              </linearGradient>
+            </defs>
+            <path d="M16 2.5L28.5 9.7V22.3L16 29.5L3.5 22.3V9.7L16 2.5Z" stroke="url(#careerMentorGrad)" stroke-width="2" stroke-linejoin="round" fill="rgba(79, 70, 229, 0.12)" />
+            <path d="M16 7L23 18.5L16 15.5L9 18.5L16 7Z" fill="url(#careerMentorCore)" />
+            <circle cx="16" cy="16" r="2.2" fill="#ffffff" />
+          </svg>
+        </span>
+        <span class="brand-name">Career<strong>Mentor</strong></span>
+      </a>
+      <nav class="site-nav" aria-label="Điều hướng">
+        <a href="./explore.html">Khám phá</a>
+        <a href="./profile.html">Hồ sơ</a>
+        <a href="./cv.html">CV của tôi</a>
+        <a href="./analysis.html" aria-current="page">Phân tích kỹ năng</a>
+        <a href="./interview.html">Phỏng vấn</a>
+        <a href="./roadmap.html">Lộ trình 30 ngày</a>
+        <a href="./dashboard.html">Dashboard</a>
+      </nav>
+    </header>
+
+    <section class="page-hero">
+      <div class="page-hero-copy">
+        <p class="page-eyebrow">Đánh giá mức độ sẵn sàng</p>
+        <h1>Phân tích khoảng cách kỹ năng</h1>
+        <p class="muted">Chọn nguồn dữ liệu từ CV hoặc Hồ sơ cá nhân và đối chiếu với vị trí nghề nghiệp bạn hướng tới.</p>
+      </div>
+      <div class="page-hero-actions">
+        <a class="btn-link secondary-link small" href="./explore.html">Xem danh mục vị trí</a>
+        <a class="btn-link secondary-link small" href="./cv.html">Quản lý CV</a>
+        <a class="btn-link secondary-link small" href="./dashboard.html">Dashboard cá nhân</a>
+      </div>
+    </section>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="loading" class="loading hidden">Đang kiểm tra và xử lý yêu cầu...</div>
+
+    <form id="analysisForm" class="card" novalidate>
+      <input id="cv_id" name="cv_id" type="hidden" />
+      <input id="career_role_id" name="career_role_id" type="hidden" />
+      <div class="card-head">
+        <div>
+          <h2>Bước 1: Chọn nguồn dữ liệu của bạn</h2>
+          <p class="field-hint">Bạn có thể phân tích dựa trên nội dung CV PDF đã tải lên hoặc thông tin trong Hồ sơ cá nhân.</p>
+        </div>
+      </div>
+
+      <div class="choice-grid" role="radiogroup" aria-label="Nguồn dữ liệu phân tích">
+        <button type="button" id="sourceCvBtn" class="choice-card is-selected" aria-pressed="true">
+          <strong>Dùng CV PDF đã tải lên</strong>
+          <span>Đối chiếu nội dung CV của bạn với vị trí mục tiêu.</span>
+        </button>
+        <button type="button" id="sourceProfileBtn" class="choice-card" aria-pressed="false">
+          <strong>Dùng Hồ sơ cá nhân</strong>
+          <span>Dùng thông tin chuyên môn và kỹ năng tự đánh giá.</span>
+        </button>
+      </div>
+
+      <div id="cvPickerWrap" style="margin-top: 14px;">
+        <label for="cvSelect">Chọn phiên bản CV
+          <select id="cvSelect">
+            <option value="">Đang tải danh sách CV...</option>
+          </select>
+        </label>
+        <p id="noCvHint" class="field-hint hidden">Bạn chưa có CV dùng được. <a href="./cv.html">Tải lên CV PDF</a> hoặc chuyển sang dùng hồ sơ cá nhân.</p>
+        <div id="scannedCvWarning" class="warning-box hidden" role="alert">
+          <strong>CV chưa có văn bản để đọc tự động.</strong>
+          <p>Hãy chọn CV khác hoặc chuyển sang dùng hồ sơ cá nhân.</p>
+          <button id="switchToProfileBtn" type="button" class="small">Dùng Hồ sơ cá nhân</button>
+        </div>
+      </div>
+
+      <div id="profileSourceHint" class="info-banner hidden">
+        Hệ thống sẽ sử dụng thông tin học vấn, điểm mạnh, kỹ năng tự đánh giá và giới thiệu bản thân từ <a href="./profile.html">Hồ sơ cá nhân</a> của bạn.
+      </div>
+
+      <div class="subsection">
+        <div class="card-head" style="margin-bottom:10px">
+          <div>
+            <h2>Bước 2: Chọn vị trí nghề nghiệp mục tiêu</h2>
+            <p class="field-hint">Kỹ năng của bạn sẽ được đối chiếu với bộ tiêu chuẩn của vị trí này.</p>
+          </div>
+        </div>
+        <label for="roleSelect">Vị trí nghề nghiệp mục tiêu
+          <select id="roleSelect" required>
+            <option value="">Đang tải danh sách vị trí...</option>
+          </select>
+        </label>
+        <div id="selectedRolePreview" class="info-banner hidden" aria-live="polite">
+          <div>
+            <strong id="previewRoleName"></strong>
+            <span id="previewRoleLevel" class="badge badge-info"></span>
+            <span id="previewRoleCategory" class="badge badge-muted"></span>
+          </div>
+          <p id="previewRoleDesc" class="muted small"></p>
+          <div id="previewRoleSkills" class="small"></div>
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top: 20px;">
+        <button type="submit" id="startAnalysisBtn">Bắt đầu phân tích</button>
+        <span class="field-hint">Bạn sẽ xem lại mục đích sử dụng dữ liệu trước khi gửi yêu cầu.</span>
+      </div>
+    </form>
+
+    <section id="resultCard" class="card hidden" aria-live="polite">
+      <div class="card-head">
+        <div>
+          <h2 id="resultTitle">Trạng thái yêu cầu phân tích</h2>
+          <p id="resultSubtitle" class="muted small"></p>
+        </div>
+        <span id="resultBadge" class="badge badge-info"></span>
+      </div>
+      <div id="resultSummary" class="detail-grid"></div>
+      <div id="resultBodyText" class="info-banner" style="margin-top:0"></div>
+      <div class="actions">
+        <a id="roadmapLinkBtn" class="btn-link small" href="./roadmap.html">Lộ trình học tập 30 ngày →</a>
+        <a id="dashboardLinkBtn" class="btn-link small" href="./dashboard.html">Xem Dashboard &amp; Radar →</a>
+        <a class="btn-link secondary-link small" href="./explore.html">Xem yêu cầu kỹ năng trên Khám phá</a>
+        <a class="btn-link secondary-link small" href="./profile.html">Cập nhật Hồ sơ</a>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="historyTitle">
+      <h2 id="historyTitle">Lịch sử phân tích</h2>
+      <div id="historyList" class="history-list" aria-live="polite"></div>
+      <div id="historyEmpty" class="muted">Đang tải lịch sử...</div>
+      <div class="pagination">
+        <button id="previousPage" type="button" class="secondary" disabled>Trước</button>
+        <span id="pageInfo" class="muted"></span>
+        <button id="nextPage" type="button" class="secondary" disabled>Sau</button>
+      </div>
+    </section>
+
+    <section id="reportCard" class="card hidden" aria-labelledby="reportTitle">
+      <h2 id="reportTitle">Báo cáo chi tiết</h2>
+      <p id="reportRole" class="muted"></p>
+      <div id="reportProgress" class="status" aria-live="polite"></div>
+      <div id="reportContent" class="hidden">
+        <div class="grid">
+          <div>
+            <span class="label">Điểm sẵn sàng nghề nghiệp</span>
+            <div id="readinessScore" class="report-score"></div>
+          </div>
+          <div>
+            <span class="label">Nhận xét tổng quan</span>
+            <p id="reportSummary"></p>
+          </div>
+        </div>
+        <h3>Đối chiếu kỹ năng</h3>
+        <div id="skillsEmpty" class="muted hidden">Chưa có dữ liệu kỹ năng.</div>
+        <div class="table-wrap">
+          <table id="skillsTable" class="hidden">
+            <thead>
+              <tr><th>Kỹ năng</th><th>Hiện tại</th><th>Yêu cầu</th><th>Khoảng cách</th><th>Bằng chứng</th><th>Đề xuất</th></tr>
+            </thead>
+            <tbody id="skillsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <span>Career Mentor — Định hướng kỹ năng nghề nghiệp dành cho sinh viên</span>
+      <div class="footer-links">
+        <a href="./explore.html">Khám phá</a>
+        <a href="./profile.html">Hồ sơ</a>
+        <a href="./cv.html">CV của tôi</a>
+      </div>
+    </footer>
+  </main>
+
+  <div id="consentModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
+    <div class="modal">
+      <h2 id="consentTitle">Xác nhận quyền riêng tư</h2>
+      <p class="muted">Dữ liệu được dùng để đối chiếu kỹ năng với vị trí mục tiêu. Bạn có thể từ chối để dừng mà không gửi dữ liệu.</p>
+      <ul>
+        <li>Chỉ gửi CV đã chọn hoặc thông tin chuyên môn trong hồ sơ.</li>
+        <li>Mật khẩu và thông tin xác thực không được gửi vào yêu cầu phân tích.</li>
+      </ul>
+      <div class="modal-actions">
+        <button id="consentReject" type="button" class="ghost">Từ chối</button>
+        <button id="consentAccept" type="button">Đồng ý và tiếp tục</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./session.js?v=1795616870"></script>
+  <script src="./analysis.js?v=1795616870"></script>
+</body>
+</html>
