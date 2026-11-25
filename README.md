@@ -134,3 +134,10 @@ Toàn bộ bộ kiểm thử dùng SQLite in-memory và mock AI provider, không
 ## 6. Triển khai chạy thử HTTPS, Sao lưu & Khôi phục
 
 Xem hướng dẫn chi tiết từng bước tại [`DEPLOYMENT.md`](DEPLOYMENT.md) để đóng gói bằng Docker Compose, chạy qua Nginx + HTTPS, sao lưu định kỳ và khôi phục dữ liệu (MySQL và thư mục CV đã tải lên).
+
+## 7. Hồ sơ bàn giao MVP
+
+- [Đặc tả yêu cầu (SRS)](docs/SRS.md)
+- [Thiết kế hệ thống](docs/system-design.md)
+- [Kịch bản demo, checklist nghiệm thu và backlog](docs/mvp-demo-checklist-backlog.md)
+- [Hướng dẫn chạy demo cục bộ](docs/run-local-demo.md)

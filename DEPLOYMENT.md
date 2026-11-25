@@ -138,7 +138,7 @@ python -c "import httpx; c=httpx.Client(verify=False); [print(u, c.get('https://
 
 | Kiểm tra | Lệnh | Kết quả kỳ vọng |
 | --- | --- | --- |
-| Unit + E2E | `python -m pytest -q` | `321 passed` (sau khi merge nhánh service-unit-and-e2e-tests) |
+| Unit + E2E | `python -m pytest -q` | `322 passed` (kết quả rà soát commit `473df9a`; kiểm tra lại sau mỗi thay đổi) |
 | Migration | `python -m alembic current` | đúng head `f7a8b9c0d1e2` |
 | Health | `GET /health` qua HTTPS | `200`, `{"ok":true}` |
 | Tài liệu API | `GET /docs` qua HTTPS | `200` |
